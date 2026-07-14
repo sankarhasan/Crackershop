@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPR Crackers | Admin Portal Dashboard</title>
+  <meta name="robots" content="noindex, nofollow">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Admin Stylesheet -->
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- 1. Secure Login Section (displayed if user is not authorized) -->
+  <section class="login-container" id="login-section">
+    <div class="login-card">
+      <div class="login-header">
+        <span class="login-logo-icon">🎆</span>
+        <h2>KPR Crackers</h2>
+        <p>Admin Portal Secure Access</p>
+      </div>
+      
+      <form id="admin-login-form" class="login-form">
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" class="form-control-admin" placeholder="Enter username" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-control-admin" placeholder="Enter password" required autocomplete="current-password">
+        </div>
+        
+        <div class="login-error" id="login-error-msg">⚠️ Invalid username or password!</div>
+        
+        <button type="submit" class="btn-admin btn-admin-primary btn-block-admin">Verify & Log In</button>
+      </form>
+      
+      <div class="login-footer">
+        <p>🔑 Hint: Default credentials are <strong>admin</strong> / <strong>admin123</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Admin Workspace Dashboard Container (hidden by default) -->
+  <div class="admin-layout" id="admin-dashboard" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo-icon">🎇</span>
+        <div class="sidebar-brand">
+          <span class="brand-main">KPR</span>
+          <span class="brand-sub">ADMIN PORTAL</span>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <ul>
+          <li>
+            <a href="#" class="sidebar-link active" data-section="dashboard">
+              <span class="sidebar-icon">📊</span> Dashboard
+            </a>
+          </li>
+          <li>
+            <a href="#" class="sidebar-link" data-section="products">
+              <span class="sidebar-icon">📦</span> Products
+            </a>
+          </li>
+          <li>
+            <a href="#" class="sidebar-link" data-section="categories">
+              <span class="sidebar-icon">🏷️</span> Categories
+            </a>
+          </li>
+          <li>
+            <a href="#" class="sidebar-link" data-section="enquiries">
+              <span class="sidebar-icon">📨</span> Enquiries
+              <span class="sidebar-badge" id="enquiry-badge-count">0</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <a href="index.html" class="sidebar-link back-store">
+          <span class="sidebar-icon">🔙</span> Back to Storefront
+        </a>
+        <button class="sidebar-link logout-btn" onclick="logoutAdmin()">
+          <span class="sidebar-icon">🚪</span> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Content Area -->
+    <main class="main-content">
+      <header class="main-content-header">
+        <div class="header-left">
+          <h1 id="current-section-title">Dashboard Statistics</h1>
+          <p id="current-date-info">Loading date...</p>
+        </div>
+        <div class="header-right">
+          <div class="admin-profile">
+            <span class="admin-avatar">👤</span>
+            <div class="admin-meta">
+              <h4>Administrator</h4>
+              <p>System Manager</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Section A: Dashboard Overview Statistics -->
+      <section id="section-dashboard" class="dashboard-section animate-fade">
+        <div class="stats-grid">
+          <!-- Total Products -->
+          <div class="stat-card blue">
+            <div class="stat-icon-box">📦</div>
+            <div class="stat-data">
+              <span class="stat-label">Total Firecrackers</span>
+              <h3 class="stat-number" id="stat-products-count">0</h3>
+            </div>
+          </div>
+          
+          <!-- Categories Count -->
+          <div class="stat-card green">
+            <div class="stat-icon-box">🏷️</div>
+            <div class="stat-data">
+              <span class="stat-label">Active Categories</span>
+              <h3 class="stat-number" id="stat-categories-count">0</h3>
+            </div>
+          </div>
+          
+          <!-- Enquiries Count -->
+          <div class="stat-card orange">
+            <div class="stat-icon-box">📨</div>
+            <div class="stat-data">
+              <span class="stat-label">New Enquiries</span>
+              <h3 class="stat-number" id="stat-enquiries-count">0</h3>
+            </div>
+          </div>
+
+          <!-- Total Estimations Value -->
+          <div class="stat-card gold">
+            <div class="stat-icon-box">💰</div>
+            <div class="stat-data">
+              <span class="stat-label">Est. Revenue Pool</span>
+              <h3 class="stat-number" id="stat-revenue-pool">₹0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent enquiries mini widget list -->
+        <div class="recent-enquiries-box">
+          <div class="panel-header">
+            <h3>Recent Active Enquiries</h3>
+            <button class="btn-admin btn-admin-secondary btn-admin-sm" onclick="showDashboardSection('enquiries')">View All Enquiries</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table-admin">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer Name</th>
+                  <th>WhatsApp</th>
+                  <th>Category Interest</th>
+                  <th>Date Submitted</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="recent-enquiries-tbody">
+                <tr>
+                  <td colspan="6" class="text-center">Loading recent enquiries...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section B: Products Management -->
+      <section id="section-products" class="dashboard-section animate-fade" style="display: none;">
+        <div class="actions-panel">
+          <div class="search-filter-box">
+            <input type="text" id="admin-product-search" placeholder="Search firecrackers by name..." class="form-control-admin search-admin-input">
+            <select id="admin-product-filter-cat" class="form-control-admin">
+              <option value="all">All Categories</option>
+            </select>
+          </div>
+          <button class="btn-admin btn-admin-primary" onclick="openProductAddModal()">
+            <span class="btn-icon-admin">+</span> Add New Firecracker
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-admin">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Image</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Price (INR)</th>
+                <th>Original Price</th>
+                <th>In Stock?</th>
+                <th>Quantity Spec</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="products-table-body">
+              <tr>
+                <td colspan="9" class="text-center">Loading products...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section C: Categories Management -->
+      <section id="section-categories" class="dashboard-section animate-fade" style="display: none;">
+        <div class="actions-panel justify-end">
+          <button class="btn-admin btn-admin-primary" onclick="openCategoryAddModal()">
+            <span class="btn-icon-admin">+</span> Add Category
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-admin">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Category Name</th>
+                <th>Slug Link</th>
+                <th>Action Controls</th>
+              </tr>
+            </thead>
+            <tbody id="categories-table-body">
+              <tr>
+                <td colspan="4" class="text-center">Loading categories...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section D: Enquiries Manager -->
+      <section id="section-enquiries" class="dashboard-section animate-fade" style="display: none;">
+        <div class="actions-panel">
+          <div class="search-filter-box">
+            <select id="admin-enquiry-filter-status" class="form-control-admin">
+              <option value="all">All Submissions</option>
+              <option value="new">🆕 New</option>
+              <option value="contacted">📞 Contacted</option>
+              <option value="resolved">✔️ Resolved</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-admin">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Customer Details</th>
+                <th>Category Interest</th>
+                <th>Customer Message</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="enquiries-table-body">
+              <tr>
+                <td colspan="7" class="text-center">Loading customer enquiries...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: ADD / EDIT PRODUCT -->
+  <div class="modal-overlay" id="product-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="product-modal-title">Add Firecracker Details</h3>
+        <button class="modal-close-btn" onclick="closeProductModal()">✕</button>
+      </div>
+      <form id="product-form" class="modal-form-scrollable">
+        <div class="modal-body-scroll">
+          <input type="hidden" id="product-modal-id">
+          
+          <div class="form-group">
+            <label for="product-modal-name">Product Name <span class="required">*</span></label>
+            <input type="text" id="product-modal-name" class="form-control-admin" required>
+          </div>
+          
+          <div class="form-row-admin-2">
+            <div class="form-group">
+              <label for="product-modal-cat">Category <span class="required">*</span></label>
+              <select id="product-modal-cat" class="form-control-admin" required>
+                <!-- Populated by JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="product-modal-qty">Quantity Label (e.g. 1 Box / 5 Pcs) <span class="required">*</span></label>
+              <input type="text" id="product-modal-qty" class="form-control-admin" placeholder="e.g. 1 Box / 10 Pcs" required>
+            </div>
+          </div>
+          
+          <div class="form-row-admin-3">
+            <div class="form-group">
+              <label for="product-modal-orig-price">Original Price (₹) <span class="required">*</span></label>
+              <input type="number" id="product-modal-orig-price" class="form-control-admin" min="0" required>
+            </div>
+            <div class="form-group">
+              <label for="product-modal-discount">Discount Label <span class="required">*</span></label>
+              <input type="text" id="product-modal-discount" class="form-control-admin" placeholder="e.g. 40% OFF" required>
+            </div>
+            <div class="form-group">
+              <label for="product-modal-price">Sale Price (₹) <span class="required">*</span></label>
+              <input type="number" id="product-modal-price" class="form-control-admin" min="0" readonly required>
+              <small class="field-hint">Auto-calculated from original price and discount</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Product Image Source</label>
+            <div class="image-source-toggle" style="display: flex; gap: 20px; margin-bottom: 8px;">
+              <label style="display: flex; align-items: center; gap: 6px; text-transform: none; font-weight: normal; cursor: pointer;">
+                <input type="radio" name="image-source" value="url" checked onclick="toggleImageSourceInput('url')"> Image URL
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; text-transform: none; font-weight: normal; cursor: pointer;">
+                <input type="radio" name="image-source" value="file" onclick="toggleImageSourceInput('file')"> Upload File
+              </label>
+            </div>
+            
+            <div id="image-url-group">
+              <input type="url" id="product-modal-image-url" class="form-control-admin" placeholder="https://example.com/image.jpg">
+            </div>
+            
+            <div id="image-file-group" style="display: none;">
+              <input type="file" id="product-modal-image-file" class="form-control-admin" accept="image/*">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Image Preview</label>
+            <div class="admin-image-preview-container" style="margin-top: 5px;">
+              <img id="product-modal-image-preview" src="" alt="Product Image Preview" style="max-height: 120px; max-width: 100%; border: 1px solid var(--admin-border); border-radius: var(--radius-sm); display: none; object-fit: contain;">
+              <div id="product-modal-image-placeholder" style="height: 120px; border: 1px dashed var(--admin-border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--admin-text-muted); font-size: 0.9rem;">No Image Selected</div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="product-modal-desc">Short Description <span class="required">*</span></label>
+            <textarea id="product-modal-desc" class="form-control-admin" rows="3" required></textarea>
+          </div>
+
+          <div class="form-group-checkbox">
+            <input type="checkbox" id="product-modal-stock" checked>
+            <label for="product-modal-stock">This product is In Stock and purchasable</label>
+          </div>
+        </div>
+        
+        <div class="modal-footer-sticky">
+          <button type="button" class="btn-admin btn-admin-secondary" onclick="closeProductModal()">Cancel</button>
+          <button type="submit" class="btn-admin btn-admin-primary">Save Firecracker</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT CATEGORY -->
+  <div class="modal-overlay" id="category-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="category-modal-title">Add Category</h3>
+        <button class="modal-close-btn" onclick="closeCategoryModal()">✕</button>
+      </div>
+      <form id="category-form" class="modal-form">
+        <input type="hidden" id="category-modal-id">
+        
+        <div class="form-group">
+          <label for="category-modal-name">Category Name <span class="required">*</span></label>
+          <input type="text" id="category-modal-name" class="form-control-admin" placeholder="e.g. Ground Chakkars" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="category-modal-slug">Slug (Auto-generated)</label>
+          <input type="text" id="category-modal-slug" class="form-control-admin" readonly placeholder="slug-name-link">
+        </div>
+
+        <div class="form-group">
+          <label>Category Image</label>
+
+          <!-- Hidden File Input -->
+          <input type="file" id="categoryImageFile" accept="image/*" class="hidden">
+
+          <!-- Upload Row -->
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top: 6px;">
+            <button type="button" class="btn-admin btn-admin-secondary" onclick="triggerCategoryImageUpload()">
+              <span style="font-size:1.05rem;">⬆️</span> Upload Image
+            </button>
+
+            <div class="admin-category-image-preview" style="display:flex; align-items:center; gap:12px;">
+              <img id="category-modal-image-preview" src="" alt="Category Image Preview" style="max-height: 70px; max-width: 120px; border: 1px solid var(--admin-border); border-radius: var(--radius-sm); display:none; object-fit: contain;">
+              <div id="category-modal-image-placeholder" style="height: 70px; width: 120px; border: 1px dashed var(--admin-border); border-radius: var(--radius-sm); display:flex; align-items:center; justify-content:center; color: var(--admin-text-muted); font-size: 0.85rem;">
+                No Image
+              </div>
+            </div>
+          </div>
+
+          <!-- Compatibility hidden legacy field (not shown to user) -->
+          <input type="hidden" id="categoryImageUrl" name="categoryImageUrl" value="">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-admin btn-admin-secondary" onclick="closeCategoryModal()">Cancel</button>
+          <button type="submit" class="btn-admin btn-admin-primary">Save Category</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: VIEW / UPDATE ENQUIRY -->
+  <div class="modal-overlay" id="enquiry-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+          <h3>Customer Enquiry Details</h3>
+        <button class="modal-close-btn" onclick="closeEnquiryModal()">✕</button>
+      </div>
+      <div class="modal-body-content">
+        <input type="hidden" id="enquiry-modal-id">
+        <div class="enquiry-detail-row">
+          <strong>Customer Name:</strong>
+          <span id="enquiry-modal-name">Loading...</span>
+        </div>
+        <div class="enquiry-detail-row">
+          <strong>WhatsApp Phone:</strong>
+          <span id="enquiry-modal-phone">Loading...</span>
+        </div>
+            <div class="enquiry-detail-row">
+          <strong>Delivery Address:</strong>
+          <span id="enquiry-modal-email">Loading...</span>
+        </div>
+        <div class="enquiry-detail-row">
+          <strong>Category of Interest:</strong>
+          <span id="enquiry-modal-cat">Loading...</span>
+        </div>
+        <div class="enquiry-detail-row">
+          <strong>Submission Date:</strong>
+          <span id="enquiry-modal-date">Loading...</span>
+        </div>
+        
+        <div class="enquiry-message-view">
+          <strong>Enquiry Message:</strong>
+          <p id="enquiry-modal-message">Loading...</p>
+        </div>
+        
+        <hr class="modal-divider">
+        
+        <div class="form-group">
+          <label for="enquiry-modal-status">Change Enquiry Processing Status</label>
+          <select id="enquiry-modal-status" class="form-control-admin">
+            <option value="new">🆕 New / Unread</option>
+            <option value="contacted">📞 Contacted Client</option>
+            <option value="resolved">✔️ Order Resolved / Finalized</option>
+          </select>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn-admin btn-admin-secondary" onclick="closeEnquiryModal()">Cancel</button>
+          <button type="button" class="btn-admin btn-admin-primary" onclick="saveEnquiryStatus()">Update Status</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRMATION DIALOG MODAL -->
+  <div class="modal-overlay" id="delete-modal" style="display: none;">
+    <div class="modal-card modal-confirm">
+      <div class="modal-body-content text-center">
+        <span class="warning-icon">⚠️</span>
+        <h3>Are you sure you want to delete?</h3>
+        <p id="delete-modal-text">This action cannot be undone. All linked items will be affected.</p>
+        
+        <div class="modal-footer justify-center">
+          <button class="btn-admin btn-admin-secondary" onclick="closeDeleteModal()">Cancel</button>
+          <button class="btn-admin btn-admin-danger" id="delete-confirm-btn">Yes, Delete Item</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="admin-toast-container"></div>
+
+  <!-- Core Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPR Crackers | Premium Sivakasi Firecrackers Online Shop</title>
+  <meta name="description" content="Welcome to KPR Crackers. Buy premium quality Sivakasi firecrackers online at best prices. Minimum order ₹2000. Quick delivery & safe shopping.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Top Sticky Bar -->
+  <div class="top-bar">
+    <div class="container top-bar-content">
+      <div class="top-bar-left">
+        <span class="badge festive">MINIMUM ORDER ₹2,000</span>
+        <span class="top-bar-text">✨ Celebrating Diwali with safe & premium Sivakasi crackers!</span>
+      </div>
+      <div class="top-bar-right">
+        <span class="dealer-info">🤝 Dealers at: <strong>Supreme Fireworks</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header / Navigation Bar -->
+  <header class="main-header">
+    <div class="container header-container">
+      <!-- Logo -->
+      <a href="#home" class="logo">
+        <span class="logo-icon">🎆</span>
+        <div class="logo-text">
+          <span class="logo-main">KPR</span>
+          <span class="logo-sub">CRACKERS</span>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation Menu -->
+      <nav class="navbar" id="main-nav">
+        <ul class="nav-menu">
+          <li><a href="#home" class="nav-link active">Home</a></li>
+          <li><a href="#about" class="nav-link">About Us</a></li>
+          <li><a href="#categories" class="nav-link">Categories</a></li>
+          <li><a href="#products" class="nav-link">Products</a></li>
+          <li><a href="#safety" class="nav-link">Safety Tips</a></li>
+          <li><a href="#enquiry" class="nav-link">Quick Enquiry</a></li>
+          <li><a href="#contact" class="nav-link">Contact Us</a></li>
+        </ul>
+      </nav>
+
+      <!-- Right Header Actions (Phone & Cart Indicator) -->
+      <div class="header-actions">
+        <div class="phone-box">
+          <span class="phone-label">Call to Order:</span>
+          <a href="tel:+919876543210" class="phone-number">📞 +91 98765 43210</a>
+          <a href="tel:+919876543211" class="phone-number second-phone">📞 +91 98765 43211</a>
+        </div>
+        
+        <!-- Cart Icon Widget -->
+        <div class="cart-widget" id="cart-toggle" onclick="toggleCartDrawer()">
+          <span class="cart-icon">🛒</span>
+          <span class="cart-count" id="cart-count">0</span>
+          <span class="cart-total" id="cart-total">₹0</span>
+        </div>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Carousel Section -->
+    <section id="home" class="hero-section">
+      <div class="carousel-container" id="hero-carousel">
+        <!-- Slide 1 -->
+        <div class="carousel-slide active" data-slide="0">
+          <div class="slide-bg placeholder-gradient-1"></div>
+          <div class="slide-overlay"></div>
+          <div class="container slide-content">
+            <h4 class="slide-subtitle text-glow">FESTIVAL OF LIGHTS</h4>
+<span class="text-highlight">KPR Crackers</span>
+            <p class="slide-desc">Explore the biggest collection of premium quality Sivakasi firecrackers at unbeatable prices. Safe, sound, and spectacular!</p>
+            <div class="slide-buttons">
+              <a href="#products" class="btn btn-primary btn-lg">Shop Products Now</a>
+              <a href="#enquiry" class="btn btn-outline btn-lg">Quick Enquiry</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="carousel-slide" data-slide="1">
+          <div class="slide-bg placeholder-gradient-2"></div>
+          <div class="slide-overlay"></div>
+          <div class="container slide-content">
+            <h4 class="slide-subtitle text-glow">SUPER VALUE OFFER</h4>
+            <h1 class="slide-title">Up To <span class="text-highlight">40% OFF</span> On Combo Packs</h1>
+            <p class="slide-desc">Bring home the ultimate family happiness with our custom curated festival combos. Packed with safety, brightness, and joy.</p>
+            <div class="slide-buttons">
+              <a href="#products?category=combo-packs" class="btn btn-secondary btn-lg">Explore Combos</a>
+              <a href="#about" class="btn btn-outline btn-lg">Learn More</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="carousel-slide" data-slide="2">
+          <div class="slide-bg placeholder-gradient-3"></div>
+          <div class="slide-overlay"></div>
+          <div class="container slide-content">
+            <h4 class="slide-subtitle text-glow">TRUST & SAFETY</h4>
+            <h1 class="slide-title">100% Quality & <span class="text-highlight">Safe Delivery</span></h1>
+            <p class="slide-desc">Directly sourced from top manufacturers in Sivakasi. Tested for safety and packaged with multi-layered secure materials.</p>
+            <div class="slide-buttons">
+              <a href="#safety" class="btn btn-primary btn-lg">Safety Guidelines</a>
+              <a href="#contact" class="btn btn-outline btn-lg">Our Store Locator</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carousel Navigation -->
+        <button class="carousel-arrow prev" id="carousel-prev" aria-label="Previous Slide">❮</button>
+        <button class="carousel-arrow next" id="carousel-next" aria-label="Next Slide">❯</button>
+
+        <!-- Carousel Indicators -->
+        <div class="carousel-indicators" id="carousel-indicators">
+          <span class="indicator active" data-slide="0"></span>
+          <span class="indicator" data-slide="1"></span>
+          <span class="indicator" data-slide="2"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Us Section -->
+    <section id="about" class="about-section fade-in-up">
+      <div class="container">
+        <div class="about-grid">
+          <div class="about-info">
+            <h4 class="section-subtitle">WHO WE ARE</h4>
+            <h2 class="section-title left-align">Over 15 Years of Illuminating Celebrations</h2>
+            <p class="about-text">KPR Crackers is a leading and highly trusted firecrackers distributor and retailer based directly in Sivakasi, the fireworks capital of India. As authorized dealers of Supreme Fireworks, we ensure that every single product we sell adheres to strict quality controls and ecological norms.</p>
+            <p class="about-text">We offer a seamless online selection experience with convenient home delivery. Our focus is to deliver brilliant spectacles of lights and colors while strictly promoting safe handling practices for a joyful and accident-free festive season.</p>
+            
+            <!-- Key Stats -->
+            <div class="stats-container">
+              <div class="stat-item">
+                <span class="stat-num" data-val="15">15+</span>
+                <span class="stat-label">Years of Trust</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-num" data-val="200">200+</span>
+                <span class="stat-label">Product Types</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-num" data-val="15000">15K+</span>
+                <span class="stat-label">Happy Families</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="about-visual">
+            <div class="decorative-placeholder-about">
+              <div class="decorative-circle-glow"></div>
+              <span class="placeholder-icon">🏮</span>
+              <h3>KPR CRACKERS</h3>
+              <p>Direct from Sivakasi to your doorstep</p>
+              <div class="sparkle-line"></div>
+              <span class="seal-badge">100% Quality Guaranteed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Product Categories Section -->
+    <section id="categories" class="categories-section fade-in-up">
+      <div class="container">
+        <div class="section-header">
+          <h4 class="section-subtitle">OUR COLLECTIONS</h4>
+          <h2 class="section-title">Shop by Category</h2>
+          <p class="section-desc">Browse our extensive range of sparkling delights categorized for easy viewing.</p>
+        </div>
+        <div class="categories-grid" id="categories-grid">
+          <!-- Dynamically Loaded by JS, placeholders rendered below for styling layout -->
+          <div class="category-card-placeholder">Loading categories...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Promotional Big Sale Banner Section -->
+    <section class="promo-banner-section fade-in-up">
+      <div class="container">
+        <div class="promo-card">
+          <div class="promo-bg-glow"></div>
+          <div class="promo-content">
+            <span class="promo-badge">🎉 FESTIVAL EXTRAVAGANZA</span>
+            <h2 class="promo-title">DIWALI BIG SALE</h2>
+            <h3 class="promo-subtitle">Get Flat 10% Extra Discount on orders above ₹10,000</h3>
+            <p class="promo-desc">Stock up early for your community celebrations. Free delivery across major cities. Offer valid till Diwali eve!</p>
+            <div class="promo-countdown" id="promo-timer">
+              <div class="time-box"><span id="days">00</span><span class="time-lbl">Days</span></div>
+              <div class="time-box"><span id="hours">00</span><span class="time-lbl">Hours</span></div>
+              <div class="time-box"><span id="minutes">00</span><span class="time-lbl">Mins</span></div>
+              <div class="time-box"><span id="seconds">00</span><span class="time-lbl">Secs</span></div>
+            </div>
+            <a href="#products" class="btn btn-secondary btn-lg btn-pulse">Claim Big Discount Now</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Product Catalog Section -->
+    <section id="products" class="products-section fade-in-up">
+      <div class="container">
+        <div class="section-header">
+          <h4 class="section-subtitle">EXPLORE SHOP</h4>
+          <h2 class="section-title">Our Premium Crackers</h2>
+          <p class="section-desc">Add safety-tested, beautiful firecrackers to your cart. Select category to filter.</p>
+        </div>
+        
+        <!-- Filter Controls -->
+        <div class="filter-controls-container">
+          <div class="search-bar-container">
+            <input type="text" id="product-search" placeholder="Search firecrackers..." class="form-control search-input">
+            <span class="search-icon-btn">🔍</span>
+          </div>
+          <div class="filter-bar" id="filter-bar">
+            <!-- Filter buttons loaded by JS -->
+            <button class="filter-btn active" data-category="all">All Items</button>
+          </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="products-grid" id="products-grid">
+          <!-- Dynamically Loaded by JS -->
+          <div class="product-card-placeholder">Loading products...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Safety Tips Section -->
+    <section id="safety" class="safety-section fade-in-up">
+      <div class="container">
+        <div class="section-header">
+          <h4 class="section-subtitle">CELEBRATE SAFELY</h4>
+          <h2 class="section-title">Essential Safety Tips</h2>
+          <p class="section-desc">Follow these rules to ensure a colorful and safe Diwali celebration for your family and pets.</p>
+        </div>
+        <div class="safety-grid">
+          <div class="safety-card do">
+            <div class="safety-icon-wrapper do-icon">✔️</div>
+            <h3>Dos</h3>
+            <ul>
+              <li>Always light crackers in open, clear outdoor spaces.</li>
+              <li>Keep a bucket of water and sand nearby for emergencies.</li>
+              <li>Store your crackers in a closed, dry box away from fire sources.</li>
+              <li>Wear well-fitting, tight cotton clothing while lighting fireworks.</li>
+              <li>Maintain safe distance as specified on product boxes.</li>
+            </ul>
+          </div>
+          <div class="safety-card dont">
+            <div class="safety-icon-wrapper dont-icon">❌</div>
+            <h3>Don'ts</h3>
+            <ul>
+              <li>Never attempt to re-ignite a firecracker that has failed to light (duds).</li>
+              <li>Don't hold crackers in hand while lighting them.</li>
+              <li>Never wear loose-fitting synthetic clothes (polyester/nylon).</li>
+              <li>Never light firecrackers inside or near enclosed buildings.</li>
+              <li>Avoid throwing crackers at animals, pets, or people.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services / Trust Pillars Section -->
+    <section class="services-section fade-in-up">
+      <div class="container">
+        <div class="services-grid">
+          <div class="service-card">
+            <div class="service-icon">🚚</div>
+            <h3>Quick Sivakasi Delivery</h3>
+            <p>Fast and safe transport logistics directly from Sivakasi hubs to your home.</p>
+          </div>
+          <div class="service-card">
+            <div class="service-icon">📞</div>
+            <h3>24/7 Enquiry Help Center</h3>
+            <p>Reach out over WhatsApp or Phone anytime for status updates or custom bulk deals.</p>
+          </div>
+          <div class="service-card">
+            <div class="service-icon">🛡️</div>
+            <h3>100% Secure Packaging</h3>
+            <p>We pack firecrackers using moisture-resistant, robust wooden-cardboard crates.</p>
+          </div>
+          <div class="service-card">
+            <div class="service-icon">💰</div>
+            <h3>Direct Manufacturer Prices</h3>
+            <p>Wholesale prices with up to 40% discount off standard retail pricing.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials Slider Section -->
+    <section class="testimonials-section fade-in-up">
+      <div class="container">
+        <div class="section-header">
+          <h4 class="section-subtitle testimonials-sub">HAPPY BUYERS</h4>
+          <h2 class="section-title testimonials-title">What Our Customers Say</h2>
+        </div>
+        
+        <div class="slider-wrapper">
+          <button class="slider-btn prev-btn" id="testimonial-prev" aria-label="Previous Testimonial">❮</button>
+          <div class="testimonials-slider-container" id="testimonials-slider">
+            <!-- Dynamically Loaded by JS -->
+          </div>
+          <button class="slider-btn next-btn" id="testimonial-next" aria-label="Next Testimonial">❯</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Enquiry Form Section -->
+    <section id="enquiry" class="enquiry-section fade-in-up">
+      <div class="container">
+        <div class="enquiry-card">
+          <div class="section-header">
+            <h4 class="section-subtitle text-center">GET A FREE QUOTE</h4>
+            <h2 class="section-title">Send a Quick Enquiry</h2>
+            <p class="section-desc">Interested in bulk orders, dealer pricing, or custom packages? Submit this form and our agent will call you in 1 hour.</p>
+          </div>
+          
+          <form id="enquiry-form" class="enquiry-form">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="enquiry-name">Your Full Name <span class="required">*</span></label>
+                <input type="text" id="enquiry-name" name="name" class="form-control" placeholder="e.g. Rajesh Kumar" required>
+              </div>
+              <div class="form-group">
+                <label for="enquiry-phone">WhatsApp Number <span class="required">*</span></label>
+                <input type="tel" id="enquiry-phone" name="phone" class="form-control" placeholder="e.g. 9876543210" pattern="[6789][0-9]{9}" required>
+              </div>
+            </div>
+            
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="enquiry-delivery-address">DELIVERY ADDRESS</label>
+                <textarea id="enquiry-delivery-address" name="deliveryAddress" class="form-control" placeholder="Enter your full delivery address" rows="3" required></textarea>
+
+              </div>
+              <div class="form-group">
+                <label for="enquiry-category">Product Category Interest <span class="required">*</span></label>
+                <select id="enquiry-category" name="category" class="form-control" required>
+                  <option value="" disabled selected>Select category...</option>
+                  <option value="all">Complete Diwali Combo / All Categories</option>
+                  <option value="ground-chakkars">Ground Chakkars</option>
+                  <option value="flower-pots">Flower Pots</option>
+                  <option value="fancy-fountains">Fancy Fountains</option>
+                  <option value="sparklers">Sparklers / Pencils</option>
+                  <option value="bombs-rockets">Atom Bombs & Rockets</option>
+                  <option value="combos">Custom Discount Packs</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="enquiry-message">Your Message / Special Requests <span class="required">*</span></label>
+              <textarea id="enquiry-message" name="message" rows="4" class="form-control" placeholder="Mention your requirements, preferred quantities, or delivery location details..." required></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Submit Quick Enquiry</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Details & Map Section -->
+    <section id="contact" class="contact-section fade-in-up">
+      <div class="container">
+        <div class="section-header">
+          <h4 class="section-subtitle">GET IN TOUCH</h4>
+          <h2 class="section-title">Our Store Coordinates</h2>
+        </div>
+        <div class="contact-grid">
+          <div class="contact-info-cards">
+            <div class="contact-card-info">
+              <div class="info-icon">📍</div>
+              <div class="info-content">
+<h3>Our Warehouse Location</h3>
+KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu - 626123
+              </div>
+            </div>
+            
+            <div class="contact-card-info">
+              <div class="info-icon">📞</div>
+              <div class="info-content">
+                <h3>Contact Phone Numbers</h3>
+                <p><a href="tel:+919876543210">+91 98765 43210</a></p>
+                <p><a href="tel:+919876543211">+91 98765 43211</a></p>
+              </div>
+            </div>
+
+            <div class="contact-card-info">
+              <div class="info-icon">✉️</div>
+              <div class="info-content">
+                <h3>Official Email Address</h3>
+<p><a href="mailto:info@kprcrackers.com">info@kprcrackers.com</a></p>
+<p><a href="mailto:sales@kprcrackers.com">sales@kprcrackers.com</a></p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="contact-map">
+            <!-- Map Placeholder Box - Styled inside CSS to represent an elegant dark UI map with geolocation pins -->
+            <div class="styled-map-placeholder">
+              <div class="map-glow-radar"></div>
+              <span class="map-icon">📍</span>
+<h4>KPR Crackers Depot</h4>
+<p>Sivakasi Bypass Road, Tamil Nadu</p>
+              <div class="coordinates-overlay">Lat: 9.4533° N, Lon: 77.8024° E</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Sticky Drawer Shopping Cart (Sidebar Drawer) -->
+  <div class="cart-drawer-overlay" id="cart-drawer-overlay" onclick="toggleCartDrawer()"></div>
+  <div class="cart-drawer" id="cart-drawer">
+    <div class="cart-drawer-header">
+      <h3>Shopping Cart</h3>
+      <button class="close-drawer-btn" onclick="toggleCartDrawer()">✕</button>
+    </div>
+    
+    <div class="cart-drawer-body" id="cart-items-container">
+      <!-- Dynamically Rendered by JS -->
+      <div class="empty-cart-message">
+        <span class="empty-cart-icon">🛒</span>
+        <p>Your cart is empty!</p>
+        <p class="sub-text">Add at least ₹2,000 worth of firecrackers to place an enquiry.</p>
+        <a href="#products" class="btn btn-primary" onclick="toggleCartDrawer()">Continue Shopping</a>
+      </div>
+    </div>
+    
+    <div class="cart-drawer-footer">
+      <div class="minimum-order-warning error-text" id="min-order-alert">
+        ⚠️ Minimum order required: <strong>₹2,000</strong>. Add <strong id="min-order-remaining">₹2,000</strong> more.
+      </div>
+      <div class="cart-subtotal-row">
+        <span>Cart Subtotal:</span>
+        <strong id="drawer-subtotal">₹0</strong>
+      </div>
+      <button class="btn btn-secondary btn-block btn-lg" id="checkout-btn" disabled onclick="checkoutCart()">Place Order Enquiry</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="main-footer">
+    <div class="container footer-grid">
+      <!-- Col 1: Brand -->
+      <div class="footer-col brand-col">
+        <a href="#home" class="footer-logo">
+          <span class="logo-icon">🎆</span>
+          <span class="logo-text">KPR CRACKERS</span>
+        </a>
+        <p class="footer-about">Authorized dealer of Sivakasi Supreme Fireworks. Bringing joy, colors, and premium safe fireworks to homes since 2005. Trustworthy quality checked firecrackers delivered securely to your door.</p>
+        <div class="social-links">
+          <a href="#" class="social-icon fb" aria-label="Facebook">FB</a>
+          <a href="#" class="social-icon insta" aria-label="Instagram">IG</a>
+          <a href="#" class="social-icon wa" aria-label="WhatsApp">WA</a>
+          <a href="#" class="social-icon mail" aria-label="Email">✉️</a>
+          <a href="#" class="social-icon jd" aria-label="JustDial">JD</a>
+        </div>
+      </div>
+      
+      <!-- Col 2: Navigation Links -->
+      <div class="footer-col">
+        <h3>Quick Links</h3>
+        <ul class="footer-links">
+          <li><a href="#home">Home</a></li>
+          <li><a href="#about">About Us</a></li>
+          <li><a href="#categories">Product Categories</a></li>
+          <li><a href="#products">Premium Shop</a></li>
+          <li><a href="#enquiry">Quick Enquiry</a></li>
+          <li><a href="admin.html" target="_blank" class="admin-portal-link">🔐 Admin Dashboard</a></li>
+        </ul>
+      </div>
+      
+      <!-- Col 3: Policies -->
+      <div class="footer-col">
+        <h3>Our Policies</h3>
+        <ul class="footer-links">
+          <li><a href="#safety">Safety Guidelines</a></li>
+          <li><a href="#">Terms & Conditions</a></li>
+          <li><a href="#">Shipping & Delivery Policy</a></li>
+          <li><a href="#">Cancellation & Refund Policy</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+        </ul>
+      </div>
+
+      <!-- Col 4: Reach Us -->
+      <div class="footer-col">
+        <h3>Reach Us</h3>
+        <ul class="footer-contact">
+          <li>
+            <span class="contact-icon">📍</span>
+            <span class="contact-details">Bypass Road, Sivakasi, Tamil Nadu, 626123</span>
+          </li>
+          <li>
+            <span class="contact-icon">📞</span>
+            <span class="contact-details">
+              <a href="tel:+919876543210">+91 98765 43210</a><br>
+              <a href="tel:+919876543211">+91 98765 43211</a>
+            </span>
+          </li>
+          <li>
+            <span class="contact-icon">✉️</span>
+<span class="contact-details"><a href="mailto:info@kprcrackers.com">info@kprcrackers.com</a></span>
+          </li>
+          <li>
+            <span class="contact-icon">🕒</span>
+            <span class="contact-details">Open Everyday: 8:00 AM - 10:00 PM</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Footer Copyright -->
+    <div class="footer-bottom">
+      <div class="container footer-bottom-content">
+<p>&copy; 2026 KPR Crackers. All Rights Reserved. Sivakasi, India.</p>
+        <p class="crafted-text">Designed with safety & festive colors ❤️</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating Sticky WhatsApp Widget -->
+  <div class="whatsapp-widget" id="whatsapp-widget">
+    <div class="whatsapp-btn" onclick="toggleWhatsAppPopup()" id="wa-btn" aria-label="Quick Enquiry Popup">
+      <span class="wa-icon">💬</span>
+      <span class="wa-badge">1</span>
+    </div>
+    
+    <div class="whatsapp-popup" id="whatsapp-popup">
+      <div class="wa-popup-header">
+        <div class="wa-agent-avatar">👤</div>
+        <div class="wa-agent-info">
+          <h4>KPR Support Assistant</h4>
+          <p class="status-online">● Online | Replies in 5 mins</p>
+        </div>
+        <button class="wa-close-btn" onclick="toggleWhatsAppPopup()">✕</button>
+      </div>
+      
+      <div class="wa-popup-body">
+        <p class="wa-message-bubble">Hello there! Happy Diwali! How can I help you order your firecrackers today? 🎇</p>
+        
+        <form id="whatsapp-quick-form" class="wa-quick-form">
+          <input type="text" id="wa-name" placeholder="Your Name" required class="wa-input">
+          <input type="tel" id="wa-phone" placeholder="WhatsApp Number" pattern="[6789][0-9]{9}" required class="wa-input">
+          <textarea id="wa-msg" placeholder="What products are you looking for? (e.g. Ground Chakkars, Sparklers)" rows="2" required class="wa-input wa-textarea"></textarea>
+          <button type="submit" class="wa-submit-btn">Start WhatsApp Chat 🚀</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Script Declarations -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
