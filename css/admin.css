@@ -723,6 +723,7 @@ textarea.form-control-admin {
 .modal-body-scroll {
   max-height: calc(80vh - 120px);
   overflow-y: auto;
+  padding-bottom: 50px;
 }
 
 .modal-form-scrollable {

@@ -88,6 +88,18 @@ img {
   display: block;
 }
 
+/* Hide scrollbar for Chrome, Safari, and Opera */
+::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Hide scrollbar for IE, Edge, and Firefox */
+html, body, div, section, textarea, table {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+
 /* --- Layout Container --- */
 .container {
   width: 100%;
