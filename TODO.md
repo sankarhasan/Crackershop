@@ -1,12 +1,10 @@
 # TODO
 
-- [ ] Implement local image upload for Category modals (Add/Edit)
-- [x] Update `admin.html`: replace CATEGORY IMAGE URL/PATH input with hidden file input + Upload button + preview container
-- [x] Update `js/admin.js`: add FileReader base64 conversion + preview + save logic (keep existing image if no new file)
+- [ ] Implement bannersArray data model (exactly 3 fixed banners) in `js/data.js`.
+- [ ] Convert hero carousel in `index.html` to dynamic rendering driven by bannersArray.
+- [ ] Update homepage carousel JS (`js/app.js`) to keep autoplay/dots/arrows working with rendered slides.
+- [ ] Add Admin Panel “Manage Banners” UI in `admin.html` (3-row table + edit modal; no add/delete).
+- [ ] Implement strict banner save/update in `js/admin.js` (replace only by banner id; no push/splice).
 
-  - [x] Ensure edit modal initializes preview from existing `categoryImageUrl`/legacy `image`
-- [x] Verify storefront rendering uses base64 src for category cards (`js/app.js`)
-- [ ] Smoke test manually in browser: add category with image, edit category w/out image, edit category w/ new image
-
-
+- [ ] Manual verification: edit all 3 banners and ensure homepage updates immediately on reload.
 
