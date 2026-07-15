@@ -1,0 +1,1 @@
+A pure client-side, localStorage-backed e-commerce storefront for Sivakasi firecrackers with a separate admin dashboard for managing products, categories, enquiries, and homepage banners.

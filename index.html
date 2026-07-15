@@ -16,8 +16,8 @@
 </head>
 <body>
 
-  <!-- Top Sticky Bar -->
-  <div class="top-bar">
+  <!-- Top Bar: Moves naturally with scroll -->
+  <div class="top-bar top-green-bar section-to-scroll">
     <div class="container top-bar-content">
       <div class="top-bar-left">
         <span class="badge festive">MINIMUM ORDER ₹2,000</span>
@@ -29,8 +29,8 @@
     </div>
   </div>
 
-  <!-- Header / Navigation Bar -->
-  <header class="main-header">
+  <!-- White Navbar: Stays sticky at top:0 -->
+  <header class="main-header main-white-navbar sticky-element">
     <div class="container header-container">
       <!-- Logo -->
       <a href="#home" class="logo">
@@ -198,7 +198,16 @@
           </div>
         </div>
 
-        <!-- Product Grid -->
+        <!-- Mobile Pagination: "All Items" full-width row (hidden on desktop) -->
+        <div class="mobile-pagination-all" id="mobile-pagination-all"></div>
+
+        <!-- Mobile Pagination: numbered circles row (hidden on desktop) -->
+        <div class="mobile-pagination-numbers" id="mobile-pagination-numbers"></div>
+
+        <!-- Mobile Slider Container (hidden on desktop) -->
+        <div class="mobile-slider-container" id="mobile-slider-container"></div>
+
+        <!-- Desktop Product Grid (hidden on mobile) -->
         <div class="products-grid" id="products-grid">
           <!-- Dynamically Loaded by JS -->
           <div class="product-card-placeholder">Loading products...</div>

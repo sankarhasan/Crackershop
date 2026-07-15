@@ -1,0 +1,21 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: blackboxai/category-image-preview
+nodes_managed: true
+exported_at: "2026-07-15T09:00:31Z"
+modules:
+    "":
+        dir_name: KPR Crackers Storefront & Admin Portal (Single-Page Static Site)
+        title: KPR Crackers Storefront & Admin Portal (Single-Page Static Site)
+        scope:
+            - TODO.md
+            - implementation_plan.md
+            - admin.html
+            - index.html
+            - css/
+            - js/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

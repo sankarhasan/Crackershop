@@ -1,0 +1,5 @@
+- All persistent collections are accessed exclusively through the `get*`/`save*` helpers in `data.js`, never by reading/writing `localStorage` directly.
+- Every DOM insertion that reflects user-supplied text goes through an `escapeHtml` mapper before being placed into `innerHTML`, guarding against XSS.
+- Admin CRUD screens follow a uniform pattern: a modal overlay holds a form, fields are populated from the selected record, and saving rebuilds the corresponding table via a dedicated `renderXxxTable` function.
+- Category filtering uses numeric `categoryId` matching (`Number(p.categoryId) === Number(filterCat)`) rather than string comparison, keeping IDs and filter values consistent across storefront and admin.
+- Image inputs accept either a URL or a local file; file selections are read via `FileReader.readAsDataURL` and stored as Base64 strings in the entity's `image`/`categoryImageUrl` field.

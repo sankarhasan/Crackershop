@@ -1,0 +1,1 @@
+Vanilla HTML5 + CSS3 + ES6 JavaScript with zero dependencies; persistence via `localStorage`/`sessionStorage`; image uploads converted to Base64 through the browser `FileReader` API; Google Fonts (Inter, Poppins) loaded at runtime.

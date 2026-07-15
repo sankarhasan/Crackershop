@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCategoriesGrid();
   renderFilterButtons();
   renderProductsCatalog();
+  renderMobileSlider();
   renderTestimonialsSlider();
   initContactMap();
   initPromoCountdown();
@@ -277,9 +278,53 @@ function renderCategoriesGrid() {
   });
 }
 
+function updateMobileCategoryBanner() {
+  const label = document.getElementById('mobile-category-label');
+  if (!label) return;
+
+  const slug = (activeCategory || 'all').toString().trim().toLowerCase();
+
+  if (!slug || slug === 'all' || slug === 'all-items') {
+    label.textContent = 'ALL ITEMS';
+  } else {
+    const categories = getCategories();
+    const cat = categories.find(c => c.slug.toLowerCase() === slug);
+    label.textContent = cat ? cat.name.toUpperCase() : 'ALL ITEMS';
+  }
+}
+
+/* Navigate mobile slider to the slide matching a category slug */
+function navigateMobileSliderTo(slug) {
+  const container = document.getElementById('mobile-slider-container');
+  if (!container) return;
+
+  const normalizedSlug = (slug || 'all').toString().trim().toLowerCase();
+  let targetIndex = 0; // default: "All Items" (slide 0)
+
+  if (normalizedSlug !== 'all' && normalizedSlug !== 'all-items') {
+    const categories = getCategories();
+    const catIndex = categories.findIndex(c => c.slug.toLowerCase() === normalizedSlug);
+    if (catIndex >= 0) {
+      targetIndex = catIndex + 1; // +1 because slide 0 is "All Items"
+    }
+  }
+
+  const slides = container.querySelectorAll('.category-slide-page');
+  const targetSlide = slides[targetIndex];
+  if (targetSlide) {
+    container.scrollTo({
+      left: targetSlide.offsetLeft,
+      behavior: 'smooth'
+    });
+  }
+}
+
 function filterByCategory(slug) {
   activeCategory = slug;
   
+  // Update mobile banner
+  updateMobileCategoryBanner();
+
   // Update filter buttons
   const buttons = document.querySelectorAll('.filter-btn');
   buttons.forEach(btn => {
@@ -291,6 +336,11 @@ function filterByCategory(slug) {
   });
   
   renderProductsCatalog();
+
+  // Mobile: navigate slider to matching category slide
+  if (window.innerWidth <= 768) {
+    navigateMobileSliderTo(slug);
+  }
   
   // Scroll to products
   document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
@@ -316,6 +366,7 @@ function renderFilterButtons() {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     allBtn.classList.add('active');
     activeCategory = 'all';
+    updateMobileCategoryBanner();
     renderProductsCatalog();
   });
 
@@ -331,6 +382,7 @@ function renderFilterButtons() {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeCategory = cat.slug;
+      updateMobileCategoryBanner();
       renderProductsCatalog();
     });
 
@@ -342,6 +394,7 @@ function renderFilterButtons() {
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       renderProductsCatalog();
+      renderMobileSlider();
     });
   }
 }
@@ -349,6 +402,9 @@ function renderFilterButtons() {
 function renderProductsCatalog() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
+
+  // Keep mobile banner in sync
+  updateMobileCategoryBanner();
 
   const products = getProducts();
   const categories = getCategories();
@@ -437,6 +493,242 @@ function renderProductsCatalog() {
     `;
     grid.appendChild(card);
   });
+}
+
+/* ==========================================================================
+   Mobile Slider — swipeable category slides with pagination dots
+   ========================================================================== */
+function renderMobileSlider() {
+  const container = document.getElementById('mobile-slider-container');
+  const paginationAll = document.getElementById('mobile-pagination-all');
+  if (!container || !paginationAll) return;
+
+  // Only render on mobile (≤768px)
+  if (window.innerWidth > 768) {
+    container.innerHTML = '';
+    paginationAll.innerHTML = '';
+    return;
+  }
+
+  const products = getProducts();
+  const categories = getCategories();
+  const searchQuery = document.getElementById('product-search')?.value.toLowerCase() || '';
+
+  // Build slide data: "All Items" + each category
+  const slides = [];
+
+  // All Items slide
+  let allProducts = [...products];
+  if (searchQuery.trim() !== '') {
+    allProducts = allProducts.filter(p =>
+      (p.name || '').toLowerCase().includes(searchQuery) ||
+      (p.description || '').toLowerCase().includes(searchQuery)
+    );
+  }
+  slides.push({ slug: 'all', name: 'ALL ITEMS', products: allProducts });
+
+  // Category slides
+  categories.forEach(cat => {
+    let catProducts = products.filter(p => Number(p.categoryId) === Number(cat.id));
+    if (searchQuery.trim() !== '') {
+      catProducts = catProducts.filter(p =>
+        (p.name || '').toLowerCase().includes(searchQuery) ||
+        (p.description || '').toLowerCase().includes(searchQuery)
+      );
+    }
+    slides.push({ slug: cat.slug, name: cat.name.toUpperCase(), products: catProducts });
+  });
+
+  const totalSlides = slides.length;
+
+  // Clear containers
+  container.innerHTML = '';
+  paginationAll.innerHTML = '';
+
+  // Build slides with arrow headers
+  slides.forEach((slide, index) => {
+    // Create slide element
+    const slideEl = document.createElement('div');
+    slideEl.className = 'category-slide-page';
+    slideEl.setAttribute('data-slide-index', index);
+    slideEl.setAttribute('data-category', slide.slug);
+
+    // Green header with left/right arrows
+    const header = document.createElement('div');
+    header.className = 'slide-category-header';
+
+    // Left arrow
+    const leftArrow = document.createElement('button');
+    leftArrow.className = 'slide-arrow slide-arrow-left';
+    leftArrow.textContent = '\u2039';
+    leftArrow.setAttribute('aria-label', 'Previous category');
+    leftArrow.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigateSlide(-1);
+    });
+    header.appendChild(leftArrow);
+
+    // Centered title
+    const title = document.createElement('span');
+    title.className = 'slide-category-title';
+    title.textContent = slide.name;
+    header.appendChild(title);
+
+    // Right arrow
+    const rightArrow = document.createElement('button');
+    rightArrow.className = 'slide-arrow slide-arrow-right';
+    rightArrow.textContent = '\u203a';
+    rightArrow.setAttribute('aria-label', 'Next category');
+    rightArrow.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigateSlide(1);
+    });
+    header.appendChild(rightArrow);
+
+    slideEl.appendChild(header);
+
+    // Scrollable product list
+    const listEl = document.createElement('div');
+    listEl.className = 'slide-products-list';
+
+    if (slide.products.length === 0) {
+      listEl.innerHTML = '<div class="product-card-placeholder">No items in this category</div>';
+    } else {
+      slide.products.forEach(prod => {
+        const cartItem = cart.find(item => item.id === prod.id);
+        const cartQty = cartItem ? cartItem.quantity : 0;
+        listEl.appendChild(createMobileProductCard(prod, cartQty));
+      });
+    }
+
+    slideEl.appendChild(listEl);
+    container.appendChild(slideEl);
+  });
+
+  // "All Items" pill — clicking scrolls to slide 0
+  const pill = document.createElement('span');
+  pill.className = 'pagination-pill active';
+  pill.textContent = 'All Items';
+  pill.setAttribute('data-slide', 0);
+  pill.addEventListener('click', () => {
+    const slidesList = container.querySelectorAll('.category-slide-page');
+    if (slidesList.length > 0) {
+      slidesList[0].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+    }
+  });
+  paginationAll.appendChild(pill);
+
+  // Set up IntersectionObserver for arrow & pill state
+  setupSliderPaginationObserver();
+}
+
+/* Helper: create a single product card DOM node for the mobile slider */
+function createMobileProductCard(prod, cartQty) {
+  const card = document.createElement('div');
+  card.className = `product-card ${!prod.inStock ? 'out-of-stock' : ''}`;
+
+  const bgIndex = (prod.categoryId % 9) + 1;
+  const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁' };
+  const emoji = emojiMap[prod.categoryId] || '🎆';
+
+  let cardImgContent = `<div class="card-placeholder-bg p-bg-${bgIndex}">${emoji}</div>`;
+  if (prod.image) {
+    cardImgContent = `<img src="${prod.image}" alt="${prod.name}" class="product-card-img" style="width: 100%; height: 100%; object-fit: cover; transition: var(--transition);">`;
+  }
+
+  card.innerHTML = `
+    <div class="card-img-container">
+      ${cardImgContent}
+      <span class="card-discount-badge">${prod.discount || 'Special'}</span>
+      ${!prod.inStock ? '<span class="card-stock-badge">Sold Out</span>' : ''}
+    </div>
+    <div class="product-card-body">
+      <h3 class="product-card-title">${prod.name}</h3>
+      <span class="product-card-qty">${prod.qty}</span>
+      <p class="product-card-desc">${prod.description}</p>
+      <div class="product-card-price-row">
+        <span class="current-price">₹${prod.price}</span>
+        <span class="original-price">₹${prod.originalPrice}</span>
+      </div>
+      <div class="product-card-actions">
+        ${prod.inStock ? `
+          <div class="qty-counter">
+            <button class="qty-btn minus" onclick="adjustCatalogQty(${prod.id}, -1)">-</button>
+            <span class="qty-number" id="catalog-qty-${prod.id}">${cartQty}</span>
+            <button class="qty-btn plus" onclick="adjustCatalogQty(${prod.id}, 1)">+</button>
+          </div>
+          <button class="btn-add-cart" onclick="addProductToCart(${prod.id})">Add to Cart</button>
+        ` : `
+          <button class="btn-add-cart" disabled>Unavailable</button>
+        `}
+      </div>
+    </div>
+  `;
+
+  return card;
+}
+
+/* Arrow navigation: scroll slider one page left (-1) or right (+1) */
+function navigateSlide(direction) {
+  const container = document.getElementById('mobile-slider-container');
+  if (!container) return;
+
+  const slidesList = container.querySelectorAll('.category-slide-page');
+  if (!slidesList.length) return;
+
+  const totalSlides = slidesList.length;
+  const currentIndex = window._currentSlideIndex || 0;
+
+  let newIndex = currentIndex + direction;
+  if (newIndex < 0) newIndex = 0;
+  if (newIndex >= totalSlides) newIndex = totalSlides - 1;
+  if (newIndex === currentIndex) return;
+
+  slidesList[newIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+}
+
+/* Enable/disable all left & right arrows based on current slide position */
+function updateArrowStates(currentIndex, totalSlides) {
+  const leftArrows = document.querySelectorAll('.slide-arrow-left');
+  const rightArrows = document.querySelectorAll('.slide-arrow-right');
+
+  leftArrows.forEach(a => a.classList.toggle('disabled', currentIndex <= 0));
+  rightArrows.forEach(a => a.classList.toggle('disabled', currentIndex >= totalSlides - 1));
+}
+
+/* IntersectionObserver: sync arrow disabled states + All Items pill when slide changes */
+function setupSliderPaginationObserver() {
+  const slides = document.querySelectorAll('.category-slide-page');
+  const pill = document.querySelector('.pagination-pill');
+  if (!slides.length) return;
+
+  const totalSlides = slides.length;
+
+  // Disconnect any previous observer
+  if (window._sliderObserver) window._sliderObserver.disconnect();
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const index = parseInt(entry.target.getAttribute('data-slide-index'));
+        window._currentSlideIndex = index;
+
+        // Highlight "All Items" pill only when on slide 0
+        if (pill) {
+          pill.classList.toggle('active', index === 0);
+        }
+
+        // Update arrow disabled states
+        updateArrowStates(index, totalSlides);
+      }
+    });
+  }, { threshold: 0.6, root: document.getElementById('mobile-slider-container') });
+
+  window._sliderObserver = observer;
+  slides.forEach(slide => observer.observe(slide));
+
+  // Initial arrow state (slide 0 starts active)
+  updateArrowStates(0, totalSlides);
 }
 
 function adjustCatalogQty(prodId, change) {
@@ -877,13 +1169,27 @@ function initContactMap() {
    10. Scroll & Active Navbar Highlights
    ========================================================================== */
 function initNavbarScroll() {
-  const header = document.querySelector('.main-header');
+  const greenBar = document.querySelector('.top-green-bar') || document.querySelector('[class*="green"]');
+  const navbar = document.querySelector('.main-white-navbar') || document.querySelector('nav');
+
+  if (!greenBar || !navbar) return;
+
+  // Start in relative (normal flow) with no shadow
+  navbar.style.setProperty('position', 'relative', 'important');
+  navbar.style.setProperty('box-shadow', 'none', 'important');
+
   window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      header.classList.add('scrolled');
+    const triggerHeight = greenBar.offsetHeight || 40;
+
+    if (window.scrollY >= triggerHeight) {
+      navbar.style.setProperty('position', 'fixed', 'important');
+      navbar.style.setProperty('top', '0', 'important');
+      navbar.style.setProperty('box-shadow', '0 4px 12px rgba(0,0,0,0.1)', 'important');
     } else {
-      header.classList.remove('scrolled');
+      navbar.style.setProperty('position', 'relative', 'important');
+      navbar.style.setProperty('box-shadow', 'none', 'important');
     }
+
     highlightNavLink();
   });
 }
