@@ -8,6 +8,8 @@ let carouselInterval = null;
 const MINIMUM_ORDER_VALUE = 2000;
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Lock scroll behind the full-screen preloader as early as possible
+  document.body.classList.add('preloader-active');
   // Initialize app elements
   initCarousel();
   renderCategoriesGrid();
@@ -22,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollAnimations();
   initNavbarScroll();
   loadCartFromStorage();
+  initPreloader();
   
   // Close menu on nav link clicks
   const navLinks = document.querySelectorAll('.nav-link');
@@ -144,7 +147,7 @@ function initCarousel() {
         <p class="slide-desc">${escapeHtml(b.description || '')}</p>
         <div class="slide-buttons">
           <a href="#products" class="btn btn-primary btn-lg">Shop Products Now</a>
-          <a href="#enquiry" class="btn btn-outline btn-lg">Quick Enquiry</a>
+          <a href="#quick-enquiry" class="btn btn-outline btn-lg">Quick Enquiry</a>
         </div>
       </div>
     `;
@@ -1036,7 +1039,7 @@ function checkoutCart() {
   }
   
   // Auto scroll to enquiry form
-  document.getElementById('enquiry').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('quick-enquiry').scrollIntoView({ behavior: 'smooth' });
   showToast('Items imported into enquiry form. Please fill in details below! 📝', 'info');
 }
 
@@ -1168,15 +1171,53 @@ function initContactMap() {
 /* ==========================================================================
    10. Scroll & Active Navbar Highlights
    ========================================================================== */
+function initPreloader() {
+  const preloader = document.getElementById('preloader');
+  if (!preloader) {
+    document.body.classList.remove('preloader-active');
+    return;
+  }
+
+  const MIN_DISPLAY_MS = 2000;   // extended 2s minimum so the local animation plays fully
+  const SAFETY_TIMEOUT_MS = 6000; // never trap the user if the Lottie script/asset fails
+  const start = Date.now();
+  let hidden = false;
+
+  const hide = () => {
+    if (hidden) return;
+    hidden = true;
+    const elapsed = Date.now() - start;
+    const wait = Math.max(0, MIN_DISPLAY_MS - elapsed);
+    setTimeout(() => {
+      preloader.classList.add('preloader-hidden');
+      document.body.classList.remove('preloader-active');
+      // Remove from DOM after the fade-out transition completes
+      setTimeout(() => {
+        if (preloader.parentNode) preloader.parentNode.removeChild(preloader);
+      }, 700);
+    }, wait);
+  };
+
+  // Primary trigger: everything (images, fonts, Lottie script) finished loading
+  if (document.readyState === 'complete') {
+    hide();
+  } else {
+    window.addEventListener('load', hide);
+  }
+
+  // Safety net: force-hide if load never fires
+  setTimeout(hide, SAFETY_TIMEOUT_MS);
+}
+
 function initNavbarScroll() {
   const greenBar = document.querySelector('.top-green-bar') || document.querySelector('[class*="green"]');
   const navbar = document.querySelector('.main-white-navbar') || document.querySelector('nav');
 
   if (!greenBar || !navbar) return;
 
-  // Start in relative (normal flow) with no shadow
+  // Start in relative (normal flow) with the soft premium shadow
   navbar.style.setProperty('position', 'relative', 'important');
-  navbar.style.setProperty('box-shadow', 'none', 'important');
+  navbar.style.setProperty('box-shadow', '0 4px 15px rgba(0, 0, 0, 0.12)', 'important');
 
   window.addEventListener('scroll', () => {
     const triggerHeight = greenBar.offsetHeight || 40;
@@ -1184,10 +1225,10 @@ function initNavbarScroll() {
     if (window.scrollY >= triggerHeight) {
       navbar.style.setProperty('position', 'fixed', 'important');
       navbar.style.setProperty('top', '0', 'important');
-      navbar.style.setProperty('box-shadow', '0 4px 12px rgba(0,0,0,0.1)', 'important');
+      navbar.style.setProperty('box-shadow', '0 6px 18px rgba(0, 0, 0, 0.16)', 'important');
     } else {
       navbar.style.setProperty('position', 'relative', 'important');
-      navbar.style.setProperty('box-shadow', 'none', 'important');
+      navbar.style.setProperty('box-shadow', '0 4px 15px rgba(0, 0, 0, 0.12)', 'important');
     }
 
     highlightNavLink();

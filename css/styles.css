@@ -55,6 +55,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 90px; /* offset so the sticky navbar doesn't cover section titles */
   font-size: 16px;
   overflow-x: hidden;
 }
@@ -71,6 +72,121 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   line-height: 1.2;
+}
+
+/* ==========================================================================
+   FULL-SCREEN ASSET-LOCKED PRELOADER
+   Opaque, image-backed overlay above everything (incl. sticky navbar
+   z-index 99999). Solid background-color fallback + covering image prevent
+   any background element flicker/bleed-through during the load sequence.
+   ========================================================================== */
+#preloader {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  opacity: 1;
+  visibility: visible;
+  overflow: hidden;
+  /* Solid color paints instantly (before image decodes) so nothing shows through */
+  background-color: var(--deep-green-dark);
+  background-image:
+    linear-gradient(rgba(3, 34, 20, 0.62), rgba(3, 34, 20, 0.62)),
+    url("../Images/Loading Background.jpg");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+}
+
+#preloader.preloader-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.preloader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 20px;
+}
+
+#preloader dotlottie-player {
+  display: block;      /* override inline default so it centers as a clean block on top */
+  margin: 0 auto;
+  max-width: 70vw;
+  max-height: 70vw;
+  flex-shrink: 0;
+}
+
+.brand-text-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0;
+  color: var(--white);
+}
+
+.unique-brand-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--golden-yellow);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  margin-bottom: 2px;
+}
+
+.brand-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--white);
+  opacity: 0.92;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  margin-bottom: 14px;
+}
+
+.loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: var(--white);
+  opacity: 0.85;
+}
+
+.loading-dots {
+  display: inline-flex;
+}
+
+.loading-dots .dot {
+  animation: preloaderDot 1.4s infinite both;
+}
+
+.loading-dots .dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots .dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes preloaderDot {
+  0%, 60%, 100% { opacity: 0.2; }
+  30% { opacity: 1; }
+}
+
+/* Lock scroll while preloader is visible */
+body.preloader-active {
+  overflow: hidden;
 }
 
 a {
@@ -197,7 +313,7 @@ html, body, div, section, textarea, table {
   box-shadow: 0 2px 5px rgba(255, 215, 0, 0.3);
 }
 
-/* --- Top Bar (scrolls away naturally) --- */
+/* --- Top Bar: continuous scrolling marquee (desktop + mobile) --- */
 .top-bar {
   background-color: var(--deep-green-dark);
   color: var(--white);
@@ -206,40 +322,80 @@ html, body, div, section, textarea, table {
   display: flex;
   align-items: center;
   width: 100%;
+  overflow: hidden;
   border-bottom: 2px solid var(--golden-yellow);
 }
 
-.top-bar-content {
+.ticker-wrap {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: center;   /* perfect vertical centering of the moving strip */
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.top-bar-left {
+/* The markup holds 4 identical sets = two mirrored halves. Animating from 0 to
+   -50% shifts by exactly one half's width, so the strip lands pixel-perfectly on
+   its own copy → a gap-free, non-stop loop that stays full even on huge monitors. */
+.ticker-content {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 16px;
+  width: max-content;
+  height: 100%;
+  animation: tickerScroll 40s linear infinite;
 }
 
-.top-bar-text {
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  line-height: 1;
   font-weight: 500;
+  white-space: nowrap;
 }
 
-.top-bar-right {
-  display: flex;
-  align-items: center;
+.ticker-spacer {
+  flex: 0 0 auto;
+  width: 64px;
 }
 
-.dealer-info strong {
-  color: var(--golden-yellow);
+.minimum-order-pill {
+  display: inline-block;
+  background: var(--gold-gradient);
+  color: var(--deep-green-dark);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.3px;
+  padding: 3px 12px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* Pause the marquee on hover so shoppers can read it */
+.ticker-wrap:hover .ticker-content {
+  animation-play-state: paused;
+}
+
+@keyframes tickerScroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
 /* --- Main Header / Navigation Bar (sticky) --- */
 .main-header {
-  background-color: #ffffff !important;
+  background: linear-gradient(135deg, #ffcc00 0%, #ff9e00 100%) !important; /* Bright Yellow → Warm Gold */
   height: var(--header-height);
   display: flex;
   align-items: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12) !important; /* Soft premium shadow for depth */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s ease !important;
 }
 
 /* === FORCED STICKY OVERRIDES (bypasses parent overflow bugs) === */
@@ -257,8 +413,9 @@ html, body, div, section, textarea, table {
   left: 0 !important;
   width: 100% !important;
   z-index: 99999 !important;
-  background-color: #ffffff !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+  background: linear-gradient(135deg, #ffcc00 0%, #ff9e00 100%) !important; /* Bright Yellow → Warm Gold */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12) !important; /* Soft premium shadow for depth */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
 .header-container {
@@ -364,7 +521,7 @@ html, body, div, section, textarea, table {
   left: 0;
   width: 0;
   height: 3px;
-  background-color: var(--golden-yellow);
+  background-color: var(--deep-green); /* contrast underline on yellow bar */
   transition: var(--transition);
 }
 
@@ -1784,6 +1941,9 @@ section {
 }
 
 .form-control {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 12px 18px;
   border-radius: var(--radius-md);
   border: 2px solid var(--border-color);
@@ -1798,6 +1958,10 @@ section {
   outline: none;
   border-color: var(--deep-green);
   box-shadow: 0 0 10px rgba(10, 92, 54, 0.08);
+}
+
+textarea.form-control {
+  resize: vertical;
 }
 
 select.form-control {
@@ -2681,6 +2845,20 @@ select.form-control {
 }
 
 /* ========================================================================
+   MOBILE & TABLET DRAWER FLUSH FIX (≤1023px only — desktop untouched)
+   Force the drawer to sit exactly at the bottom edge of the sticky navbar
+   so no background product content peeks through the gap.
+   ======================================================================== */
+@media (max-width: 1023px) {
+  .navbar {
+    top: 100% !important;   /* flush to bottom edge of navbar (adaptive height) */
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    z-index: 9998 !important; /* directly beneath navbar (z-index 9999) */
+  }
+}
+
+/* ========================================================================
    BREAKPOINT 3: Mobile Phones & Small Tablets (≤768px)
    ======================================================================== */
 @media (max-width: 768px) {
@@ -2782,25 +2960,22 @@ select.form-control {
     font-size: 0.75rem;
   }
 
-  /* Top bar */
+  /* Top bar marquee: tighter spacing + slightly faster on small screens */
   .top-bar {
-    height: auto;
-    min-height: 36px;
-    padding: 4px 0;
+    padding: 0 !important;
   }
 
-  .top-bar-left {
-    gap: 8px;
-    flex-wrap: wrap;
+  .ticker-spacer {
+    width: 44px !important;
   }
 
-  .top-bar-text {
-    display: none;
-  }
-
-  .badge.festive {
-    font-size: 0.7rem;
+  .minimum-order-pill {
+    font-size: 0.68rem;
     padding: 3px 10px;
+  }
+
+  .ticker-content {
+    animation-duration: 20s !important;
   }
 
   /* --- Hero Carousel --- */
@@ -3232,22 +3407,43 @@ select.form-control {
     border-color: transparent;
   }
 
-  /* --- Safety --- */
+  /* --- Safety: side-by-side compact (Dos left / Don'ts right) --- */
   .safety-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
   }
 
   .safety-card {
-    padding: 28px 24px;
+    padding: 8px 6px !important;
+    border-radius: 10px !important;
+    border-left-width: 3px !important;
+    margin: 0 !important;
+  }
+
+  .safety-icon-wrapper {
+    width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
   }
 
   .safety-card h3 {
-    font-size: 1.3rem;
+    font-size: 0.95rem !important;
+    margin-bottom: 6px !important;
+  }
+
+  .safety-card ul {
+    gap: 5px !important;
   }
 
   .safety-card li {
-    font-size: 0.9rem;
+    font-size: 0.65rem !important;
+    line-height: 1.2 !important;
+    padding-left: 12px !important;
+  }
+
+  .safety-card li::before {
+    font-size: 0.6rem;
   }
 
   /* --- Services / Trust --- */
@@ -3723,11 +3919,6 @@ select.form-control {
   .cart-drawer {
     width: 100%;
     right: -100%;
-  }
-
-  /* Top bar: hide right side */
-  .top-bar-right {
-    display: none;
   }
 
   /* WhatsApp popup: smaller */

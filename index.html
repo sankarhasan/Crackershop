@@ -16,15 +16,56 @@
 </head>
 <body>
 
-  <!-- Top Bar: Moves naturally with scroll -->
-  <div class="top-bar top-green-bar section-to-scroll">
-    <div class="container top-bar-content">
-      <div class="top-bar-left">
-        <span class="badge festive">MINIMUM ORDER ₹2,000</span>
-        <span class="top-bar-text">✨ Celebrating Diwali with safe & premium Sivakasi crackers!</span>
+  <!-- Full-Screen Asset-Locked Preloader -->
+  <div id="preloader">
+    <div class="preloader-content">
+      <!-- Instant fetch via official Lottie Cloud Link -->
+      <dotlottie-player
+        src="https://lottie.host/c74663fd-84b7-4d55-889d-d2068a8e0717/rcI97zck5M.json"
+        background="transparent"
+        speed="1"
+        style="width: 280px; height: 280px;"
+        loop
+        autoplay>
+      </dotlottie-player>
+
+      <div class="brand-text-wrapper">
+        <h1 class="unique-brand-title">KPR Crackers</h1>
+        <p class="brand-subtitle">Your Joy is our Pride</p>
+        <div class="loading-indicator">
+          <span>LOADING</span>
+          <div class="loading-dots">
+            <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+          </div>
+        </div>
       </div>
-      <div class="top-bar-right">
-        <span class="dealer-info">🤝 Dealers at: <strong>Supreme Fireworks</strong></span>
+    </div>
+  </div>
+
+  <!-- Top Bar: continuous scrolling marquee (desktop + mobile) -->
+  <div class="top-bar top-green-bar section-to-scroll">
+    <div class="ticker-wrap">
+      <div class="ticker-content">
+        <!-- Set 1 -->
+        <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹2,000</span></span>
+        <span class="ticker-spacer"></span>
+        <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+        <span class="ticker-spacer"></span>
+        <!-- Set 2 -->
+        <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹2,000</span></span>
+        <span class="ticker-spacer"></span>
+        <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+        <span class="ticker-spacer"></span>
+        <!-- Set 3 (duplicate half for seamless loop) -->
+        <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹2,000</span></span>
+        <span class="ticker-spacer"></span>
+        <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+        <span class="ticker-spacer"></span>
+        <!-- Set 4 (duplicate half for seamless loop) -->
+        <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹2,000</span></span>
+        <span class="ticker-spacer"></span>
+        <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+        <span class="ticker-spacer"></span>
       </div>
     </div>
   </div>
@@ -48,8 +89,8 @@
           <li><a href="#about" class="nav-link">About Us</a></li>
           <li><a href="#categories" class="nav-link">Categories</a></li>
           <li><a href="#products" class="nav-link">Products</a></li>
+          <li><a href="#quick-enquiry" class="nav-link">Quick Enquiry</a></li>
           <li><a href="#safety" class="nav-link">Safety Tips</a></li>
-          <li><a href="#enquiry" class="nav-link">Quick Enquiry</a></li>
           <li><a href="#contact" class="nav-link">Contact Us</a></li>
         </ul>
       </nav>
@@ -215,6 +256,60 @@
       </div>
     </section>
 
+    <!-- Quick Enquiry Form Section -->
+    <section id="quick-enquiry" class="enquiry-section fade-in-up">
+      <div class="container">
+        <div class="enquiry-card">
+          <div class="section-header">
+            <h4 class="section-subtitle text-center">GET A FREE QUOTE</h4>
+            <h2 class="section-title">Send a Quick Enquiry</h2>
+            <p class="section-desc">Interested in bulk orders, dealer pricing, or custom packages? Submit this form and our agent will call you in 1 hour.</p>
+          </div>
+          
+          <form id="enquiry-form" class="enquiry-form">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="enquiry-name">Your Full Name <span class="required">*</span></label>
+                <input type="text" id="enquiry-name" name="name" class="form-control" placeholder="e.g. Rajesh Kumar" required>
+              </div>
+              <div class="form-group">
+                <label for="enquiry-phone">WhatsApp Number <span class="required">*</span></label>
+                <input type="tel" id="enquiry-phone" name="phone" class="form-control" placeholder="e.g. 9876543210" pattern="[6789][0-9]{9}" required>
+              </div>
+            </div>
+            
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="enquiry-delivery-address">DELIVERY ADDRESS</label>
+                <textarea id="enquiry-delivery-address" name="deliveryAddress" class="form-control" placeholder="Enter your full delivery address" rows="3" required></textarea>
+
+              </div>
+              <div class="form-group">
+                <label for="enquiry-category">Product Category Interest <span class="required">*</span></label>
+                <select id="enquiry-category" name="category" class="form-control" required>
+                  <option value="" disabled selected>Select category...</option>
+                  <option value="all">Complete Diwali Combo / All Categories</option>
+                  <option value="ground-chakkars">Ground Chakkars</option>
+                  <option value="flower-pots">Flower Pots</option>
+                  <option value="fancy-fountains">Fancy Fountains</option>
+                  <option value="sparklers">Sparklers / Pencils</option>
+                  <option value="bombs-rockets">Atom Bombs & Rockets</option>
+                  <option value="combos">Custom Discount Packs</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="enquiry-message">Your Message / Special Requests <span class="required">*</span></label>
+              <textarea id="enquiry-message" name="message" rows="4" class="form-control" placeholder="Mention your requirements, preferred quantities, or delivery location details..." required></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Submit Quick Enquiry</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
     <!-- Safety Tips Section -->
     <section id="safety" class="safety-section fade-in-up">
       <div class="container">
@@ -292,60 +387,6 @@
             <!-- Dynamically Loaded by JS -->
           </div>
           <button class="slider-btn next-btn" id="testimonial-next" aria-label="Next Testimonial">❯</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Quick Enquiry Form Section -->
-    <section id="enquiry" class="enquiry-section fade-in-up">
-      <div class="container">
-        <div class="enquiry-card">
-          <div class="section-header">
-            <h4 class="section-subtitle text-center">GET A FREE QUOTE</h4>
-            <h2 class="section-title">Send a Quick Enquiry</h2>
-            <p class="section-desc">Interested in bulk orders, dealer pricing, or custom packages? Submit this form and our agent will call you in 1 hour.</p>
-          </div>
-          
-          <form id="enquiry-form" class="enquiry-form">
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="enquiry-name">Your Full Name <span class="required">*</span></label>
-                <input type="text" id="enquiry-name" name="name" class="form-control" placeholder="e.g. Rajesh Kumar" required>
-              </div>
-              <div class="form-group">
-                <label for="enquiry-phone">WhatsApp Number <span class="required">*</span></label>
-                <input type="tel" id="enquiry-phone" name="phone" class="form-control" placeholder="e.g. 9876543210" pattern="[6789][0-9]{9}" required>
-              </div>
-            </div>
-            
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="enquiry-delivery-address">DELIVERY ADDRESS</label>
-                <textarea id="enquiry-delivery-address" name="deliveryAddress" class="form-control" placeholder="Enter your full delivery address" rows="3" required></textarea>
-
-              </div>
-              <div class="form-group">
-                <label for="enquiry-category">Product Category Interest <span class="required">*</span></label>
-                <select id="enquiry-category" name="category" class="form-control" required>
-                  <option value="" disabled selected>Select category...</option>
-                  <option value="all">Complete Diwali Combo / All Categories</option>
-                  <option value="ground-chakkars">Ground Chakkars</option>
-                  <option value="flower-pots">Flower Pots</option>
-                  <option value="fancy-fountains">Fancy Fountains</option>
-                  <option value="sparklers">Sparklers / Pencils</option>
-                  <option value="bombs-rockets">Atom Bombs & Rockets</option>
-                  <option value="combos">Custom Discount Packs</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="enquiry-message">Your Message / Special Requests <span class="required">*</span></label>
-              <textarea id="enquiry-message" name="message" rows="4" class="form-control" placeholder="Mention your requirements, preferred quantities, or delivery location details..." required></textarea>
-            </div>
-            
-            <button type="submit" class="btn btn-primary btn-block btn-lg">Submit Quick Enquiry</button>
-          </form>
         </div>
       </div>
     </section>
@@ -458,8 +499,7 @@ KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu 
           <li><a href="#about">About Us</a></li>
           <li><a href="#categories">Product Categories</a></li>
           <li><a href="#products">Premium Shop</a></li>
-          <li><a href="#enquiry">Quick Enquiry</a></li>
-          <li><a href="admin.html" target="_blank" class="admin-portal-link">🔐 Admin Dashboard</a></li>
+          <li><a href="#quick-enquiry">Quick Enquiry</a></li>
         </ul>
       </div>
       
@@ -470,7 +510,6 @@ KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu 
           <li><a href="#safety">Safety Guidelines</a></li>
           <li><a href="#">Terms & Conditions</a></li>
           <li><a href="#">Shipping & Delivery Policy</a></li>
-          <li><a href="#">Cancellation & Refund Policy</a></li>
           <li><a href="#">Privacy Policy</a></li>
         </ul>
       </div>
@@ -505,8 +544,12 @@ KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu 
     <!-- Footer Copyright -->
     <div class="footer-bottom">
       <div class="container footer-bottom-content">
-<p>&copy; 2026 KPR Crackers. All Rights Reserved. Sivakasi, India.</p>
-        <p class="crafted-text">Designed with safety & festive colors ❤️</p>
+        <div class="footer-bottom-left">
+          <p>&copy; 2026 KPR Crackers. All Rights Reserved. Sivakasi, India.</p>
+        </div>
+        <div class="footer-bottom-right">
+          <p>Designed by Maryan Prasanna</p>
+        </div>
       </div>
     </div>
   </footer>
@@ -545,6 +588,8 @@ KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu 
   <div class="toast-container" id="toast-container"></div>
 
   <!-- Script Declarations -->
+  <!-- Lottie Player Script -->
+  <script src="https://unpkg.com/@dotlottie/player-component@2.7.1/dist/dotlottie-player.mjs" type="module"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
 </body>
