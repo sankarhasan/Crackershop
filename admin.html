@@ -81,8 +81,14 @@
               <span class="sidebar-badge" id="enquiry-badge-count">0</span>
             </a>
           </li>
+          <li>
+            <a href="#" class="sidebar-link" data-section="banners">
+              <span class="sidebar-icon">🖼️</span> Banners
+            </a>
+          </li>
         </ul>
       </nav>
+
       
       <div class="sidebar-footer">
         <a href="index.html" class="sidebar-link back-store">
@@ -276,6 +282,33 @@
               <tr>
                 <td colspan="7" class="text-center">Loading customer enquiries...</td>
               </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section E: Banners Manager -->
+      <section id="section-banners" class="dashboard-section animate-fade" style="display: none;">
+        <div class="actions-panel justify-end">
+          <div class="text-right">
+            <div style="font-weight:700;color:var(--admin-text);">Manage Homepage Banners</div>
+            <div style="font-size:0.8rem;color:var(--admin-text-muted);">Edit-only interface (3 fixed banners)</div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-admin">
+            <thead>
+              <tr>
+                <th>Banner</th>
+                <th>Image Preview</th>
+                <th>Tagline</th>
+                <th>Heading Title</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="banners-table-body">
+              <tr><td colspan="5" class="text-center">Loading banners...</td></tr>
             </tbody>
           </table>
         </div>
@@ -495,6 +528,56 @@
           <button class="btn-admin btn-admin-danger" id="delete-confirm-btn">Yes, Delete Item</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT BANNER (fixed 3-banner, edit-only) -->
+  <div class="modal-overlay" id="banner-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Edit Banner</h3>
+        <button class="modal-close-btn" onclick="closeBannerModal()">✕</button>
+      </div>
+
+      <form id="banner-form" onsubmit="event.preventDefault(); saveBannerEdit();">
+        <div class="modal-body-scroll">
+          <input type="hidden" id="banner-modal-index" value="0" />
+
+          <div class="form-group">
+            <label for="banner-modal-tagline">Tagline</label>
+            <input type="text" id="banner-modal-tagline" class="form-control-admin" placeholder="Enter tagline" />
+          </div>
+
+          <div class="form-group">
+            <label for="banner-modal-heading">Heading Title</label>
+            <input type="text" id="banner-modal-heading" class="form-control-admin" placeholder="Enter heading title" />
+          </div>
+
+          <div class="form-group">
+            <label for="banner-modal-description">Description</label>
+            <textarea id="banner-modal-description" class="form-control-admin" rows="3" placeholder="Enter description"></textarea>
+          </div>
+
+<div class="form-group">
+            <label>Local Image Upload (auto converts to Base64) <span class="required" style="text-transform:none;font-weight:700;">*</span></label>
+            <input type="file" id="banner-image-file" accept="image/*" class="form-control-admin" required />
+            <input type="hidden" id="banner-modal-image-data" value="" />
+
+            <div class="admin-image-preview-container" style="margin-top: 10px;">
+              <div class="banner-size-indicator" id="banner-size-indicator">Recommended Size: 1920x800 px</div>
+              <img id="banner-image-preview" src="" alt="Banner Preview" style="max-height: 160px; max-width: 100%; border: 1px solid var(--admin-border); border-radius: var(--radius-sm); display: none; object-fit: contain;" />
+              <div id="banner-image-placeholder" style="height: 160px; border: 1px dashed var(--admin-border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--admin-text-muted); font-size: 0.9rem;">
+                No Image Selected
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer-sticky">
+          <button type="button" class="btn-admin btn-admin-secondary" onclick="closeBannerModal()">Cancel</button>
+          <button type="button" class="btn-admin btn-admin-primary" onclick="saveBannerEdit()">Save Banner</button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -708,7 +708,7 @@ textarea.form-control-admin {
 .modal-card {
   width: 100%;
   max-width: 600px;
-  max-height: 85vh;
+  max-height: 80vh;
   background-color: var(--admin-card);
   border: 1px solid var(--admin-border);
   border-radius: var(--radius-lg);
@@ -717,6 +717,12 @@ textarea.form-control-admin {
   flex-direction: column;
   overflow: hidden;
   animation: modalSlideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ensure modal content doesn't get clipped when it grows */
+.modal-body-scroll {
+  max-height: calc(80vh - 120px);
+  overflow-y: auto;
 }
 
 .modal-form-scrollable {
@@ -733,7 +739,9 @@ textarea.form-control-admin {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-height: calc(80vh - 120px);
 }
+
 
 .modal-footer-sticky {
   padding: 16px 24px;

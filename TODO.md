@@ -1,10 +1,8 @@
-# TODO
-
-- [ ] Implement bannersArray data model (exactly 3 fixed banners) in `js/data.js`.
-- [ ] Convert hero carousel in `index.html` to dynamic rendering driven by bannersArray.
-- [ ] Update homepage carousel JS (`js/app.js`) to keep autoplay/dots/arrows working with rendered slides.
-- [ ] Add Admin Panel “Manage Banners” UI in `admin.html` (3-row table + edit modal; no add/delete).
-- [ ] Implement strict banner save/update in `js/admin.js` (replace only by banner id; no push/splice).
-
-- [ ] Manual verification: edit all 3 banners and ensure homepage updates immediately on reload.
-
+- [x] Inspect existing Admin banner modal markup and banner storage/sync logic.
+- [x] Add “Recommended Size: 1920x800 px” indicator inside the banner image upload/preview area.
+- [x] Ensure banner image file field is required (compulsory).
+- [x] Make “Add/Edit Banner” modal scrollable via CSS (max height + overflow-y).
+- [ ] Run quick verification:
+  - [ ] Open admin → Banners → Edit Banner → modal scrolls when content grows.
+  - [ ] Banner image upload is required and save works.
+  - [ ] Saving banners updates localStorage and reflects on homepage slider.
