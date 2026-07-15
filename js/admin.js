@@ -540,9 +540,31 @@ function renderCategoriesTable() {
   }
   
   categories.forEach(cat => {
+    const imgVal = (cat.categoryImageUrl ?? cat.image ?? '').toString();
+
+    let imageCell = `
+      <div class="cat-no-image">
+        <span class="cat-no-image-icon">🖼️</span>
+        <span class="cat-no-image-text">No Image</span>
+      </div>
+    `;
+
+    if (imgVal && imgVal.trim() !== '') {
+      imageCell = `
+        <img
+          src="${imgVal}"
+          class="cat-thumb"
+          alt="${escapeHtml(cat.name)}"
+        >
+      `;
+    }
+
     tbody.innerHTML += `
       <tr>
         <td>#${cat.id}</td>
+        <td>
+          ${imageCell}
+        </td>
         <td><strong>${escapeHtml(cat.name)}</strong></td>
         <td><code>${escapeHtml(cat.slug)}</code></td>
         <td>

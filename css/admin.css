@@ -618,6 +618,42 @@ textarea.form-control-admin {
   font-size: 1.1rem;
 }
 
+/* Category thumbnail column (Admin Categories Table) */
+.cat-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--admin-border);
+  display: block;
+}
+
+.cat-no-image {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed rgba(139, 148, 158, 0.6);
+  background: rgba(139, 148, 158, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--admin-text-muted);
+  font-size: 0.65rem;
+  text-align: center;
+}
+
+.cat-no-image-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.cat-no-image-text {
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* Stock status tags */
 .stock-status {
   font-weight: 700;
