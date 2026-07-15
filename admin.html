@@ -27,21 +27,21 @@
       
       <form id="admin-login-form" class="login-form">
         <div class="form-group">
-          <label for="login-username">Username</label>
-          <input type="text" id="login-username" class="form-control-admin" placeholder="Enter username" required autocomplete="username">
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" class="form-control-admin" placeholder="Enter admin email" required autocomplete="username">
         </div>
         <div class="form-group">
           <label for="login-password">Password</label>
           <input type="password" id="login-password" class="form-control-admin" placeholder="Enter password" required autocomplete="current-password">
         </div>
         
-        <div class="login-error" id="login-error-msg">⚠️ Invalid username or password!</div>
+        <div class="login-error" id="login-error-msg">⚠️ Invalid email or password!</div>
         
         <button type="submit" class="btn-admin btn-admin-primary btn-block-admin">Verify & Log In</button>
       </form>
       
       <div class="login-footer">
-        <p>🔑 Hint: Default credentials are <strong>admin</strong> / <strong>admin123</strong></p>
+        <p>🔐 Secure access via Firebase Authentication</p>
       </div>
     </div>
   </section>
@@ -597,6 +597,11 @@
   <div class="toast-container" id="admin-toast-container"></div>
 
   <!-- Core Scripts -->
+  <!-- Firebase SDKs (compat): App + Firestore + Auth -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/admin.js"></script>
 </body>

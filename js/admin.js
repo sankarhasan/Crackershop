@@ -4,28 +4,11 @@
 let deleteTargetType = null; // 'product' | 'category' | 'enquiry' | 'banner'
 let deleteTargetId = null;
 
+// Firestore-backed enquiries cache (populated by the realtime listener)
+let firestoreEnquiries = [];
+
 document.addEventListener('DOMContentLoaded', () => {
-  checkAuth();
-  
-  // Login form handler
-  const loginForm = document.getElementById('admin-login-form');
-  if (loginForm) {
-    loginForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const user = document.getElementById('login-username').value;
-      const pass = document.getElementById('login-password').value;
-      
-      if (user === 'admin' && pass === 'admin123') {
-        localStorage.setItem('jcs_admin_session', 'active_session');
-        document.getElementById('login-error-msg').style.display = 'none';
-        checkAuth();
-        showAdminToast('Welcome back, Admin! 🔓', 'success');
-      } else {
-        document.getElementById('login-error-msg').style.display = 'block';
-        showAdminToast('Authentication failed. Check credentials.', 'error');
-      }
-    });
-  }
+  initAdminAuth();
   
   // Navigation sidebar handler
   const sidebarLinks = document.querySelectorAll('.sidebar-link[data-section]');
@@ -138,40 +121,136 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
-   1. Authentication Gate
+   1. Authentication Gate (Firebase Auth: email + password)
    ========================================================================== */
-function checkAuth() {
-  const session = localStorage.getItem('jcs_admin_session');
-  const loginSection = document.getElementById('login-section');
-  const dashboard = document.getElementById('admin-dashboard');
-  
-  if (session === 'active_session') {
-    loginSection.style.display = 'none';
-    dashboard.style.display = 'grid';
-    
-    // Update global portal date
-    const dateInfo = document.getElementById('current-date-info');
-    if (dateInfo) {
-      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-      dateInfo.innerText = new Date().toLocaleDateString('en-US', options);
-    }
-    
-    // Seed initial admin drop-down select options
-    populateCategoryDropdowns();
-    
-    // Refresh stats and show main dashboard
-    updateDashboardStats();
-    showDashboardSection('dashboard');
-  } else {
-    loginSection.style.display = 'flex';
-    dashboard.style.display = 'none';
+function initAdminAuth() {
+  if (typeof firebase === 'undefined' || !firebase.auth) {
+    console.error('[Admin] Firebase Auth SDK not loaded.');
+    showAdminToast('Authentication service unavailable.', 'error');
+    return;
   }
+
+  const auth = firebase.auth();
+  window.adminAuth = auth;
+
+  // Login form -> Firebase email/password sign-in
+  const loginForm = document.getElementById('admin-login-form');
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pass = document.getElementById('login-password').value;
+      const errorMsg = document.getElementById('login-error-msg');
+      if (errorMsg) errorMsg.style.display = 'none';
+
+      const btn = loginForm.querySelector('button[type="submit"]');
+      const btnText = btn ? btn.innerText : '';
+      if (btn) { btn.disabled = true; btn.innerText = 'Verifying...'; }
+
+      auth.signInWithEmailAndPassword(email, pass)
+        .then(() => {
+          showAdminToast('Welcome back, Admin! 🔓', 'success');
+        })
+        .catch((err) => {
+          console.error('[Admin] Login failed:', err);
+          if (errorMsg) {
+            errorMsg.innerText = '⚠️ ' + (err && err.message ? err.message : 'Invalid email or password!');
+            errorMsg.style.display = 'block';
+          }
+          showAdminToast('Authentication failed. Check credentials.', 'error');
+        })
+        .finally(() => {
+          if (btn) { btn.disabled = false; btn.innerText = btnText; }
+        });
+    });
+  }
+
+  // Observe auth state to toggle the login form vs. dashboard
+  auth.onAuthStateChanged((user) => {
+    const loginSection = document.getElementById('login-section');
+    const dashboard = document.getElementById('admin-dashboard');
+
+    if (user) {
+      if (loginSection) loginSection.style.display = 'none';
+      if (dashboard) dashboard.style.display = 'grid';
+      onAdminAuthenticated();
+    } else {
+      if (loginSection) loginSection.style.display = 'flex';
+      if (dashboard) dashboard.style.display = 'none';
+    }
+  });
+}
+
+// Runs once the admin is confirmed logged in.
+function onAdminAuthenticated() {
+  // Update global portal date
+  const dateInfo = document.getElementById('current-date-info');
+  if (dateInfo) {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    dateInfo.innerText = new Date().toLocaleDateString('en-US', options);
+  }
+
+  // Seed initial admin drop-down select options
+  populateCategoryDropdowns();
+
+  // Start realtime Firestore enquiries stream (auto-refreshes tables + stats)
+  listenToEnquiries();
+
+  // Refresh stats and show main dashboard
+  updateDashboardStats();
+  showDashboardSection('dashboard');
 }
 
 function logoutAdmin() {
-  localStorage.removeItem('jcs_admin_session');
-  checkAuth();
-  showAdminToast('Logged out securely.', 'info');
+  if (window.adminAuth) {
+    window.adminAuth.signOut()
+      .then(() => showAdminToast('Logged out securely.', 'info'))
+      .catch((err) => {
+        console.error('[Admin] Logout failed:', err);
+        showAdminToast('Could not log out. Please try again.', 'error');
+      });
+  }
+}
+
+/* ==========================================================================
+   1b. Realtime Enquiries stream from Firestore
+   ========================================================================== */
+function listenToEnquiries() {
+  if (!window.db) {
+    console.error('[Admin] Firestore not available for enquiries.');
+    return;
+  }
+
+  window.db.collection('enquiries')
+    .orderBy('timestamp', 'desc')
+    .onSnapshot((snapshot) => {
+      firestoreEnquiries = snapshot.docs.map((doc) => {
+        const d = doc.data() || {};
+        let dateStr;
+        if (d.timestamp && typeof d.timestamp.toDate === 'function') {
+          dateStr = d.timestamp.toDate().toISOString();
+        } else {
+          dateStr = d.date || new Date().toISOString();
+        }
+        return {
+          docId: doc.id,
+          name: d.name || '',
+          phone: d.phone || '',
+          deliveryAddress: d.deliveryAddress || '',
+          category: d.category || '',
+          message: d.message || '',
+          status: d.status || 'new',
+          date: dateStr
+        };
+      });
+
+      // Refresh any views that depend on enquiries
+      updateDashboardStats();
+      renderEnquiriesTable();
+    }, (err) => {
+      console.error('[Admin] Failed to load enquiries from Firestore:', err);
+      showAdminToast('Could not load enquiries from cloud.', 'error');
+    });
 }
 
 /* ==========================================================================
@@ -234,7 +313,7 @@ function showDashboardSectionDirect(sectionName) {
 function updateDashboardStats() {
   const products = getProducts();
   const categories = getCategories();
-  const enquiries = getEnquiries();
+  const enquiries = firestoreEnquiries;
   
   // Count stats
   const totalProducts = products.length;
@@ -273,7 +352,7 @@ function renderRecentEnquiriesMiniTable() {
   const tbody = document.getElementById('recent-enquiries-tbody');
   if (!tbody) return;
   
-  const enquiries = getEnquiries();
+  const enquiries = firestoreEnquiries;
   const categories = getCategories();
   
   // Sort by date descending
@@ -302,7 +381,7 @@ function renderRecentEnquiriesMiniTable() {
     
     tbody.innerHTML += `
       <tr>
-        <td>#${enq.id}</td>
+        <td>#${(enq.docId || '').substring(0, 6)}</td>
         <td><strong>${escapeHtml(enq.name)}</strong></td>
         <td><a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">📞 ${escapeHtml(enq.phone)}</a></td>
         <td>${catName}</td>
@@ -681,7 +760,7 @@ function renderEnquiriesTable() {
   const tbody = document.getElementById('enquiries-table-body');
   if (!tbody) return;
   
-  const enquiries = getEnquiries();
+  const enquiries = firestoreEnquiries;
   const categories = getCategories();
   const statusFilter = document.getElementById('admin-enquiry-filter-status')?.value || 'all';
   
@@ -718,7 +797,7 @@ function renderEnquiriesTable() {
     
     tbody.innerHTML += `
       <tr>
-        <td>#${enq.id}</td>
+        <td>#${(enq.docId || '').substring(0, 6)}</td>
         <td>${formattedDate}</td>
         <td>
           <strong>${escapeHtml(enq.name)}</strong><br>
@@ -731,8 +810,8 @@ function renderEnquiriesTable() {
         <td><span class="status-badge ${enq.status}">${enq.status}</span></td>
         <td>
           <div class="table-actions">
-            <button class="btn-action view" onclick="openEnquiryModal(${enq.id})" title="View Details">🔍</button>
-            <button class="btn-action delete" onclick="confirmDelete('enquiry', ${enq.id})" title="Delete Enquiry">🗑️</button>
+            <button class="btn-action view" onclick="openEnquiryModal('${enq.docId}')" title="View Details">🔍</button>
+            <button class="btn-action delete" onclick="confirmDelete('enquiry', '${enq.docId}')" title="Delete Enquiry">🗑️</button>
           </div>
         </td>
       </tr>
@@ -741,8 +820,7 @@ function renderEnquiriesTable() {
 }
 
 function openEnquiryModal(id) {
-  const enquiries = getEnquiries();
-  const enq = enquiries.find(e => Number(e.id) === Number(id));
+  const enq = firestoreEnquiries.find(e => e.docId === id);
   if (!enq) return;
   
   const categories = getCategories();
@@ -754,7 +832,7 @@ function openEnquiryModal(id) {
     catName = match ? match.name : enq.category;
   }
   
-  document.getElementById('enquiry-modal-id').value = enq.id;
+  document.getElementById('enquiry-modal-id').value = enq.docId;
   document.getElementById('enquiry-modal-name').innerText = enq.name;
   document.getElementById('enquiry-modal-phone').innerHTML = `<a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">${enq.phone} 🚀 (Send WA Message)</a>`;
   document.getElementById('enquiry-modal-email').innerText = enq.deliveryAddress || 'N/A';
@@ -771,20 +849,25 @@ function closeEnquiryModal() {
 }
 
 function saveEnquiryStatus() {
-  const id = document.getElementById('enquiry-modal-id').value;
+  const docId = document.getElementById('enquiry-modal-id').value;
   const status = document.getElementById('enquiry-modal-status').value;
   
-  const enquiries = getEnquiries();
-  const index = enquiries.findIndex(e => Number(e.id) === Number(id));
-  if (index !== -1) {
-    enquiries[index].status = status;
-    saveEnquiries(enquiries);
-    showAdminToast(`Enquiry status modified to ${status.toUpperCase()}.`, 'success');
+  if (!docId || !window.db) {
+    showAdminToast('Could not update enquiry status.', 'error');
+    return;
   }
   
+  window.db.collection('enquiries').doc(docId).update({ status })
+    .then(() => {
+      showAdminToast(`Enquiry status modified to ${status.toUpperCase()}.`, 'success');
+    })
+    .catch((err) => {
+      console.error('[Admin] Failed to update enquiry status:', err);
+      showAdminToast('Could not update enquiry status.', 'error');
+    });
+  
+  // Firestore onSnapshot listener will refresh the tables + stats automatically.
   closeEnquiryModal();
-  updateDashboardStats();
-  renderEnquiriesTable();
 }
 
 /* ==========================================================================
@@ -838,11 +921,15 @@ function executePendingDelete() {
     populateCategoryDropdowns();
     renderCategoriesTable();
   } else if (deleteTargetType === 'enquiry') {
-    let enquiries = getEnquiries();
-    enquiries = enquiries.filter(e => Number(e.id) !== Number(deleteTargetId));
-    saveEnquiries(enquiries);
-    showAdminToast('Enquiry record deleted.', 'info');
-    renderEnquiriesTable();
+    if (window.db && deleteTargetId) {
+      window.db.collection('enquiries').doc(deleteTargetId).delete()
+        .then(() => showAdminToast('Enquiry record deleted.', 'info'))
+        .catch((err) => {
+          console.error('[Admin] Failed to delete enquiry:', err);
+          showAdminToast('Could not delete enquiry.', 'error');
+        });
+      // onSnapshot listener refreshes the table automatically.
+    }
   } else if (deleteTargetType === 'banner') {
     const banners = getBannersData();
     const idx = Number(deleteTargetId);

@@ -1053,41 +1053,61 @@ function initEnquiryForm() {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     
-    const name = document.getElementById('enquiry-name').value;
-    const phone = document.getElementById('enquiry-phone').value;
-    const deliveryAddress = document.getElementById('enquiry-delivery-address').value;
-
+    const name = document.getElementById('enquiry-name').value.trim();
+    const phone = document.getElementById('enquiry-phone').value.trim();
+    const deliveryAddress = document.getElementById('enquiry-delivery-address').value.trim();
     const category = document.getElementById('enquiry-category').value;
-    const message = document.getElementById('enquiry-message').value;
+    const message = document.getElementById('enquiry-message').value.trim();
     
-    const enquiries = getEnquiries();
-    const newId = generateId(enquiries);
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn ? submitBtn.innerText : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Submitting...';
+    }
     
-    const newEnquiry = {
-      id: newId,
+    if (!window.db) {
+      alert('❌ Sorry, the enquiry service is temporarily unavailable. Please reach us on WhatsApp.');
+      showToast('Enquiry service unavailable. Please try again later.', 'error');
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = originalBtnText; }
+      return;
+    }
+    
+    // Save the enquiry into the Firestore "enquiries" collection.
+    window.db.collection('enquiries').add({
       name,
       phone,
       deliveryAddress,
       category,
       message,
-      date: new Date().toISOString(),
-      status: 'new'
-    };
-    
-    enquiries.push(newEnquiry);
-    saveEnquiries(enquiries);
-    
-    // Clear cart if enquiry was submitted from cart
-    if (cart.length > 0) {
-      cart = [];
-      saveCartToStorage();
-      updateCartUI();
-      // Reset catalog labels
-      document.querySelectorAll('.qty-number').forEach(lbl => lbl.innerText = '0');
-    }
-    
-    form.reset();
-    showToast('Enquiry submitted successfully! We will call you soon. 📞', 'success');
+      status: 'new',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    })
+      .then(() => {
+        // Clear cart if enquiry was submitted from cart
+        if (cart.length > 0) {
+          cart = [];
+          saveCartToStorage();
+          updateCartUI();
+          // Reset catalog labels
+          document.querySelectorAll('.qty-number').forEach(lbl => lbl.innerText = '0');
+        }
+        
+        form.reset();
+        alert('✅ Thank you! Your enquiry has been submitted successfully. Our team will contact you shortly.');
+        showToast('Enquiry submitted successfully! We will call you soon. 📞', 'success');
+      })
+      .catch((err) => {
+        console.error('Enquiry submission failed:', err);
+        alert('❌ Sorry, something went wrong while submitting your enquiry. Please try again or contact us on WhatsApp.');
+        showToast('Could not submit enquiry. Please try again.', 'error');
+      })
+      .finally(() => {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = originalBtnText;
+        }
+      });
   });
 }
 
