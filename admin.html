@@ -546,10 +546,12 @@
       </div>
 
       <form id="banner-form" onsubmit="event.preventDefault(); saveBannerEdit();">
-        <div class="modal-body-scroll" style="max-height:80vh;overflow-y:auto;padding-bottom:50px;">
-          <input type="hidden" id="banner-modal-index" value="" />
+        <div class="modal-body-scroll" style="max-height:80vh;overflow-y:auto;">
+          <div class="p-6 pb-24" style="padding:24px !important; padding-bottom:100px !important;">
+            <input type="hidden" id="banner-modal-index" value="" />
 
-          <div class="form-group">
+            <div class="form-group">
+
             <label for="banner-modal-tagline">Tagline</label>
             <input type="text" id="banner-modal-tagline" class="form-control-admin" placeholder="Enter tagline" />
           </div>
@@ -569,17 +571,21 @@
             <input type="file" id="banner-image-file" accept="image/*" class="form-control-admin" required />
             <input type="hidden" id="banner-modal-image-data" value="" />
 
-          <div class="admin-image-preview-container" style="margin-top: 10px;">
-            <div class="banner-size-indicator" id="banner-size-indicator" style="font-size:0.8rem;color:var(--admin-text-muted);font-weight:700;margin-bottom:8px;">Recommended Size: 1920x800 px</div>
+            <div class="banner-image-preview-container" id="banner-image-preview-container">
+              <div class="banner-size-indicator" id="banner-size-indicator" style="font-size:0.8rem;color:var(--admin-text-muted);font-weight:700;margin-bottom:8px;">Recommended Size: 1920x800 px</div>
+
               <img id="banner-image-preview" src="" alt="Banner Preview" style="max-height: 160px; max-width: 100%; border: 1px solid var(--admin-border); border-radius: var(--radius-sm); display: none; object-fit: contain;" />
               <div id="banner-image-placeholder" style="height: 160px; border: 1px dashed var(--admin-border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--admin-text-muted); font-size: 0.9rem;">
                 No Image Selected
               </div>
             </div>
           </div>
-        </div>
+            </div>
+
+          </div>
 
         <div class="modal-footer-sticky">
+
           <button type="button" class="btn-admin btn-admin-secondary" onclick="closeBannerModal()">Cancel</button>
           <button type="button" class="btn-admin btn-admin-primary" onclick="saveBannerEdit()">Save Banner</button>
         </div>

@@ -69,6 +69,10 @@ function initCarousel() {
   const heroCarousel = document.getElementById('hero-carousel');
   if (!heroCarousel) return;
 
+  // Avoid errors when there are no banners yet
+  let currentSlideSafe = 0;
+
+
   // Ensure hero slides container exists
   let slidesContainer = document.getElementById('hero-slides');
   if (!slidesContainer) {
@@ -81,6 +85,8 @@ function initCarousel() {
   const banners = (function getBannersFromStorage() {
     const key = 'bannersData';
     const raw = localStorage.getItem(key);
+
+    // First run defaults: keep the previous behavior (UI not empty), but still allow variable length.
     if (!raw) {
       const defaults = [
         { tagline: 'FESTIVAL OF LIGHTS', headingTitle: 'KPR Crackers', description: 'Explore premium Sivakasi firecrackers with safe delivery and unbeatable offers!', imageBase64: '' },
@@ -90,32 +96,32 @@ function initCarousel() {
       localStorage.setItem(key, JSON.stringify(defaults));
       return defaults;
     }
+
     try {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) throw new Error('not array');
-      const ensured = [0, 1, 2].map(i => {
-        const item = parsed[i] || {};
-        return {
-          tagline: (item.tagline ?? '').toString(),
-          headingTitle: (item.headingTitle ?? '').toString(),
-          description: (item.description ?? '').toString(),
-          imageBase64: (item.imageBase64 ?? '').toString()
-        };
-      });
-      // normalize storage
-      localStorage.setItem(key, JSON.stringify(ensured));
-      return ensured;
+
+      const normalized = parsed.map(item => ({
+        tagline: (item?.tagline ?? '').toString(),
+        headingTitle: (item?.headingTitle ?? '').toString(),
+        description: (item?.description ?? '').toString(),
+        imageBase64: (item?.imageBase64 ?? '').toString()
+      }));
+
+      localStorage.setItem(key, JSON.stringify(normalized));
+      return normalized;
     } catch (e) {
       localStorage.removeItem(key);
       return getBannersFromStorage();
     }
   })();
 
+
   const indicatorsWrap = heroCarousel.querySelector('.carousel-indicators');
   const prevBtn = document.getElementById('carousel-prev');
   const nextBtn = document.getElementById('carousel-next');
 
-  // Render slides (exactly 3)
+  // Render slides (dynamic length)
   slidesContainer.innerHTML = '';
 
   banners.forEach((b, i) => {
@@ -126,7 +132,7 @@ function initCarousel() {
     // Keep existing design layers
     const bgHtml = b.imageBase64
       ? `<div class="slide-bg" style="background-image:url('${b.imageBase64}'); background-size:cover; background-position:center;"></div>`
-      : `<div class="slide-bg placeholder-gradient-${i + 1}"></div>`;
+      : `<div class="slide-bg placeholder-gradient-${(i % 9) + 1}"></div>`;
 
     const overlay = `<div class="slide-overlay"></div>`;
 
@@ -146,10 +152,14 @@ function initCarousel() {
     slidesContainer.appendChild(slide);
   });
 
-  // Render indicators (exactly 3)
+  // If no banners exist, stop early
+  if (banners.length === 0) return;
+
+
+  // Render indicators (dynamic)
   if (indicatorsWrap) {
     indicatorsWrap.innerHTML = '';
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < banners.length; i++) {
       const ind = document.createElement('span');
       ind.className = `indicator ${i === 0 ? 'active' : ''}`;
       ind.setAttribute('data-slide', String(i));
@@ -157,17 +167,21 @@ function initCarousel() {
     }
   }
 
+
   const slides = heroCarousel.querySelectorAll('.carousel-slide');
   const indicators = heroCarousel.querySelectorAll('.carousel-indicators .indicator');
 
   const showSlide = (index) => {
+    if (!slides || slides.length === 0) return;
+
     slides.forEach(s => s.classList.remove('active'));
     indicators.forEach(i => i.classList.remove('active'));
 
     currentSlide = (index + slides.length) % slides.length;
     slides[currentSlide].classList.add('active');
-    indicators[currentSlide].classList.add('active');
+    if (indicators[currentSlide]) indicators[currentSlide].classList.add('active');
   };
+
 
   const nextSlide = () => showSlide(currentSlide + 1);
 
@@ -207,6 +221,7 @@ function initCarousel() {
 
   startAutoplay();
 }
+
 
 function escapeHtml(text) {
   if (!text) return '';

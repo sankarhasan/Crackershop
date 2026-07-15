@@ -1,8 +1,7 @@
-- [x] Inspect existing Admin banner modal markup and banner storage/sync logic.
-- [x] Add “Recommended Size: 1920x800 px” indicator inside the banner image upload/preview area.
-- [x] Ensure banner image file field is required (compulsory).
-- [x] Make “Add/Edit Banner” modal scrollable via CSS (max height + overflow-y).
-- [ ] Run quick verification:
-  - [ ] Open admin → Banners → Edit Banner → modal scrolls when content grows.
-  - [ ] Banner image upload is required and save works.
-  - [ ] Saving banners updates localStorage and reflects on homepage slider.
+- [x] Inspect banner modal preview container markup and related CSS
+- [x] Apply styling to make preview box look like standalone card/box
+- [x] Add distinct bottom margin/spacing before modal footer
+- [ ] Run a quick sanity check (open admin.html / ensure no JS regressions)
+
+
+

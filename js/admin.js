@@ -1,7 +1,7 @@
 // KPR Crackers - Admin Control Panel Logic (admin.js)
 
 // Local state for delete confirmations
-let deleteTargetType = null; // 'product' or 'category'
+let deleteTargetType = null; // 'product' | 'category' | 'enquiry' | 'banner'
 let deleteTargetId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -222,6 +222,7 @@ function showDashboardSection(sectionName) {
     renderBannersTable();
   }
 }
+
 
 function showDashboardSectionDirect(sectionName) {
   showDashboardSection(sectionName);
@@ -808,10 +809,13 @@ function confirmDelete(type, id) {
     label.innerText = 'This will permanently delete this category link from system.';
   } else if (type === 'enquiry') {
     label.innerText = 'This will permanently delete the selected customer enquiry record.';
+  } else if (type === 'banner') {
+    label.innerText = 'This will permanently delete the selected homepage banner.';
   }
   
   document.getElementById('delete-modal').style.display = 'flex';
 }
+
 
 function closeDeleteModal() {
   document.getElementById('delete-modal').style.display = 'none';
@@ -839,11 +843,21 @@ function executePendingDelete() {
     saveEnquiries(enquiries);
     showAdminToast('Enquiry record deleted.', 'info');
     renderEnquiriesTable();
+  } else if (deleteTargetType === 'banner') {
+    const banners = getBannersData();
+    const idx = Number(deleteTargetId);
+    if (!isNaN(idx) && idx >= 0 && idx < banners.length) {
+      banners.splice(idx, 1);
+      saveBannersData(banners);
+      showAdminToast('Banner deleted successfully.', 'info');
+      renderBannersTable();
+    }
   }
   
   closeDeleteModal();
   updateDashboardStats();
 }
+
 
 /* ==========================================================================
    8. Utility helpers
@@ -969,6 +983,8 @@ function updateImagePreview(src) {
 function getBannersData() {
   const key = 'bannersData';
   const raw = localStorage.getItem(key);
+
+  // First-run defaults: seed 3 banners so UI isn't empty, but do NOT enforce fixed length.
   if (!raw) {
     const defaults = [
       { tagline: 'FESTIVAL OF LIGHTS', headingTitle: 'KPR Crackers', description: 'Explore premium Sivakasi firecrackers with safe delivery and unbeatable offers!', imageBase64: '' },
@@ -983,20 +999,16 @@ function getBannersData() {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) throw new Error('not array');
 
-    // Force exactly 3 items
-    const ensured = [0, 1, 2].map(i => {
-      const item = parsed[i] || {};
-      return {
-        tagline: (item.tagline ?? '').toString(),
-        headingTitle: (item.headingTitle ?? '').toString(),
-        description: (item.description ?? '').toString(),
-        imageBase64: (item.imageBase64 ?? '').toString()
-      };
-    });
+    // Normalize structure but keep ALL items.
+    const normalized = parsed.map(item => ({
+      tagline: (item?.tagline ?? '').toString(),
+      headingTitle: (item?.headingTitle ?? '').toString(),
+      description: (item?.description ?? '').toString(),
+      imageBase64: (item?.imageBase64 ?? '').toString()
+    }));
 
-    // Persist normalized structure
-    localStorage.setItem(key, JSON.stringify(ensured));
-    return ensured;
+    localStorage.setItem(key, JSON.stringify(normalized));
+    return normalized;
   } catch (e) {
     localStorage.removeItem(key);
     return getBannersData();
@@ -1005,17 +1017,16 @@ function getBannersData() {
 
 function saveBannersData(banners) {
   const key = 'bannersData';
-  const ensured = [0, 1, 2].map(i => {
-    const item = banners?.[i] || {};
-    return {
-      tagline: (item.tagline ?? '').toString(),
-      headingTitle: (item.headingTitle ?? '').toString(),
-      description: (item.description ?? '').toString(),
-      imageBase64: (item.imageBase64 ?? '').toString()
-    };
-  });
-  localStorage.setItem(key, JSON.stringify(ensured));
+  const arr = Array.isArray(banners) ? banners : [];
+  const normalized = arr.map(item => ({
+    tagline: (item?.tagline ?? '').toString(),
+    headingTitle: (item?.headingTitle ?? '').toString(),
+    description: (item?.description ?? '').toString(),
+    imageBase64: (item?.imageBase64 ?? '').toString()
+  }));
+  localStorage.setItem(key, JSON.stringify(normalized));
 }
+
 
 function renderBannersTable() {
   const tbody = document.getElementById('banners-table-body');
@@ -1038,11 +1049,40 @@ function renderBannersTable() {
         <td>${escapeHtml(b.tagline || '')}</td>
         <td>${escapeHtml(b.headingTitle || '')}</td>
         <td>
-          <button class="btn-admin btn-admin-secondary" onclick="openBannerEditModal(${i})">Edit</button>
+          <div class="table-actions">
+            <button class="btn-admin btn-admin-secondary" onclick="openBannerEditModal(${i})" title="Edit">Edit</button>
+            <button class="btn-admin btn-admin-danger" onclick="confirmDelete('banner', ${i})" title="Delete Banner">🗑️ Delete</button>
+          </div>
         </td>
       </tr>
     `;
   });
+
+  if (banners.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No banners added yet.</td></tr>';
+  }
+}
+
+function openBannerAddModal() {
+  document.getElementById('banner-modal-title').innerText = 'Add New Banner';
+  document.getElementById('banner-modal-index').value = '';
+
+  document.getElementById('banner-modal-tagline').value = '';
+  document.getElementById('banner-modal-heading').value = '';
+  document.getElementById('banner-modal-description').value = '';
+  document.getElementById('banner-modal-image-data').value = '';
+
+  // reset preview
+  const previewImg = document.getElementById('banner-image-preview');
+  const placeholder = document.getElementById('banner-image-placeholder');
+  previewImg.src = '';
+  previewImg.style.display = 'none';
+  placeholder.style.display = 'flex';
+
+  const fileInput = document.getElementById('banner-image-file');
+  if (fileInput) fileInput.value = '';
+
+  document.getElementById('banner-modal').style.display = 'flex';
 }
 
 function openBannerEditModal(index) {
@@ -1050,7 +1090,9 @@ function openBannerEditModal(index) {
   const banner = banners[index];
   if (!banner) return;
 
+  document.getElementById('banner-modal-title').innerText = `Edit Banner #${index + 1}`;
   document.getElementById('banner-modal-index').value = String(index);
+
   document.getElementById('banner-modal-tagline').value = banner.tagline || '';
   document.getElementById('banner-modal-heading').value = banner.headingTitle || '';
   document.getElementById('banner-modal-description').value = banner.description || '';
@@ -1070,33 +1112,62 @@ function openBannerEditModal(index) {
     placeholder.style.display = 'flex';
   }
 
+  // For edit: reset file input so selecting a new file replaces image.
+  const fileInput = document.getElementById('banner-image-file');
+  if (fileInput) fileInput.value = '';
+
   document.getElementById('banner-modal').style.display = 'flex';
 }
+
 
 function closeBannerModal() {
   document.getElementById('banner-modal').style.display = 'none';
 }
 
 function saveBannerEdit() {
-  const idx = parseInt(document.getElementById('banner-modal-index').value, 10);
-  if (isNaN(idx) || idx < 0 || idx > 2) return;
+  const idxRaw = document.getElementById('banner-modal-index').value;
+  const idx = idxRaw === '' || idxRaw === null ? null : parseInt(idxRaw, 10);
+
+  const tagline = document.getElementById('banner-modal-tagline').value;
+  const headingTitle = document.getElementById('banner-modal-heading').value;
+  const description = document.getElementById('banner-modal-description').value;
+  const imageBase64 = document.getElementById('banner-modal-image-data').value;
+
+  // Image is strictly required (HTML required + extra guard)
+  if (!imageBase64 || String(imageBase64).trim() === '') {
+    showAdminToast('Banner image is required.', 'error');
+    return;
+  }
 
   const banners = getBannersData();
-  banners[idx] = {
-    ...banners[idx],
-    tagline: document.getElementById('banner-modal-tagline').value,
-    headingTitle: document.getElementById('banner-modal-heading').value,
-    description: document.getElementById('banner-modal-description').value,
-    imageBase64: document.getElementById('banner-modal-image-data').value
+
+  const payload = {
+    tagline: (tagline ?? '').toString(),
+    headingTitle: (headingTitle ?? '').toString(),
+    description: (description ?? '').toString(),
+    imageBase64
   };
+
+  if (idx === null || isNaN(idx)) {
+    // Add mode
+    banners.push(payload);
+    saveBannersData(banners);
+    closeBannerModal();
+    renderBannersTable();
+    showAdminToast('New banner added successfully.', 'success');
+    return;
+  }
+
+  // Edit mode
+  if (idx < 0 || idx >= banners.length) return;
+  banners[idx] = { ...banners[idx], ...payload };
 
   saveBannersData(banners);
   closeBannerModal();
   renderBannersTable();
-
-  // Keep admin quick experience
   showAdminToast('Banner updated successfully.', 'success');
 }
+
 
 // Image file -> base64 conversion for banner modal
 (function wireBannerModalUploadOnce() {

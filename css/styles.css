@@ -2708,3 +2708,26 @@ select.form-control {
     padding: 0 16px;
   }
 }
+
+/* FORCE HIDE SCROLLBARS GLOBALLY FOR ALL ELEMENTS AND MODALS */
+
+/* 1. For Chrome, Safari, Opera, and all WebKit-based browsers */
+::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
+/* 2. For Firefox, IE, and Edge */
+* {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;     /* Firefox */
+}
+
+/* 3. Explicitly target all potential scroll containers, overlays, and modals */
+html, body, div, section, textarea, table, tbody, .modal, .modal-body, [class*="overflow-"] {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+}
+

@@ -726,6 +726,18 @@ textarea.form-control-admin {
   padding-bottom: 50px;
 }
 
+/* Hide modal scrollbars while keeping scrolling functional */
+.modal-body-scroll, .modal-body, .modal-content, .modal {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+.modal-body-scroll::-webkit-scrollbar, .modal-body::-webkit-scrollbar, .modal-content::-webkit-scrollbar, .modal::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+
 .modal-form-scrollable {
   display: flex;
   flex-direction: column;
@@ -755,6 +767,27 @@ textarea.form-control-admin {
   bottom: 0;
   z-index: 10;
 }
+
+/* --- Banner Modal Image Preview Card --- */
+#banner-image-preview-container {
+  margin-top: 10px;
+  margin-bottom: 24px !important; /* gap before modal footer */
+  border: 1px dashed rgba(75, 85, 99, 0.95);
+  background: rgba(33, 38, 45, 0.45);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+#banner-image-preview {
+  border: none !important;
+  border-radius: calc(var(--radius-md) - 2px);
+}
+
+#banner-image-placeholder {
+  border: 1px dashed rgba(75, 85, 99, 0.95) !important;
+  border-radius: calc(var(--radius-md) - 2px) !important;
+}
+
 
 @keyframes modalSlideDown {
   0% { transform: translateY(-40px); opacity: 0; }
