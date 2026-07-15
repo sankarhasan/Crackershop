@@ -1,2 +1,3 @@
-// (Intentionally left blank - placeholder if future banner helpers are needed.)
+// Banner helpers (admin side + storefront side shared patterns)
+// Note: this file is currently intentionally minimal.
 

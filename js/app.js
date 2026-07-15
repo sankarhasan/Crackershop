@@ -66,59 +66,152 @@ document.addEventListener('DOMContentLoaded', () => {
    1. Carousel Slider Banner (diwali greeting background auto-rotates)
    ========================================================================== */
 function initCarousel() {
-  const slides = document.querySelectorAll('.carousel-slide');
-  const indicators = document.querySelectorAll('.carousel-indicators .indicator');
+  const heroCarousel = document.getElementById('hero-carousel');
+  if (!heroCarousel) return;
+
+  // Ensure hero slides container exists
+  let slidesContainer = document.getElementById('hero-slides');
+  if (!slidesContainer) {
+    slidesContainer = document.createElement('div');
+    slidesContainer.id = 'hero-slides';
+    heroCarousel.insertBefore(slidesContainer, heroCarousel.firstChild);
+  }
+
+  // Load banners from localStorage (admin updates this key)
+  const banners = (function getBannersFromStorage() {
+    const key = 'bannersData';
+    const raw = localStorage.getItem(key);
+    if (!raw) {
+      const defaults = [
+        { tagline: 'FESTIVAL OF LIGHTS', headingTitle: 'KPR Crackers', description: 'Explore premium Sivakasi firecrackers with safe delivery and unbeatable offers!', imageBase64: '' },
+        { tagline: 'SUPER VALUE OFFER', headingTitle: 'Up To 40% OFF on Combo Packs', description: 'Grab curated combos packed with safety, brightness, and joy.', imageBase64: '' },
+        { tagline: 'TRUST & SAFETY', headingTitle: '100% Quality & Safe Delivery', description: 'Sourced from top manufacturers in Sivakasi. Tested for safety and packaged securely.', imageBase64: '' }
+      ];
+      localStorage.setItem(key, JSON.stringify(defaults));
+      return defaults;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) throw new Error('not array');
+      const ensured = [0, 1, 2].map(i => {
+        const item = parsed[i] || {};
+        return {
+          tagline: (item.tagline ?? '').toString(),
+          headingTitle: (item.headingTitle ?? '').toString(),
+          description: (item.description ?? '').toString(),
+          imageBase64: (item.imageBase64 ?? '').toString()
+        };
+      });
+      // normalize storage
+      localStorage.setItem(key, JSON.stringify(ensured));
+      return ensured;
+    } catch (e) {
+      localStorage.removeItem(key);
+      return getBannersFromStorage();
+    }
+  })();
+
+  const indicatorsWrap = heroCarousel.querySelector('.carousel-indicators');
   const prevBtn = document.getElementById('carousel-prev');
   const nextBtn = document.getElementById('carousel-next');
-  
-  if (!slides.length) return;
-  
+
+  // Render slides (exactly 3)
+  slidesContainer.innerHTML = '';
+
+  banners.forEach((b, i) => {
+    const slide = document.createElement('div');
+    slide.className = `carousel-slide ${i === 0 ? 'active' : ''}`;
+    slide.setAttribute('data-slide', String(i));
+
+    // Keep existing design layers
+    const bgHtml = b.imageBase64
+      ? `<div class="slide-bg" style="background-image:url('${b.imageBase64}'); background-size:cover; background-position:center;"></div>`
+      : `<div class="slide-bg placeholder-gradient-${i + 1}"></div>`;
+
+    const overlay = `<div class="slide-overlay"></div>`;
+
+    const content = `
+      <div class="container slide-content">
+        <h4 class="slide-subtitle text-glow">${escapeHtml(b.tagline || '')}</h4>
+        <h1 class="slide-title">${escapeHtml(b.headingTitle || '')}</h1>
+        <p class="slide-desc">${escapeHtml(b.description || '')}</p>
+        <div class="slide-buttons">
+          <a href="#products" class="btn btn-primary btn-lg">Shop Products Now</a>
+          <a href="#enquiry" class="btn btn-outline btn-lg">Quick Enquiry</a>
+        </div>
+      </div>
+    `;
+
+    slide.innerHTML = `${bgHtml}${overlay}${content}`;
+    slidesContainer.appendChild(slide);
+  });
+
+  // Render indicators (exactly 3)
+  if (indicatorsWrap) {
+    indicatorsWrap.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      const ind = document.createElement('span');
+      ind.className = `indicator ${i === 0 ? 'active' : ''}`;
+      ind.setAttribute('data-slide', String(i));
+      indicatorsWrap.appendChild(ind);
+    }
+  }
+
+  const slides = heroCarousel.querySelectorAll('.carousel-slide');
+  const indicators = heroCarousel.querySelectorAll('.carousel-indicators .indicator');
+
   const showSlide = (index) => {
     slides.forEach(s => s.classList.remove('active'));
     indicators.forEach(i => i.classList.remove('active'));
-    
+
     currentSlide = (index + slides.length) % slides.length;
     slides[currentSlide].classList.add('active');
     indicators[currentSlide].classList.add('active');
   };
-  
-  const nextSlide = () => {
-    showSlide(currentSlide + 1);
-  };
-  
+
+  const nextSlide = () => showSlide(currentSlide + 1);
+
   const startAutoplay = () => {
     stopAutoplay();
     carouselInterval = setInterval(nextSlide, 5000);
   };
-  
+
   const stopAutoplay = () => {
     if (carouselInterval) clearInterval(carouselInterval);
   };
-  
+
   // Controls
-  prevBtn.addEventListener('click', () => {
+  if (prevBtn) prevBtn.addEventListener('click', () => {
     showSlide(currentSlide - 1);
     startAutoplay();
   });
-  
-  nextBtn.addEventListener('click', () => {
+
+  if (nextBtn) nextBtn.addEventListener('click', () => {
     showSlide(currentSlide + 1);
     startAutoplay();
   });
-  
+
   indicators.forEach((ind, i) => {
     ind.addEventListener('click', () => {
       showSlide(i);
       startAutoplay();
     });
   });
-  
+
   // Pause on hover
   const heroSection = document.getElementById('home');
-  heroSection.addEventListener('mouseenter', stopAutoplay);
-  heroSection.addEventListener('mouseleave', startAutoplay);
-  
+  if (heroSection) {
+    heroSection.addEventListener('mouseenter', stopAutoplay);
+    heroSection.addEventListener('mouseleave', startAutoplay);
+  }
+
   startAutoplay();
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const map = { '&': '&amp;', '<': '<', '>': '>', '"': '"', "'": '&#039;' };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
 /* ==========================================================================

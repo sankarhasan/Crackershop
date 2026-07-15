@@ -203,7 +203,8 @@ function showDashboardSection(sectionName) {
       'dashboard': 'Dashboard Statistics',
       'products': 'Manage Firecrackers Inventory',
       'categories': 'Manage Catalog Categories',
-      'enquiries': 'Customer Enquiries Portal'
+      'enquiries': 'Customer Enquiries Portal',
+      'banners': 'Manage Homepage Banners'
     };
     title.innerText = titles[sectionName] || 'Administration';
   }
@@ -217,6 +218,8 @@ function showDashboardSection(sectionName) {
     renderCategoriesTable();
   } else if (sectionName === 'enquiries') {
     renderEnquiriesTable();
+  } else if (sectionName === 'banners') {
+    renderBannersTable();
   }
 }
 
@@ -619,6 +622,7 @@ function closeCategoryModal() {
 
 function saveCategoryData() {
   const idVal = document.getElementById('category-modal-id').value;
+
   const name = document.getElementById('category-modal-name').value;
   const slug = document.getElementById('category-modal-slug').value;
 
@@ -957,3 +961,175 @@ function updateImagePreview(src) {
     placeholder.style.display = 'flex';
   }
 }
+
+/* ==========================================================================
+   9. Banners (fixed 3-banner edit-only)
+   ========================================================================== */
+
+function getBannersData() {
+  const key = 'bannersData';
+  const raw = localStorage.getItem(key);
+  if (!raw) {
+    const defaults = [
+      { tagline: 'FESTIVAL OF LIGHTS', headingTitle: 'KPR Crackers', description: 'Explore premium Sivakasi firecrackers with safe delivery and unbeatable offers!', imageBase64: '' },
+      { tagline: 'SUPER VALUE OFFER', headingTitle: 'Up To 40% OFF on Combo Packs', description: 'Grab curated combos packed with safety, brightness, and joy.', imageBase64: '' },
+      { tagline: 'TRUST & SAFETY', headingTitle: '100% Quality & Safe Delivery', description: 'Sourced from top manufacturers in Sivakasi. Tested for safety and packaged securely.', imageBase64: '' }
+    ];
+    localStorage.setItem(key, JSON.stringify(defaults));
+    return defaults;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('not array');
+
+    // Force exactly 3 items
+    const ensured = [0, 1, 2].map(i => {
+      const item = parsed[i] || {};
+      return {
+        tagline: (item.tagline ?? '').toString(),
+        headingTitle: (item.headingTitle ?? '').toString(),
+        description: (item.description ?? '').toString(),
+        imageBase64: (item.imageBase64 ?? '').toString()
+      };
+    });
+
+    // Persist normalized structure
+    localStorage.setItem(key, JSON.stringify(ensured));
+    return ensured;
+  } catch (e) {
+    localStorage.removeItem(key);
+    return getBannersData();
+  }
+}
+
+function saveBannersData(banners) {
+  const key = 'bannersData';
+  const ensured = [0, 1, 2].map(i => {
+    const item = banners?.[i] || {};
+    return {
+      tagline: (item.tagline ?? '').toString(),
+      headingTitle: (item.headingTitle ?? '').toString(),
+      description: (item.description ?? '').toString(),
+      imageBase64: (item.imageBase64 ?? '').toString()
+    };
+  });
+  localStorage.setItem(key, JSON.stringify(ensured));
+}
+
+function renderBannersTable() {
+  const tbody = document.getElementById('banners-table-body');
+  if (!tbody) return;
+
+  const banners = getBannersData();
+
+  tbody.innerHTML = '';
+
+  banners.forEach((b, i) => {
+    const bannerNum = `Banner #${i + 1}`;
+    const imgHtml = b.imageBase64
+      ? `<img src="${b.imageBase64}" alt="${escapeHtml(bannerNum)}" style="width:60px;height:40px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--admin-border);" />`
+      : `<span style="color:var(--admin-text-muted);font-size:0.85rem;">No image</span>`;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${bannerNum}</td>
+        <td>${imgHtml}</td>
+        <td>${escapeHtml(b.tagline || '')}</td>
+        <td>${escapeHtml(b.headingTitle || '')}</td>
+        <td>
+          <button class="btn-admin btn-admin-secondary" onclick="openBannerEditModal(${i})">Edit</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function openBannerEditModal(index) {
+  const banners = getBannersData();
+  const banner = banners[index];
+  if (!banner) return;
+
+  document.getElementById('banner-modal-index').value = String(index);
+  document.getElementById('banner-modal-tagline').value = banner.tagline || '';
+  document.getElementById('banner-modal-heading').value = banner.headingTitle || '';
+  document.getElementById('banner-modal-description').value = banner.description || '';
+  document.getElementById('banner-modal-image-data').value = banner.imageBase64 || '';
+
+  // preview
+  const previewImg = document.getElementById('banner-image-preview');
+  const placeholder = document.getElementById('banner-image-placeholder');
+  const data = banner.imageBase64 || '';
+  if (data) {
+    previewImg.src = data;
+    previewImg.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    previewImg.src = '';
+    previewImg.style.display = 'none';
+    placeholder.style.display = 'flex';
+  }
+
+  document.getElementById('banner-modal').style.display = 'flex';
+}
+
+function closeBannerModal() {
+  document.getElementById('banner-modal').style.display = 'none';
+}
+
+function saveBannerEdit() {
+  const idx = parseInt(document.getElementById('banner-modal-index').value, 10);
+  if (isNaN(idx) || idx < 0 || idx > 2) return;
+
+  const banners = getBannersData();
+  banners[idx] = {
+    ...banners[idx],
+    tagline: document.getElementById('banner-modal-tagline').value,
+    headingTitle: document.getElementById('banner-modal-heading').value,
+    description: document.getElementById('banner-modal-description').value,
+    imageBase64: document.getElementById('banner-modal-image-data').value
+  };
+
+  saveBannersData(banners);
+  closeBannerModal();
+  renderBannersTable();
+
+  // Keep admin quick experience
+  showAdminToast('Banner updated successfully.', 'success');
+}
+
+// Image file -> base64 conversion for banner modal
+(function wireBannerModalUploadOnce() {
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('banner-image-file');
+    const imageDataInput = document.getElementById('banner-modal-image-data');
+
+    if (!fileInput) return;
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+      if (!file) {
+        document.getElementById('banner-modal-image-data').value = '';
+        const previewImg = document.getElementById('banner-image-preview');
+        const placeholder = document.getElementById('banner-image-placeholder');
+        previewImg.src = '';
+        previewImg.style.display = 'none';
+        placeholder.style.display = 'flex';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target.result;
+        document.getElementById('banner-modal-image-data').value = dataUrl;
+
+        const previewImg = document.getElementById('banner-image-preview');
+        const placeholder = document.getElementById('banner-image-placeholder');
+        previewImg.src = dataUrl;
+        previewImg.style.display = 'block';
+        placeholder.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+})();
