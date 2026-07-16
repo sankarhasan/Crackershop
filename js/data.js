@@ -124,3 +124,128 @@ function generateId(items) {
 
 // Execute initial seeding
 initData();
+
+/* ==========================================================================
+   Firestore Product Sync Layer
+   - loadProductsFromFirestore(): fetches products collection, caches to localStorage
+   - saveProductToFirestore(product): upserts a single product doc
+   - deleteProductFromFirestore(id): removes a product doc by numeric id
+   - seedFirestoreProducts(): one-time bulk seed from DEFAULT_PRODUCTS
+   All functions are async and return Promises. They gracefully fall back to
+   localStorage if Firestore is unavailable (window.db is null).
+   ========================================================================== */
+
+/**
+ * Fetch all products from Firestore, ordered by id.
+ * Caches the result to localStorage for offline/fast access.
+ * Returns array of product objects.
+ */
+function loadProductsFromFirestore() {
+  if (!window.db) return Promise.resolve(getProducts());
+
+  return window.db.collection('products')
+    .orderBy('id', 'asc')
+    .get()
+    .then(snapshot => {
+      if (snapshot.empty) {
+        // No products in Firestore yet — seed from defaults
+        return seedFirestoreProducts().then(() => getProducts());
+      }
+      const firestoreProducts = [];
+      snapshot.forEach(doc => {
+        firestoreProducts.push(doc.data());
+      });
+      // Cache to localStorage for fast subsequent reads
+      localStorage.setItem('jcs_products', JSON.stringify(firestoreProducts));
+      return firestoreProducts;
+    })
+    .catch(err => {
+      console.warn('[Firestore] Failed to load products, using localStorage cache:', err);
+      return getProducts();
+    });
+}
+
+/**
+ * Save (upsert) a single product to Firestore.
+ * Uses the numeric product `id` as the Firestore document ID for consistency.
+ */
+function saveProductToFirestore(product) {
+  if (!window.db) return Promise.resolve();
+
+  return window.db.collection('products')
+    .doc(String(product.id))
+    .set(product)
+    .then(() => {
+      // Also update localStorage cache
+      const cached = getProducts();
+      const idx = cached.findIndex(p => Number(p.id) === Number(product.id));
+      if (idx !== -1) {
+        cached[idx] = product;
+      } else {
+        cached.push(product);
+      }
+      localStorage.setItem('jcs_products', JSON.stringify(cached));
+    })
+    .catch(err => {
+      console.error('[Firestore] Failed to save product:', err);
+    });
+}
+
+/**
+ * Delete a product from Firestore by its numeric id.
+ */
+function deleteProductFromFirestore(productId) {
+  if (!window.db) return Promise.resolve();
+
+  return window.db.collection('products')
+    .doc(String(productId))
+    .delete()
+    .then(() => {
+      // Update localStorage cache
+      const cached = getProducts().filter(p => Number(p.id) !== Number(productId));
+      localStorage.setItem('jcs_products', JSON.stringify(cached));
+    })
+    .catch(err => {
+      console.error('[Firestore] Failed to delete product:', err);
+    });
+}
+
+/**
+ * One-time bulk seed: pushes DEFAULT_PRODUCTS into Firestore.
+ * Only runs if the products collection is empty.
+ */
+function seedFirestoreProducts() {
+  if (!window.db) return Promise.resolve();
+
+  const batch = window.db.batch();
+  DEFAULT_PRODUCTS.forEach(prod => {
+    const ref = window.db.collection('products').doc(String(prod.id));
+    batch.set(ref, prod);
+  });
+
+  return batch.commit().then(() => {
+    localStorage.setItem('jcs_products', JSON.stringify(DEFAULT_PRODUCTS));
+    console.log('[Firestore] Seeded', DEFAULT_PRODUCTS.length, 'products.');
+  });
+}
+
+/**
+ * Bulk save all products to Firestore (replaces entire collection snapshot).
+ * Used by admin after batch edits.
+ */
+function saveAllProductsToFirestore(products) {
+  if (!window.db) return Promise.resolve();
+
+  const batch = window.db.batch();
+  products.forEach(prod => {
+    const ref = window.db.collection('products').doc(String(prod.id));
+    batch.set(ref, prod);
+  });
+
+  return batch.commit().then(() => {
+    localStorage.setItem('jcs_products', JSON.stringify(products));
+  })
+  .catch(err => {
+    console.error('[Firestore] Failed to bulk save products:', err);
+  });
+}

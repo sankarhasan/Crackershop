@@ -193,6 +193,11 @@ function onAdminAuthenticated() {
   // Seed initial admin drop-down select options
   populateCategoryDropdowns();
 
+  // Hydrate products from Firestore into localStorage cache, then render
+  loadProductsFromFirestore().then(() => {
+    renderProductsTable();
+  });
+
   // Start realtime Firestore enquiries stream (auto-refreshes tables + stats)
   listenToEnquiries();
 
@@ -603,6 +608,8 @@ function saveProductData() {
   }
   
   saveProducts(products);
+  // Sync to Firestore (async, non-blocking)
+  saveProductToFirestore(idVal === '' ? products[products.length - 1] : products.find(p => Number(p.id) === Number(idVal)));
   closeProductModal();
   renderProductsTable();
 }
@@ -911,6 +918,8 @@ function executePendingDelete() {
     let products = getProducts();
     products = products.filter(p => Number(p.id) !== Number(deleteTargetId));
     saveProducts(products);
+    // Delete from Firestore (async, non-blocking)
+    deleteProductFromFirestore(deleteTargetId);
     showAdminToast('Firecracker item deleted.', 'info');
     renderProductsTable();
   } else if (deleteTargetType === 'category') {

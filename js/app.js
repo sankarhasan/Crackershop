@@ -25,6 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavbarScroll();
   loadCartFromStorage();
   initPreloader();
+
+  // Hydrate products from Firestore (async) then re-render catalog
+  loadProductsFromFirestore().then(products => {
+    renderProductsCatalog();
+    renderMobileSlider();
+  });
   
   // Close menu on nav link clicks
   const navLinks = document.querySelectorAll('.nav-link');
