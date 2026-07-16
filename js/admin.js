@@ -183,6 +183,12 @@ function initAdminAuth() {
 
 // Runs once the admin is confirmed logged in.
 function onAdminAuthenticated() {
+  // Diagnostic: verify Firestore connection status
+  console.log('[Firestore] Authenticated. window.db status:', window.db ? 'CONNECTED' : 'NULL');
+  if (!window.db) {
+    showAdminToast('Firestore not initialized. Check console for details.', 'error');
+    console.error('[Firestore] window.db is null. Verify: 1) firebase-app-compat.js loaded, 2) firebase-firestore-compat.js loaded, 3) firebase-config.js has correct projectId "kpr-crackers"');
+  }
   // Update global portal date
   const dateInfo = document.getElementById('current-date-info');
   if (dateInfo) {
@@ -611,8 +617,21 @@ function saveProductData() {
   }
   
   saveProducts(products);
-  // Sync to Firestore (async, non-blocking)
-  saveProductToFirestore(idVal === '' ? products[products.length - 1] : products.find(p => Number(p.id) === Number(idVal)));
+  // Sync to Firestore (async) with visible error feedback
+  const productToSync = idVal === '' ? products[products.length - 1] : products.find(p => Number(p.id) === Number(idVal));
+  if (!window.db) {
+    console.error('[Firestore] window.db is NULL — Firebase not initialized. Check that firebase-config.js loaded correctly.');
+    showAdminToast('Firestore not connected. Data saved locally only.', 'error');
+  } else if (productToSync) {
+    saveProductToFirestore(productToSync)
+      .then(() => {
+        console.log('[Firestore] Product synced successfully:', productToSync.name);
+      })
+      .catch(err => {
+        console.error('[Firestore] Product sync FAILED:', err);
+        showAdminToast('Firestore sync failed: ' + (err.message || 'Unknown error'), 'error');
+      });
+  }
   closeProductModal();
   renderProductsTable();
 }
@@ -921,8 +940,16 @@ function executePendingDelete() {
     let products = getProducts();
     products = products.filter(p => Number(p.id) !== Number(deleteTargetId));
     saveProducts(products);
-    // Delete from Firestore (async, non-blocking)
-    deleteProductFromFirestore(deleteTargetId);
+    // Delete from Firestore (async) with visible error feedback
+    if (!window.db) {
+      console.error('[Firestore] window.db is NULL — cannot delete from Firestore.');
+    } else {
+      deleteProductFromFirestore(deleteTargetId)
+        .catch(err => {
+          console.error('[Firestore] Product delete FAILED:', err);
+          showAdminToast('Firestore delete failed: ' + (err.message || 'Unknown error'), 'error');
+        });
+    }
     showAdminToast('Firecracker item deleted.', 'info');
     renderProductsTable();
   } else if (deleteTargetType === 'category') {
@@ -948,7 +975,17 @@ function executePendingDelete() {
     if (!isNaN(idx) && idx >= 0 && idx < banners.length) {
       banners.splice(idx, 1);
       saveBannersData(banners);
-      saveBannersToFirestore(banners);
+      if (!window.db) {
+        console.error('[Firestore] window.db is NULL — cannot sync banners to Firestore.');
+        showAdminToast('Firestore not connected. Banner saved locally only.', 'error');
+      } else {
+        saveBannersToFirestore(banners)
+          .then(() => console.log('[Firestore] Banners synced successfully.'))
+          .catch(err => {
+            console.error('[Firestore] Banner sync FAILED:', err);
+            showAdminToast('Firestore banner sync failed: ' + (err.message || 'Unknown error'), 'error');
+          });
+      }
       showAdminToast('Banner deleted successfully.', 'info');
       renderBannersTable();
     }
@@ -1252,7 +1289,17 @@ function saveBannerEdit() {
     // Add mode
     banners.push(payload);
     saveBannersData(banners);
-    saveBannersToFirestore(banners);
+    if (!window.db) {
+      console.error('[Firestore] window.db is NULL — cannot sync banners.');
+      showAdminToast('Firestore not connected. Banner saved locally only.', 'error');
+    } else {
+      saveBannersToFirestore(banners)
+        .then(() => console.log('[Firestore] Banners synced (add).'))
+        .catch(err => {
+          console.error('[Firestore] Banner sync FAILED:', err);
+          showAdminToast('Firestore banner sync failed: ' + (err.message || 'Unknown error'), 'error');
+        });
+    }
     closeBannerModal();
     renderBannersTable();
     showAdminToast('New banner added successfully.', 'success');
@@ -1264,7 +1311,17 @@ function saveBannerEdit() {
   banners[idx] = { ...banners[idx], ...payload };
 
   saveBannersData(banners);
-  saveBannersToFirestore(banners);
+  if (!window.db) {
+    console.error('[Firestore] window.db is NULL — cannot sync banners.');
+    showAdminToast('Firestore not connected. Banner saved locally only.', 'error');
+  } else {
+    saveBannersToFirestore(banners)
+      .then(() => console.log('[Firestore] Banners synced (edit).'))
+      .catch(err => {
+        console.error('[Firestore] Banner sync FAILED:', err);
+        showAdminToast('Firestore banner sync failed: ' + (err.message || 'Unknown error'), 'error');
+      });
+  }
   closeBannerModal();
   renderBannersTable();
   showAdminToast('Banner updated successfully.', 'success');

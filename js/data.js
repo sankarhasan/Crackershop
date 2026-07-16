@@ -188,6 +188,7 @@ function saveProductToFirestore(product) {
     })
     .catch(err => {
       console.error('[Firestore] Failed to save product:', err);
+      throw err; // Re-throw so caller can show user-facing error
     });
 }
 
@@ -207,6 +208,7 @@ function deleteProductFromFirestore(productId) {
     })
     .catch(err => {
       console.error('[Firestore] Failed to delete product:', err);
+      throw err; // Re-throw so caller can show user-facing error
     });
 }
 
@@ -333,6 +335,7 @@ function saveBannersToFirestore(banners) {
     localStorage.setItem('bannersData', JSON.stringify(banners));
   }).catch(err => {
     console.error('[Firestore] Failed to save banners:', err);
+    throw err; // Re-throw so caller can show user-facing error
   });
 }
 
