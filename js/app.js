@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderMobileSlider();
   renderTestimonialsSlider();
   initContactMap();
-  initPromoCountdown();
+  // initPromoCountdown(); // DISABLED: Now handled by Firebase-driven startOfferCountdown()
   initEnquiryForm();
   initWhatsAppWidget();
   initScrollAnimations();
@@ -976,9 +976,16 @@ function renderOfferBanner(offer) {
   startOfferCountdown(offer.targetDate);
 }
 
+/**
+ * Start a clean, independent countdown timer using the Firebase targetDate.
+ * This runs completely offline - no database reads inside the interval.
+ * Only updates the specific text elements for days/hours/mins/secs.
+ */
 function startOfferCountdown(targetDateStr) {
+  // Clear any existing interval to prevent duplicates
   if (offerCountdownInterval) {
     clearInterval(offerCountdownInterval);
+    offerCountdownInterval = null;
   }
 
   const targetDate = new Date(targetDateStr).getTime();
@@ -986,6 +993,12 @@ function startOfferCountdown(targetDateStr) {
     console.warn('[Offer] Invalid targetDate:', targetDateStr);
     return;
   }
+
+  // Cache DOM references for performance (avoid repeated getElementById calls)
+  const daysEl = document.getElementById('days');
+  const hoursEl = document.getElementById('hours');
+  const minsEl = document.getElementById('minutes');
+  const secsEl = document.getElementById('seconds');
 
   function updateCountdown() {
     const now = Date.now();
@@ -1005,11 +1018,7 @@ function startOfferCountdown(targetDateStr) {
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
-    const daysEl = document.getElementById('days');
-    const hoursEl = document.getElementById('hours');
-    const minsEl = document.getElementById('minutes');
-    const secsEl = document.getElementById('seconds');
-
+    // Use cached DOM references (no getElementById calls inside the interval)
     if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
     if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
     if (minsEl) minsEl.textContent = String(mins).padStart(2, '0');
@@ -1019,41 +1028,6 @@ function startOfferCountdown(targetDateStr) {
   updateCountdown();
   offerCountdownInterval = setInterval(updateCountdown, 1000);
   console.log('[Offer] Countdown started. Target:', new Date(targetDate).toISOString());
-}
-
-/* ==========================================================================
-   4. Promo Countdown Timer Setup
-   ========================================================================== */
-function initPromoCountdown() {
-  const targetDate = new Date();
-  targetDate.setDate(targetDate.getDate() + 10); // Target countdown 10 days out
-  
-  const timer = setInterval(() => {
-    const now = new Date().getTime();
-    const difference = targetDate.getTime() - now;
-    
-    if (difference <= 0) {
-      clearInterval(timer);
-      const countdownBox = document.getElementById('promo-timer');
-      if (countdownBox) countdownBox.innerHTML = "<h4>DIWALI BIG SALE IS ACTIVE!</h4>";
-      return;
-    }
-    
-    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-    
-    const dElem = document.getElementById('days');
-    const hElem = document.getElementById('hours');
-    const mElem = document.getElementById('minutes');
-    const sElem = document.getElementById('seconds');
-    
-    if (dElem) dElem.innerText = String(days).padStart(2, '0');
-    if (hElem) hElem.innerText = String(hours).padStart(2, '0');
-    if (mElem) mElem.innerText = String(minutes).padStart(2, '0');
-    if (sElem) sElem.innerText = String(seconds).padStart(2, '0');
-  }, 1000);
 }
 
 /* ==========================================================================
