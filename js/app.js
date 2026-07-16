@@ -10,10 +10,20 @@ const MINIMUM_ORDER_VALUE = 2000;
 document.addEventListener('DOMContentLoaded', () => {
   // Lock scroll behind the full-screen preloader as early as possible
   document.body.classList.add('preloader-active');
+  
+  // CRITICAL: Render categories IMMEDIATELY with localStorage/defaults before any async operations
+  // This ensures the UI is never blank, even if Firestore hangs or fails
+  console.log('[Categories] Initial render from localStorage/defaults...');
+  try {
+    renderCategoriesGrid();
+    renderFilterButtons();
+    console.log('[Categories] Initial render complete. Categories count:', getCategories().length);
+  } catch (initErr) {
+    console.error('[Categories] Initial render FAILED:', initErr);
+  }
+  
   // Initialize app elements
   initCarousel();
-  renderCategoriesGrid();
-  renderFilterButtons();
   renderProductsCatalog();
   renderMobileSlider();
   renderTestimonialsSlider();
@@ -38,22 +48,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Hydrate categories from Firestore (async) then re-render category grid, filters, and products
+  console.log('[Categories] Starting Firestore hydration...');
   loadCategoriesFromFirestore()
-    .then(() => {
-      console.log('[Categories] Firestore hydration complete. Re-rendering UI.');
+    .then(categories => {
+      console.log('[Categories] ✓ Firestore hydration complete. Categories loaded:', categories ? categories.length : 'undefined');
+      console.log('[Categories] Re-rendering UI with Firestore data...');
       renderCategoriesGrid();
       renderFilterButtons();
       renderProductsCatalog(); // Re-render products to reflect any new category filters
+      console.log('[Categories] ✓ UI re-render complete.');
     })
     .catch(err => {
-      console.error('[Categories] Firestore hydration FAILED. Falling back to localStorage/defaults:', err);
+      console.error('[Categories] ✗ Firestore hydration FAILED:', err);
+      console.error('[Categories] Error details:', err.code, err.message);
+      console.log('[Categories] Falling back to localStorage/defaults...');
       // Ensure UI still renders with localStorage cache or default categories
       try {
         renderCategoriesGrid();
         renderFilterButtons();
         renderProductsCatalog();
+        console.log('[Categories] ✓ Fallback render complete.');
       } catch (renderErr) {
-        console.error('[Categories] Fallback render also failed:', renderErr);
+        console.error('[Categories] ✗ Fallback render also failed:', renderErr);
       }
     });
   

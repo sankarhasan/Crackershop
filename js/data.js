@@ -458,16 +458,31 @@ function normalizeBanners(arr) {
  * If the collection is empty, seeds FROM localStorage (which may have admin edits).
  */
 function loadCategoriesFromFirestore() {
-  if (!window.db) return Promise.resolve(getCategories());
+  console.log('[data.js] loadCategoriesFromFirestore() called. window.db:', window.db ? 'CONNECTED' : 'NULL');
+  
+  if (!window.db) {
+    console.warn('[data.js] window.db is NULL. Returning localStorage categories.');
+    return Promise.resolve(getCategories());
+  }
 
-  return window.db.collection('categories')
+  // Add timeout to prevent hanging indefinitely
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Firestore categories fetch timeout (10s)')), 10000);
+  });
+
+  const fetchPromise = window.db.collection('categories')
     .orderBy('id', 'asc')
     .get({ source: 'server' })
     .then(snapshot => {
+      console.log('[data.js] Firestore categories snapshot received. Empty?', snapshot.empty);
+      
       if (snapshot.empty) {
         // Firestore is genuinely empty on the server — seed from defaults
-        console.log('[Firestore] Categories collection empty on server. Seeding DEFAULT_CATEGORIES.');
-        return seedFirestoreCategories(DEFAULT_CATEGORIES).then(() => DEFAULT_CATEGORIES);
+        console.log('[data.js] Categories collection empty on server. Seeding DEFAULT_CATEGORIES.');
+        return seedFirestoreCategories(DEFAULT_CATEGORIES).then(() => {
+          console.log('[data.js] ✓ Seeding complete. Returning DEFAULT_CATEGORIES.');
+          return DEFAULT_CATEGORIES;
+        });
       }
 
       const firestoreCategories = [];
@@ -475,15 +490,24 @@ function loadCategoriesFromFirestore() {
         firestoreCategories.push(doc.data());
       });
 
+      console.log('[data.js] ✓ Loaded', firestoreCategories.length, 'categories from Firestore server.');
+      
       // ALWAYS overwrite localStorage with live Firestore data (single source of truth)
       localStorage.setItem('jcs_categories', JSON.stringify(firestoreCategories));
-      console.log('[Firestore] Loaded', firestoreCategories.length, 'categories from server.');
       return firestoreCategories;
     })
     .catch(err => {
-      console.warn('[Firestore] Category server fetch failed, using localStorage cache:', err.code || err.message, err);
+      console.error('[data.js] ✗ Firestore category fetch FAILED:', err);
+      console.error('[data.js] Error code:', err.code, 'Message:', err.message);
+      console.log('[data.js] Falling back to localStorage cache.');
       return getCategories();
     });
+
+  // Race the fetch against the timeout
+  return Promise.race([fetchPromise, timeoutPromise]).catch(timeoutErr => {
+    console.error('[data.js] ✗ Timeout or error in loadCategoriesFromFirestore:', timeoutErr);
+    return getCategories();
+  });
 }
 
 /**
