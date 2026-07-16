@@ -139,6 +139,10 @@ initData();
  * Fetch all products from Firestore, ordered by id.
  * Caches the result to localStorage for offline/fast access.
  * Returns array of product objects.
+ *
+ * CRITICAL: Never overwrites localStorage with fewer items than it already has.
+ * If Firestore is empty, seeds FROM localStorage (which may contain admin edits).
+ * If Firestore has data but localStorage has MORE items, preserves localStorage.
  */
 function loadProductsFromFirestore() {
   if (!window.db) return Promise.resolve(getProducts());
@@ -147,20 +151,41 @@ function loadProductsFromFirestore() {
     .orderBy('id', 'asc')
     .get()
     .then(snapshot => {
+      const localProducts = getProducts();
+
       if (snapshot.empty) {
-        // No products in Firestore yet — seed from defaults
-        return seedFirestoreProducts().then(() => getProducts());
+        // Firestore is empty — seed FROM localStorage (which may have admin edits)
+        // Only fall back to DEFAULT_PRODUCTS if localStorage is also empty
+        const seedSource = localProducts.length > 0 ? localProducts : DEFAULT_PRODUCTS;
+        console.log('[Firestore] Products collection empty. Seeding from', localProducts.length > 0 ? 'localStorage (' + localProducts.length + ' items)' : 'DEFAULT_PRODUCTS');
+        return seedFirestoreProducts(seedSource).then(() => seedSource);
       }
+
       const firestoreProducts = [];
       snapshot.forEach(doc => {
         firestoreProducts.push(doc.data());
       });
-      // Cache to localStorage for fast subsequent reads
-      localStorage.setItem('jcs_products', JSON.stringify(firestoreProducts));
-      return firestoreProducts;
+
+      // Only overwrite localStorage if Firestore has at least as many items
+      // This prevents stale Firestore from wiping out local admin edits
+      if (firestoreProducts.length >= localProducts.length) {
+        localStorage.setItem('jcs_products', JSON.stringify(firestoreProducts));
+        return firestoreProducts;
+      } else {
+        console.warn('[Firestore] localStorage has', localProducts.length, 'items but Firestore only has', firestoreProducts.length, '. Keeping localStorage data (admin edits pending sync).');
+        // Try to push the extra localStorage items to Firestore
+        const extraItems = localProducts.filter(
+          lp => !firestoreProducts.some(fp => Number(fp.id) === Number(lp.id))
+        );
+        if (extraItems.length > 0) {
+          console.log('[Firestore] Attempting to sync', extraItems.length, 'unsaved local products...');
+          return saveAllProductsToFirestore(localProducts).then(() => localProducts);
+        }
+        return localProducts;
+      }
     })
     .catch(err => {
-      console.warn('[Firestore] Failed to load products, using localStorage cache:', err);
+      console.warn('[Firestore] Failed to load products, using localStorage cache:', err.code || err.message, err);
       return getProducts();
     });
 }
@@ -213,21 +238,26 @@ function deleteProductFromFirestore(productId) {
 }
 
 /**
- * One-time bulk seed: pushes DEFAULT_PRODUCTS into Firestore.
- * Only runs if the products collection is empty.
+ * One-time bulk seed: pushes products into Firestore.
+ * @param {Array} [sourceProducts] - Products to seed. Defaults to localStorage, then DEFAULT_PRODUCTS.
  */
-function seedFirestoreProducts() {
+function seedFirestoreProducts(sourceProducts) {
   if (!window.db) return Promise.resolve();
 
+  // Prefer provided source, then localStorage, then hardcoded defaults
+  const productsToSeed = (sourceProducts && sourceProducts.length > 0)
+    ? sourceProducts
+    : (getProducts().length > 0 ? getProducts() : DEFAULT_PRODUCTS);
+
   const batch = window.db.batch();
-  DEFAULT_PRODUCTS.forEach(prod => {
+  productsToSeed.forEach(prod => {
     const ref = window.db.collection('products').doc(String(prod.id));
     batch.set(ref, prod);
   });
 
   return batch.commit().then(() => {
-    localStorage.setItem('jcs_products', JSON.stringify(DEFAULT_PRODUCTS));
-    console.log('[Firestore] Seeded', DEFAULT_PRODUCTS.length, 'products.');
+    localStorage.setItem('jcs_products', JSON.stringify(productsToSeed));
+    console.log('[Firestore] Seeded', productsToSeed.length, 'products.');
   });
 }
 
@@ -269,7 +299,7 @@ const DEFAULT_BANNERS = [
 /**
  * Fetch all banners from Firestore, ordered by `order` field.
  * Caches to localStorage under 'bannersData' for instant subsequent reads.
- * If the collection is empty, seeds from DEFAULT_BANNERS.
+ * If the collection is empty, seeds FROM localStorage (which may have admin edits).
  */
 function loadBannersFromFirestore() {
   if (!window.db) return Promise.resolve(getBannersDataLocal());
@@ -278,20 +308,32 @@ function loadBannersFromFirestore() {
     .orderBy('order', 'asc')
     .get()
     .then(snapshot => {
+      const localBanners = getBannersDataLocal();
+
       if (snapshot.empty) {
-        return seedFirestoreBanners().then(() => getBannersDataLocal());
+        // Firestore empty — seed FROM localStorage
+        const seedSource = localBanners.length > 0 ? localBanners : DEFAULT_BANNERS;
+        console.log('[Firestore] Banners collection empty. Seeding from', localBanners.length > 0 ? 'localStorage' : 'DEFAULT_BANNERS');
+        return seedFirestoreBanners(seedSource).then(() => seedSource);
       }
+
       const banners = [];
       snapshot.forEach(doc => {
         banners.push(doc.data());
       });
-      // Normalize and cache
       const normalized = normalizeBanners(banners);
-      localStorage.setItem('bannersData', JSON.stringify(normalized));
-      return normalized;
+
+      // Only overwrite localStorage if Firestore has at least as many banners
+      if (normalized.length >= localBanners.length) {
+        localStorage.setItem('bannersData', JSON.stringify(normalized));
+        return normalized;
+      } else {
+        console.warn('[Firestore] localStorage has', localBanners.length, 'banners but Firestore only has', normalized.length, '. Keeping localStorage data.');
+        return saveBannersToFirestore(localBanners).then(() => localBanners);
+      }
     })
     .catch(err => {
-      console.warn('[Firestore] Failed to load banners, using localStorage cache:', err);
+      console.warn('[Firestore] Failed to load banners, using localStorage cache:', err.code || err.message, err);
       return getBannersDataLocal();
     });
 }
@@ -340,20 +382,31 @@ function saveBannersToFirestore(banners) {
 }
 
 /**
- * One-time seed: pushes DEFAULT_BANNERS into Firestore.
+ * One-time seed: pushes banners into Firestore.
+ * @param {Array} [sourceBanners] - Banners to seed. Defaults to localStorage, then DEFAULT_BANNERS.
  */
-function seedFirestoreBanners() {
+function seedFirestoreBanners(sourceBanners) {
   if (!window.db) return Promise.resolve();
 
+  const bannersToSeed = (sourceBanners && sourceBanners.length > 0)
+    ? sourceBanners
+    : (getBannersDataLocal().length > 0 ? getBannersDataLocal() : DEFAULT_BANNERS);
+
   const batch = window.db.batch();
-  DEFAULT_BANNERS.forEach((banner, i) => {
+  bannersToSeed.forEach((banner, i) => {
     const ref = window.db.collection('banners').doc(String(i));
-    batch.set(ref, banner);
+    batch.set(ref, {
+      order: i,
+      tagline: (banner.tagline || '').toString(),
+      headingTitle: (banner.headingTitle || '').toString(),
+      description: (banner.description || '').toString(),
+      imageBase64: (banner.imageBase64 || '').toString()
+    });
   });
 
   return batch.commit().then(() => {
-    localStorage.setItem('bannersData', JSON.stringify(DEFAULT_BANNERS));
-    console.log('[Firestore] Seeded', DEFAULT_BANNERS.length, 'banners.');
+    localStorage.setItem('bannersData', JSON.stringify(bannersToSeed));
+    console.log('[Firestore] Seeded', bannersToSeed.length, 'banners.');
   });
 }
 

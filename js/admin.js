@@ -628,8 +628,10 @@ function saveProductData() {
         console.log('[Firestore] Product synced successfully:', productToSync.name);
       })
       .catch(err => {
-        console.error('[Firestore] Product sync FAILED:', err);
-        showAdminToast('Firestore sync failed: ' + (err.message || 'Unknown error'), 'error');
+        const code = err.code || 'unknown';
+        const msg = err.message || 'Unknown error';
+        console.error('[Firestore] Product sync FAILED. Code:', code, 'Message:', msg, err);
+        showAdminToast('Firestore error [' + code + ']: ' + msg, 'error');
       });
   }
   closeProductModal();
@@ -946,8 +948,9 @@ function executePendingDelete() {
     } else {
       deleteProductFromFirestore(deleteTargetId)
         .catch(err => {
-          console.error('[Firestore] Product delete FAILED:', err);
-          showAdminToast('Firestore delete failed: ' + (err.message || 'Unknown error'), 'error');
+          const code = err.code || 'unknown';
+          console.error('[Firestore] Product delete FAILED. Code:', code, 'Message:', err.message, err);
+          showAdminToast('Firestore delete error [' + code + ']: ' + (err.message || 'Unknown'), 'error');
         });
     }
     showAdminToast('Firecracker item deleted.', 'info');
@@ -982,8 +985,8 @@ function executePendingDelete() {
         saveBannersToFirestore(banners)
           .then(() => console.log('[Firestore] Banners synced successfully.'))
           .catch(err => {
-            console.error('[Firestore] Banner sync FAILED:', err);
-            showAdminToast('Firestore banner sync failed: ' + (err.message || 'Unknown error'), 'error');
+            console.error('[Firestore] Banner sync FAILED. Code:', err.code || 'unknown', err);
+            showAdminToast('Firestore banner error [' + (err.code || 'unknown') + ']: ' + (err.message || 'Unknown'), 'error');
           });
       }
       showAdminToast('Banner deleted successfully.', 'info');
@@ -1296,8 +1299,8 @@ function saveBannerEdit() {
       saveBannersToFirestore(banners)
         .then(() => console.log('[Firestore] Banners synced (add).'))
         .catch(err => {
-          console.error('[Firestore] Banner sync FAILED:', err);
-          showAdminToast('Firestore banner sync failed: ' + (err.message || 'Unknown error'), 'error');
+          console.error('[Firestore] Banner sync FAILED. Code:', err.code || 'unknown', err);
+          showAdminToast('Firestore banner error [' + (err.code || 'unknown') + ']: ' + (err.message || 'Unknown'), 'error');
         });
     }
     closeBannerModal();
@@ -1318,8 +1321,8 @@ function saveBannerEdit() {
     saveBannersToFirestore(banners)
       .then(() => console.log('[Firestore] Banners synced (edit).'))
       .catch(err => {
-        console.error('[Firestore] Banner sync FAILED:', err);
-        showAdminToast('Firestore banner sync failed: ' + (err.message || 'Unknown error'), 'error');
+        console.error('[Firestore] Banner sync FAILED. Code:', err.code || 'unknown', err);
+        showAdminToast('Firestore banner error [' + (err.code || 'unknown') + ']: ' + (err.message || 'Unknown'), 'error');
       });
   }
   closeBannerModal();
