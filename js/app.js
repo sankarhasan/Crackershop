@@ -37,10 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initCarousel();
   });
 
-  // Hydrate categories from Firestore (async) then re-render category grid and filters
+  // Hydrate categories from Firestore (async) then re-render category grid, filters, and products
   loadCategoriesFromFirestore().then(() => {
     renderCategoriesGrid();
     renderFilterButtons();
+    renderProductsCatalog(); // Re-render products to reflect any new category filters
   });
   
   // Close menu on nav link clicks
@@ -454,9 +455,10 @@ function renderFilterButtons() {
     filterBar.appendChild(btn);
   });
 
-  // Search input handler
+  // Search input handler — only attach once to avoid duplicate listeners on re-render
   const searchInput = document.getElementById('product-search');
-  if (searchInput) {
+  if (searchInput && !searchInput.dataset.filterBound) {
+    searchInput.dataset.filterBound = 'true';
     searchInput.addEventListener('input', () => {
       renderProductsCatalog();
       renderMobileSlider();
