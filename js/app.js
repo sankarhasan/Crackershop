@@ -349,48 +349,75 @@ function escapeHtml(text) {
    2. Category Cards Rendering
    ========================================================================== */
 function renderCategoriesGrid() {
+  console.log('[renderCategoriesGrid] Function called.');
+  
   const grid = document.getElementById('categories-grid');
-  if (!grid) return;
+  console.log('[renderCategoriesGrid] Grid element:', grid ? 'FOUND' : 'NOT FOUND');
+  
+  if (!grid) {
+    console.error('[renderCategoriesGrid] ✗ Grid element not found! Aborting.');
+    return;
+  }
   
   const categories = getCategories();
+  console.log('[renderCategoriesGrid] Categories loaded:', categories);
+  console.log('[renderCategoriesGrid] Categories count:', categories.length);
+  console.log('[renderCategoriesGrid] Is array?', Array.isArray(categories));
+  
+  if (!Array.isArray(categories) || categories.length === 0) {
+    console.error('[renderCategoriesGrid] ✗ Categories is empty or not an array!');
+    grid.innerHTML = '<div class="category-card-placeholder">No categories available.</div>';
+    return;
+  }
+  
   grid.innerHTML = '';
+  console.log('[renderCategoriesGrid] Grid cleared. Starting forEach loop...');
   
   categories.forEach((cat, index) => {
-    const card = document.createElement('div');
-    card.className = `category-card fade-in-up`;
-    card.style.transitionDelay = `${index * 50}ms`;
-    card.setAttribute('onclick', `filterByCategory('${cat.slug}')`);
+    console.log(`[renderCategoriesGrid] Processing category ${index}:`, cat);
     
-    // Create random or distinct gradient placeholders (fallback only)
-    const emojiMap = {
-      'ground-chakkars': '🌀',
-      'flower-pots': '🌋',
-      'fancy-fountains': '⛲',
-      'pencils': '✏️',
-      'sparklers': '✨',
-      'atom-bombs': '💣',
-      'rockets': '🚀',
-      'bijili-crackers': '⚡',
-      'combo-packs': '🎁'
-    };
-    const emoji = emojiMap[cat.slug] || '🎆';
-    const bgClass = `cat-g-${(cat.id % 9) + 1}`;
+    try {
+      const card = document.createElement('div');
+      card.className = `category-card fade-in-up`;
+      card.style.transitionDelay = `${index * 50}ms`;
+      card.setAttribute('onclick', `filterByCategory('${cat.slug}')`);
+      
+      // Create random or distinct gradient placeholders (fallback only)
+      const emojiMap = {
+        'ground-chakkars': '🌀',
+        'flower-pots': '🌋',
+        'fancy-fountains': '⛲',
+        'pencils': '✏️',
+        'sparklers': '✨',
+        'atom-bombs': '💣',
+        'rockets': '🚀',
+        'bijili-crackers': '⚡',
+        'combo-packs': '🎁'
+      };
+      const emoji = emojiMap[cat.slug] || '🎆';
+      const bgClass = `cat-g-${(cat.id % 9) + 1}`;
 
-    const categoryImageUrl = (cat.categoryImageUrl ?? cat.image ?? '').toString().trim();
+      const categoryImageUrl = (cat.categoryImageUrl ?? cat.image ?? '').toString().trim();
 
-    card.innerHTML = `
-      <div class="cat-bg ${bgClass}">${categoryImageUrl ? '' : emoji}</div>
-      ${categoryImageUrl
-        ? `<img src="${categoryImageUrl}" alt="${cat.name}" class="category-card-img" loading="lazy">`
-        : ''}
-      <div class="category-overlay"></div>
-      <div class="category-info">
-        <h3 class="category-name">${cat.name}</h3>
-        <span class="category-link">View Collection ➔</span>
-      </div>
-    `;
-    grid.appendChild(card);
+      card.innerHTML = `
+        <div class="cat-bg ${bgClass}">${categoryImageUrl ? '' : emoji}</div>
+        ${categoryImageUrl
+          ? `<img src="${categoryImageUrl}" alt="${cat.name}" class="category-card-img" loading="lazy">`
+          : ''}
+        <div class="category-overlay"></div>
+        <div class="category-info">
+          <h3 class="category-name">${cat.name}</h3>
+          <span class="category-link">View Collection ➔</span>
+        </div>
+      `;
+      grid.appendChild(card);
+      console.log(`[renderCategoriesGrid] ✓ Category ${index} rendered: ${cat.name}`);
+    } catch (cardErr) {
+      console.error(`[renderCategoriesGrid] ✗ Error rendering category ${index}:`, cardErr, cat);
+    }
   });
+  
+  console.log('[renderCategoriesGrid] ✓ Render complete. Grid children count:', grid.children.length);
 }
 
 function updateMobileCategoryBanner() {
