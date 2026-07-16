@@ -1621,6 +1621,106 @@ section {
   pointer-events: none;
 }
 
+/* ==========================================================================
+   JCS-Style Product Card Action (ADD button ⇄ quantity stepper)
+   Pinned to the bottom-right corner of every card and kept in sync across
+   ALL lists (All Items, category pages, filters) via [data-action-for] +
+   querySelectorAll (see syncProductAction in app.js).
+   NOTE: The supplied ".product-card { flex-direction: row }" override was
+   intentionally omitted — desktop cards are vertical (image-on-top) and
+   mobile already switches to row in its own media query; forcing row here
+   would break the desktop grid.
+   ========================================================================== */
+
+/* Keep the price/text clear of the pinned action control */
+.product-card-price-row {
+  margin-bottom: 0;
+  padding-right: 100px;
+}
+
+/* Container pinned strictly to the bottom-right corner */
+.action-container-right {
+  position: absolute !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 90px !important; /* Prevents card layout shifting on toggle */
+  height: 32px !important;
+  z-index: 3 !important;
+}
+
+/* JCS Crackers Base ADD Button Layout */
+.jcs-add-btn {
+  background-color: #15803d !important; /* Premium Green background */
+  color: #ffffff !important;           /* Clean white text */
+  border: 1px solid #15803d !important;
+  width: 100% !important;
+  height: 100% !important;
+  font-weight: bold !important;
+  font-size: 0.85rem !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+  transition: all 0.2s ease !important;
+  text-align: center !important;
+}
+
+.jcs-add-btn:hover {
+  background-color: #166534 !important; /* Slightly darker green on hover */
+  border-color: #166534 !important;
+}
+
+/* Out-of-stock disabled variant */
+.product-card.out-of-stock .jcs-add-btn,
+.jcs-add-btn:disabled {
+  background-color: var(--text-muted) !important;
+  color: var(--white) !important;
+  border-color: var(--text-muted) !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+/* JCS Crackers Stepper Wrapper Box */
+.jcs-stepper-wrap {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: #ffffff !important;
+  border: 1px solid #15803d !important;
+  border-radius: 6px !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+.jcs-step-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #15803d !important;
+  height: 100% !important;
+  padding: 0 10px !important;
+  font-weight: bold !important;
+  font-size: 1rem !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.jcs-step-btn:hover {
+  background-color: #f0fdf4 !important;
+}
+
+.jcs-step-count {
+  font-weight: bold !important;
+  color: #1f2937 !important;
+  font-size: 0.9rem !important;
+  text-align: center !important;
+}
+
 /* --- Safety Tips Section --- */
 .safety-section {
   background-color: var(--white);
@@ -2126,7 +2226,7 @@ select.form-control {
   height: 100vh;
   background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(3px);
-  z-index: 1005;
+  z-index: 100000; /* above the sticky navbar (99999) */
   opacity: 0;
   visibility: hidden;
   transition: var(--transition);
@@ -2143,11 +2243,15 @@ select.form-control {
   right: -400px;
   width: 400px;
   height: 100vh;
+  height: 100dvh; /* dynamic viewport keeps the footer visible under mobile browser chrome */
+  max-height: 100vh;
+  max-height: 100dvh;
   background-color: var(--white);
   box-shadow: -10px 0 30px rgba(0,0,0,0.15);
-  z-index: 1006;
+  z-index: 100001; /* above the sticky navbar (99999) so nothing clips the drawer */
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* only the body scrolls, never the whole drawer */
   transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -2161,6 +2265,7 @@ select.form-control {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0; /* fixed top band, never scrolls */
 }
 
 .cart-drawer-header h3 {
@@ -2182,7 +2287,9 @@ select.form-control {
 
 .cart-drawer-body {
   flex-grow: 1;
+  min-height: 0; /* critical: lets overflow-y actually scroll inside the flex column */
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -2296,6 +2403,7 @@ select.form-control {
   padding: 24px;
   border-top: 1px solid var(--border-color);
   background-color: var(--light-gray);
+  flex-shrink: 0; /* pinned summary/action band, always visible at the bottom */
 }
 
 .minimum-order-warning {
@@ -3117,13 +3225,28 @@ select.form-control {
   }
 
   .product-card {
-    flex-direction: row;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
     flex-shrink: 0 !important;
-    min-height: 140px;
-    padding: 10px;
+    /* Hug content dynamically: no forced height, no empty vertical space */
+    height: auto !important;
+    min-height: unset !important;
+    /* Clean, uniform tight padding on all four sides */
+    padding: 10px !important;
     gap: 10px;
+    margin-bottom: 12px !important;
     border-radius: var(--radius-md);
+  }
+
+  /* Pinned bottom-right, sized down slightly for compact mobile cards */
+  .action-container-right {
+    right: 10px !important;
+    bottom: 10px !important;
+    min-width: 85px !important;
+    width: 85px !important;
+    height: 30px !important;
   }
 
   .product-card:hover {
@@ -3623,6 +3746,10 @@ select.form-control {
   .cart-drawer {
     width: 360px;
     right: -360px;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    z-index: 100001;
   }
 
   .cart-drawer-header {

@@ -480,18 +480,7 @@ function renderProductsCatalog() {
           <span class="current-price">₹${prod.price}</span>
           <span class="original-price">₹${prod.originalPrice}</span>
         </div>
-        <div class="product-card-actions">
-          ${prod.inStock ? `
-            <div class="qty-counter">
-              <button class="qty-btn minus" onclick="adjustCatalogQty(${prod.id}, -1)">-</button>
-              <span class="qty-number" id="catalog-qty-${prod.id}">${cartQty}</span>
-              <button class="qty-btn plus" onclick="adjustCatalogQty(${prod.id}, 1)">+</button>
-            </div>
-            <button class="btn-add-cart" onclick="addProductToCart(${prod.id})">Add to Cart</button>
-          ` : `
-            <button class="btn-add-cart" disabled>Unavailable</button>
-          `}
-        </div>
+        ${buildActionContainer(prod, cartQty)}
       </div>
     `;
     grid.appendChild(card);
@@ -653,18 +642,7 @@ function createMobileProductCard(prod, cartQty) {
         <span class="current-price">₹${prod.price}</span>
         <span class="original-price">₹${prod.originalPrice}</span>
       </div>
-      <div class="product-card-actions">
-        ${prod.inStock ? `
-          <div class="qty-counter">
-            <button class="qty-btn minus" onclick="adjustCatalogQty(${prod.id}, -1)">-</button>
-            <span class="qty-number" id="catalog-qty-${prod.id}">${cartQty}</span>
-            <button class="qty-btn plus" onclick="adjustCatalogQty(${prod.id}, 1)">+</button>
-          </div>
-          <button class="btn-add-cart" onclick="addProductToCart(${prod.id})">Add to Cart</button>
-        ` : `
-          <button class="btn-add-cart" disabled>Unavailable</button>
-        `}
-      </div>
+      ${buildActionContainer(prod, cartQty)}
     </div>
   `;
 
@@ -734,18 +712,68 @@ function setupSliderPaginationObserver() {
   updateArrowStates(0, totalSlides);
 }
 
+/* ==========================================================================
+   3b. JCS-style product action: ADD button ⇄ quantity stepper
+   The same product can appear in several lists at once (All Items grid,
+   category slides, filtered views). We therefore sync EVERY matching card
+   via [data-action-for="<id>"] + querySelectorAll instead of a single id.
+   ========================================================================== */
+function getCartQty(prodId) {
+  const item = cart.find(i => i.id === prodId);
+  return item ? item.quantity : 0;
+}
+
+// Inner HTML for a single card's action area based on current quantity.
+function buildProductActionInner(prodId, qty, inStock) {
+  if (!inStock) {
+    return `<button class="jcs-add-btn" disabled>N/A</button>`;
+  }
+  if (qty > 0) {
+    return `
+      <div class="jcs-stepper-wrap">
+        <button class="jcs-step-btn" onclick="catalogStepQty(${prodId}, -1)" aria-label="Decrease quantity">−</button>
+        <span class="jcs-step-count">${qty}</span>
+        <button class="jcs-step-btn" onclick="catalogStepQty(${prodId}, 1)" aria-label="Increase quantity">+</button>
+      </div>
+    `;
+  }
+  return `<button class="jcs-add-btn" onclick="catalogAddQty(${prodId})">ADD</button>`;
+}
+
+// Full pinned container (used by both the desktop grid and the mobile slider).
+function buildActionContainer(prod, qty) {
+  return `<div class="action-container-right" data-action-for="${prod.id}">${buildProductActionInner(prod.id, qty, prod.inStock)}</div>`;
+}
+
+// Re-render EVERY on-screen action control for this product (global sync).
+function syncProductAction(prodId) {
+  const prod = getProducts().find(p => p.id === prodId);
+  const inStock = prod ? prod.inStock : true;
+  const qty = getCartQty(prodId);
+  document.querySelectorAll(`.action-container-right[data-action-for="${prodId}"]`).forEach(container => {
+    container.innerHTML = buildProductActionInner(prodId, qty, inStock);
+  });
+}
+
+// ADD button clicked → puts the first unit in the cart and toggles to stepper.
+function catalogAddQty(prodId) {
+  const prod = getProducts().find(p => p.id === prodId);
+  if (!prod || !prod.inStock) return;
+  updateCartItemQuantity(prodId, getCartQty(prodId) + 1);
+  syncProductAction(prodId);
+  // Toast disabled: silent add to cart (no popup)
+}
+
+// Stepper +/- clicked → adjust; reaching 0 reverts back to the ADD button.
+function catalogStepQty(prodId, change) {
+  const newQty = Math.max(0, getCartQty(prodId) + change);
+  updateCartItemQuantity(prodId, newQty);
+  syncProductAction(prodId);
+}
+
+// Backward-compatible alias for any older callers.
 function adjustCatalogQty(prodId, change) {
-  const qtyLabel = document.getElementById(`catalog-qty-${prodId}`);
-  if (!qtyLabel) return;
-  
-  let currentVal = parseInt(qtyLabel.innerText) || 0;
-  let newVal = currentVal + change;
-  if (newVal < 0) newVal = 0;
-  
-  qtyLabel.innerText = newVal;
-  
-  // Synchronously update cart structure
-  updateCartItemQuantity(prodId, newVal);
+  catalogStepQty(prodId, change);
 }
 
 /* ==========================================================================
@@ -885,7 +913,7 @@ function addProductToCart(productId) {
   
   saveCartToStorage();
   updateCartUI();
-  showToast(`Added ${prod.name} to cart! 🎆`, 'success');
+  // Toast disabled: silent add to cart (no popup)
 }
 
 function updateCartItemQuantity(productId, newQty) {
@@ -920,11 +948,9 @@ function removeCartItem(productId) {
   saveCartToStorage();
   updateCartUI();
   
-  // Sync Catalog label
-  const qtyLabel = document.getElementById(`catalog-qty-${productId}`);
-  if (qtyLabel) qtyLabel.innerText = 0;
-  
-  showToast('Item removed from cart.', 'info');
+  // Sync every on-screen catalog control for this product
+  syncProductAction(productId);
+  // Toast disabled: silent item removal (no popup)
 }
 
 function calculateSubtotal() {
@@ -1019,9 +1045,8 @@ function adjustDrawerQty(prodId, change) {
   const newQty = item.quantity + change;
   updateCartItemQuantity(prodId, newQty);
   
-  // Sync Catalog UI labels too
-  const qtyLabel = document.getElementById(`catalog-qty-${prodId}`);
-  if (qtyLabel) qtyLabel.innerText = newQty;
+  // Sync every on-screen catalog control for this product
+  syncProductAction(prodId);
 }
 
 function checkoutCart() {
@@ -1232,6 +1257,7 @@ function initPreloader() {
 function initNavbarScroll() {
   const greenBar = document.querySelector('.top-green-bar') || document.querySelector('[class*="green"]');
   const navbar = document.querySelector('.main-white-navbar') || document.querySelector('nav');
+  const mainEl = document.querySelector('main');
 
   if (!greenBar || !navbar) return;
 
@@ -1239,19 +1265,42 @@ function initNavbarScroll() {
   navbar.style.setProperty('position', 'relative', 'important');
   navbar.style.setProperty('box-shadow', '0 4px 15px rgba(0, 0, 0, 0.12)', 'important');
 
-  window.addEventListener('scroll', () => {
-    const triggerHeight = greenBar.offsetHeight || 40;
+  let isFixed = false;
 
-    if (window.scrollY >= triggerHeight) {
+  // Toggle the navbar between in-flow (relative) and pinned (fixed).
+  // When it becomes fixed it leaves the document flow, so we reserve an
+  // equal amount of padding on <main>. Because the space is compensated in
+  // the SAME frame, the content never jumps — the transition is seamless
+  // (no sudden upward snap, no animated slide).
+  const applyFixed = (fixed) => {
+    if (fixed === isFixed) return;
+    isFixed = fixed;
+
+    if (fixed) {
+      const navH = navbar.offsetHeight || 80;
+      if (mainEl) mainEl.style.paddingTop = navH + 'px';
       navbar.style.setProperty('position', 'fixed', 'important');
       navbar.style.setProperty('top', '0', 'important');
       navbar.style.setProperty('box-shadow', '0 6px 18px rgba(0, 0, 0, 0.16)', 'important');
     } else {
+      if (mainEl) mainEl.style.paddingTop = '';
       navbar.style.setProperty('position', 'relative', 'important');
+      navbar.style.removeProperty('top');
       navbar.style.setProperty('box-shadow', '0 4px 15px rgba(0, 0, 0, 0.12)', 'important');
     }
+  };
 
+  window.addEventListener('scroll', () => {
+    const triggerHeight = greenBar.offsetHeight || 40;
+    applyFixed(window.scrollY >= triggerHeight);
     highlightNavLink();
+  }, { passive: true });
+
+  // Keep the reserved space accurate if the navbar height changes (rotate/resize)
+  window.addEventListener('resize', () => {
+    if (isFixed && mainEl) {
+      mainEl.style.paddingTop = (navbar.offsetHeight || 80) + 'px';
+    }
   });
 }
 

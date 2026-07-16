@@ -1,0 +1,24 @@
+# --- OS / system files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editor / IDE ---
+.vscode/*
+!.vscode/settings.json
+.idea/
+
+# --- Logs ---
+*.log
+npm-debug.log*
+
+# --- Dependencies (only if you ever add them) ---
+node_modules/
+
+# --- Vercel local metadata ---
+.vercel
+
+# --- Environment secrets (do NOT commit private keys) ---
+.env
+.env.local
+.env.*.local
