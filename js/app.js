@@ -61,9 +61,27 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Hamburger toggle click: open/close the drawer and morph the icon
   menuToggle.addEventListener('click', () => {
+    // Check the CURRENT state BEFORE toggling (so we sync the icon correctly)
+    const willBeOpen = !menuToggle.classList.contains('active');
+    
     navMenu.classList.toggle('active');
     menuToggle.classList.toggle('active');
-    syncHamburgerIcon();
+    
+    // Now set the icon to match the NEW state
+    const bars = menuToggle.querySelectorAll('.bar');
+    if (bars.length < 3) return;
+    if (willBeOpen) {
+      // Menu is now OPEN → show X icon
+      bars[0].style.transform = 'rotate(-45deg) translate(-5px, 6px)';
+      bars[1].style.opacity = '0';
+      bars[2].style.transform = 'rotate(45deg) translate(-5px, -6px)';
+    } else {
+      // Menu is now CLOSED → show hamburger icon
+      bars[0].style.transform = 'none';
+      bars[1].style.opacity = '1';
+      bars[2].style.transform = 'none';
+    }
+    
     initMobileMenuFooter();
   });
 
