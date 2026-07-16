@@ -31,6 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderProductsCatalog();
     renderMobileSlider();
   });
+
+  // Hydrate banners from Firestore (async) then re-render carousel
+  loadBannersFromFirestore().then(() => {
+    initCarousel();
+  });
   
   // Close menu on nav link clicks
   const navLinks = document.querySelectorAll('.nav-link');

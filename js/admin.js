@@ -198,6 +198,9 @@ function onAdminAuthenticated() {
     renderProductsTable();
   });
 
+  // Hydrate banners from Firestore into localStorage cache
+  loadBannersFromFirestore();
+
   // Start realtime Firestore enquiries stream (auto-refreshes tables + stats)
   listenToEnquiries();
 
@@ -945,6 +948,7 @@ function executePendingDelete() {
     if (!isNaN(idx) && idx >= 0 && idx < banners.length) {
       banners.splice(idx, 1);
       saveBannersData(banners);
+      saveBannersToFirestore(banners);
       showAdminToast('Banner deleted successfully.', 'info');
       renderBannersTable();
     }
@@ -1248,6 +1252,7 @@ function saveBannerEdit() {
     // Add mode
     banners.push(payload);
     saveBannersData(banners);
+    saveBannersToFirestore(banners);
     closeBannerModal();
     renderBannersTable();
     showAdminToast('New banner added successfully.', 'success');
@@ -1259,6 +1264,7 @@ function saveBannerEdit() {
   banners[idx] = { ...banners[idx], ...payload };
 
   saveBannersData(banners);
+  saveBannersToFirestore(banners);
   closeBannerModal();
   renderBannersTable();
   showAdminToast('Banner updated successfully.', 'success');

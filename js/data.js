@@ -249,3 +249,135 @@ function saveAllProductsToFirestore(products) {
     console.error('[Firestore] Failed to bulk save products:', err);
   });
 }
+
+/* ==========================================================================
+   Firestore Banner Sync Layer
+   - loadBannersFromFirestore(): fetches banners collection, caches to localStorage
+   - saveBannersToFirestore(banners): bulk-saves the full banners array
+   Banners are stored as individual docs keyed by their array index ("0", "1", etc.)
+   with an `order` field for sorting. The entire collection is replaced on each save.
+   ========================================================================== */
+
+const DEFAULT_BANNERS = [
+  { order: 0, tagline: 'FESTIVAL OF LIGHTS', headingTitle: 'KPR Crackers', description: 'Explore premium Sivakasi firecrackers with safe delivery and unbeatable offers!', imageBase64: '' },
+  { order: 1, tagline: 'SUPER VALUE OFFER', headingTitle: 'Up To 40% OFF on Combo Packs', description: 'Grab curated combos packed with safety, brightness, and joy.', imageBase64: '' },
+  { order: 2, tagline: 'TRUST & SAFETY', headingTitle: '100% Quality & Safe Delivery', description: 'Sourced from top manufacturers in Sivakasi. Tested for safety and packaged securely.', imageBase64: '' }
+];
+
+/**
+ * Fetch all banners from Firestore, ordered by `order` field.
+ * Caches to localStorage under 'bannersData' for instant subsequent reads.
+ * If the collection is empty, seeds from DEFAULT_BANNERS.
+ */
+function loadBannersFromFirestore() {
+  if (!window.db) return Promise.resolve(getBannersDataLocal());
+
+  return window.db.collection('banners')
+    .orderBy('order', 'asc')
+    .get()
+    .then(snapshot => {
+      if (snapshot.empty) {
+        return seedFirestoreBanners().then(() => getBannersDataLocal());
+      }
+      const banners = [];
+      snapshot.forEach(doc => {
+        banners.push(doc.data());
+      });
+      // Normalize and cache
+      const normalized = normalizeBanners(banners);
+      localStorage.setItem('bannersData', JSON.stringify(normalized));
+      return normalized;
+    })
+    .catch(err => {
+      console.warn('[Firestore] Failed to load banners, using localStorage cache:', err);
+      return getBannersDataLocal();
+    });
+}
+
+/**
+ * Bulk-save the full banners array to Firestore.
+ * Deletes any docs beyond the current array length, then upserts each banner.
+ */
+function saveBannersToFirestore(banners) {
+  if (!window.db) return Promise.resolve();
+
+  // First, fetch existing doc IDs to know which ones to delete
+  return window.db.collection('banners').get().then(existingSnapshot => {
+    const existingIds = [];
+    existingSnapshot.forEach(doc => existingIds.push(doc.id));
+
+    const batch = window.db.batch();
+
+    // Delete docs that are beyond the new array length
+    existingIds.forEach(id => {
+      const idx = parseInt(id, 10);
+      if (isNaN(idx) || idx >= banners.length) {
+        batch.delete(window.db.collection('banners').doc(id));
+      }
+    });
+
+    // Upsert each banner with its index as doc ID
+    banners.forEach((banner, i) => {
+      const ref = window.db.collection('banners').doc(String(i));
+      batch.set(ref, {
+        order: i,
+        tagline: (banner.tagline || '').toString(),
+        headingTitle: (banner.headingTitle || '').toString(),
+        description: (banner.description || '').toString(),
+        imageBase64: (banner.imageBase64 || '').toString()
+      });
+    });
+
+    return batch.commit();
+  }).then(() => {
+    localStorage.setItem('bannersData', JSON.stringify(banners));
+  }).catch(err => {
+    console.error('[Firestore] Failed to save banners:', err);
+  });
+}
+
+/**
+ * One-time seed: pushes DEFAULT_BANNERS into Firestore.
+ */
+function seedFirestoreBanners() {
+  if (!window.db) return Promise.resolve();
+
+  const batch = window.db.batch();
+  DEFAULT_BANNERS.forEach((banner, i) => {
+    const ref = window.db.collection('banners').doc(String(i));
+    batch.set(ref, banner);
+  });
+
+  return batch.commit().then(() => {
+    localStorage.setItem('bannersData', JSON.stringify(DEFAULT_BANNERS));
+    console.log('[Firestore] Seeded', DEFAULT_BANNERS.length, 'banners.');
+  });
+}
+
+/**
+ * Read banners from localStorage (sync fallback).
+ */
+function getBannersDataLocal() {
+  const raw = localStorage.getItem('bannersData');
+  if (!raw) {
+    localStorage.setItem('bannersData', JSON.stringify(DEFAULT_BANNERS));
+    return DEFAULT_BANNERS;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('not array');
+    return normalizeBanners(parsed);
+  } catch (e) {
+    localStorage.removeItem('bannersData');
+    return DEFAULT_BANNERS;
+  }
+}
+
+function normalizeBanners(arr) {
+  return arr.map(item => ({
+    tagline: (item?.tagline ?? '').toString(),
+    headingTitle: (item?.headingTitle ?? '').toString(),
+    description: (item?.description ?? '').toString(),
+    imageBase64: (item?.imageBase64 ?? '').toString()
+  }));
+}
