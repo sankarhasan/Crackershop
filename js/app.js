@@ -1296,16 +1296,24 @@ function checkoutCart() {
    ========================================================================== */
 function initEnquiryForm() {
   const form = document.getElementById('enquiry-form');
-  if (!form) return;
+  if (!form) {
+    console.warn('[Enquiry] #enquiry-form not found in DOM.');
+    return;
+  }
+  
+  console.log('[Enquiry] Form found. Attaching submit handler...');
   
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    console.log('[Enquiry] Form submitted.');
     
-    const name = document.getElementById('enquiry-name').value.trim();
-    const phone = document.getElementById('enquiry-phone').value.trim();
-    const deliveryAddress = document.getElementById('enquiry-delivery-address').value.trim();
-    const category = document.getElementById('enquiry-category').value;
-    const message = document.getElementById('enquiry-message').value.trim();
+    const name = document.getElementById('enquiry-name')?.value.trim();
+    const phone = document.getElementById('enquiry-phone')?.value.trim();
+    const deliveryAddress = document.getElementById('enquiry-delivery-address')?.value.trim();
+    const category = document.getElementById('enquiry-category')?.value;
+    const message = document.getElementById('enquiry-message')?.value.trim();
+    
+    console.log('[Enquiry] Data:', { name, phone, deliveryAddress, category, message });
     
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn ? submitBtn.innerText : '';
@@ -1315,11 +1323,14 @@ function initEnquiryForm() {
     }
     
     if (!window.db) {
+      console.error('[Enquiry] ✗ window.db is NULL. Firestore not initialized.');
       alert('❌ Sorry, the enquiry service is temporarily unavailable. Please reach us on WhatsApp.');
       showToast('Enquiry service unavailable. Please try again later.', 'error');
       if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = originalBtnText; }
       return;
     }
+    
+    console.log('[Enquiry] window.db is available. Writing to Firestore...');
     
     // Save the enquiry into the Firestore "enquiries" collection.
     window.db.collection('enquiries').add({
@@ -1331,7 +1342,9 @@ function initEnquiryForm() {
       status: 'new',
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     })
-      .then(() => {
+      .then((docRef) => {
+        console.log('[Enquiry] ✓ Successfully written to Firestore. Doc ID:', docRef.id);
+        
         // Clear cart if enquiry was submitted from cart
         if (cart.length > 0) {
           cart = [];
@@ -1346,7 +1359,8 @@ function initEnquiryForm() {
         showToast('Enquiry submitted successfully! We will call you soon. 📞', 'success');
       })
       .catch((err) => {
-        console.error('Enquiry submission failed:', err);
+        console.error('[Enquiry] ✗ Firestore write FAILED:', err);
+        console.error('[Enquiry] Error code:', err.code, 'Message:', err.message);
         alert('❌ Sorry, something went wrong while submitting your enquiry. Please try again or contact us on WhatsApp.');
         showToast('Could not submit enquiry. Please try again.', 'error');
       })

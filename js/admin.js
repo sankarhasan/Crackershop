@@ -216,6 +216,45 @@ function onAdminAuthenticated() {
   // Start realtime Firestore enquiries stream (auto-refreshes tables + stats)
   listenToEnquiries();
 
+  // ALSO do a one-time direct fetch as fallback (ensures data loads even if onSnapshot is slow)
+  if (window.db) {
+    console.log('[Admin] Doing direct fetch fallback for enquiries...');
+    window.db.collection('enquiries')
+      .orderBy('timestamp', 'desc')
+      .get({ source: 'server' })
+      .then((snapshot) => {
+        console.log('[Admin] ✓ Direct fetch enquiries complete. Docs:', snapshot.docs.length);
+        if (firestoreEnquiries.length === 0 && snapshot.docs.length > 0) {
+          // Only update if onSnapshot hasn't already populated the data
+          firestoreEnquiries = snapshot.docs.map((doc) => {
+            const d = doc.data() || {};
+            let dateStr;
+            if (d.timestamp && typeof d.timestamp.toDate === 'function') {
+              dateStr = d.timestamp.toDate().toISOString();
+            } else {
+              dateStr = d.date || new Date().toISOString();
+            }
+            return {
+              docId: doc.id,
+              name: d.name || '',
+              phone: d.phone || '',
+              deliveryAddress: d.deliveryAddress || '',
+              category: d.category || '',
+              message: d.message || '',
+              status: d.status || 'new',
+              date: dateStr
+            };
+          });
+          updateDashboardStats();
+          renderEnquiriesTable();
+          console.log('[Admin] ✓ Fallback enquiries data applied. Count:', firestoreEnquiries.length);
+        }
+      })
+      .catch((err) => {
+        console.error('[Admin] ✗ Direct fetch enquiries failed:', err);
+      });
+  }
+
   // Refresh stats and show main dashboard
   updateDashboardStats();
   showDashboardSection('dashboard');
@@ -241,9 +280,13 @@ function listenToEnquiries() {
     return;
   }
 
+  console.log('[Admin] Starting enquiries real-time listener...');
+
   window.db.collection('enquiries')
     .orderBy('timestamp', 'desc')
     .onSnapshot((snapshot) => {
+      console.log('[Admin] ✓ Enquiries onSnapshot fired. Docs count:', snapshot.docs.length);
+      
       firestoreEnquiries = snapshot.docs.map((doc) => {
         const d = doc.data() || {};
         let dateStr;
@@ -264,12 +307,15 @@ function listenToEnquiries() {
         };
       });
 
+      console.log('[Admin] ✓ firestoreEnquiries updated. Count:', firestoreEnquiries.length);
+
       // Refresh any views that depend on enquiries
       updateDashboardStats();
       renderEnquiriesTable();
     }, (err) => {
-      console.error('[Admin] Failed to load enquiries from Firestore:', err);
-      showAdminToast('Could not load enquiries from cloud.', 'error');
+      console.error('[Admin] ✗ Failed to load enquiries from Firestore:', err);
+      console.error('[Admin] Error code:', err.code, 'Message:', err.message);
+      showAdminToast('Could not load enquiries from cloud: ' + (err.message || 'Unknown error'), 'error');
     });
 }
 
