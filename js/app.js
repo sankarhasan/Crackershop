@@ -940,9 +940,9 @@ let offerCountdownInterval = null;
 function renderOfferBanner(offer) {
   console.log('[Offer] renderOfferBanner called. active:', offer.active);
 
-  const section = document.getElementById('offer-banner');
+  const section = document.getElementById('promo-banner-section');
   if (!section) {
-    console.warn('[Offer] #offer-banner section not found in DOM.');
+    console.warn('[Offer] #promo-banner-section not found in DOM.');
     return;
   }
 
@@ -953,12 +953,12 @@ function renderOfferBanner(offer) {
     return;
   }
 
-  // Populate text content
-  const tagEl = document.getElementById('offer-tag-display');
-  const titleEl = document.getElementById('offer-title-display');
-  const subtitleEl = document.getElementById('offer-subtitle-display');
-  const descEl = document.getElementById('offer-desc-display');
-  const btnEl = document.getElementById('offer-btn-display');
+  // Populate text content (targeting original red banner elements)
+  const tagEl = document.getElementById('promo-tag');
+  const titleEl = document.getElementById('promo-title');
+  const subtitleEl = document.getElementById('promo-subtitle');
+  const descEl = document.getElementById('promo-desc');
+  const btnEl = document.getElementById('promo-btn');
 
   if (tagEl) tagEl.textContent = offer.tag || '';
   if (titleEl) titleEl.textContent = offer.title || '';
@@ -966,7 +966,7 @@ function renderOfferBanner(offer) {
   if (descEl) descEl.textContent = offer.description || '';
   if (btnEl) {
     btnEl.textContent = offer.buttonText || 'Claim Offer';
-    btnEl.href = offer.buttonLink || '#';
+    btnEl.href = offer.buttonLink || '#products';
   }
 
   // Show the section
@@ -994,7 +994,7 @@ function startOfferCountdown(targetDateStr) {
     if (diff <= 0) {
       // Offer expired
       clearInterval(offerCountdownInterval);
-      const section = document.getElementById('offer-banner');
+      const section = document.getElementById('promo-banner-section');
       if (section) section.style.display = 'none';
       console.log('[Offer] Countdown expired. Hiding banner.');
       return;
@@ -1005,10 +1005,10 @@ function startOfferCountdown(targetDateStr) {
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
-    const daysEl = document.getElementById('cd-days');
-    const hoursEl = document.getElementById('cd-hours');
-    const minsEl = document.getElementById('cd-mins');
-    const secsEl = document.getElementById('cd-secs');
+    const daysEl = document.getElementById('days');
+    const hoursEl = document.getElementById('hours');
+    const minsEl = document.getElementById('minutes');
+    const secsEl = document.getElementById('seconds');
 
     if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
     if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
