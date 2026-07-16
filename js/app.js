@@ -36,6 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
   loadBannersFromFirestore().then(() => {
     initCarousel();
   });
+
+  // Hydrate categories from Firestore (async) then re-render category grid and filters
+  loadCategoriesFromFirestore().then(() => {
+    renderCategoriesGrid();
+    renderFilterButtons();
+  });
   
   // Close menu on nav link clicks
   const navLinks = document.querySelectorAll('.nav-link');

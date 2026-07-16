@@ -437,3 +437,153 @@ function normalizeBanners(arr) {
     imageBase64: (item?.imageBase64 ?? '').toString()
   }));
 }
+
+/* ==========================================================================
+   Firestore Categories Sync Layer
+   - loadCategoriesFromFirestore(): fetches categories collection, caches to localStorage
+   - saveCategoryToFirestore(category): upserts a single category doc
+   - deleteCategoryFromFirestore(categoryId): removes a category doc by numeric id
+   - seedFirestoreCategories(): one-time bulk seed from localStorage or DEFAULT_CATEGORIES
+   All functions are async and return Promises. They gracefully fall back to
+   localStorage if Firestore is unavailable (window.db is null).
+   ========================================================================== */
+
+/**
+ * Fetch all categories from Firestore, ordered by id.
+ * Caches to localStorage under 'jcs_categories' for instant subsequent reads.
+ * If the collection is empty, seeds FROM localStorage (which may have admin edits).
+ */
+function loadCategoriesFromFirestore() {
+  if (!window.db) return Promise.resolve(getCategories());
+
+  return window.db.collection('categories')
+    .orderBy('id', 'asc')
+    .get()
+    .then(snapshot => {
+      const localCategories = getCategories();
+
+      if (snapshot.empty) {
+        // Firestore empty — seed FROM localStorage
+        const seedSource = localCategories.length > 0 ? localCategories : DEFAULT_CATEGORIES;
+        console.log('[Firestore] Categories collection empty. Seeding from', localCategories.length > 0 ? 'localStorage (' + localCategories.length + ' items)' : 'DEFAULT_CATEGORIES');
+        return seedFirestoreCategories(seedSource).then(() => seedSource);
+      }
+
+      const firestoreCategories = [];
+      snapshot.forEach(doc => {
+        firestoreCategories.push(doc.data());
+      });
+
+      // Only overwrite localStorage if Firestore has at least as many items
+      if (firestoreCategories.length >= localCategories.length) {
+        localStorage.setItem('jcs_categories', JSON.stringify(firestoreCategories));
+        return firestoreCategories;
+      } else {
+        console.warn('[Firestore] localStorage has', localCategories.length, 'categories but Firestore only has', firestoreCategories.length, '. Keeping localStorage data.');
+        // Try to push extra local items to Firestore
+        const extraItems = localCategories.filter(
+          lc => !firestoreCategories.some(fc => Number(fc.id) === Number(lc.id))
+        );
+        if (extraItems.length > 0) {
+          console.log('[Firestore] Attempting to sync', extraItems.length, 'unsaved local categories...');
+          return saveAllCategoriesToFirestore(localCategories).then(() => localCategories);
+        }
+        return localCategories;
+      }
+    })
+    .catch(err => {
+      console.warn('[Firestore] Failed to load categories, using localStorage cache:', err.code || err.message, err);
+      return getCategories();
+    });
+}
+
+/**
+ * Save (upsert) a single category to Firestore.
+ * Uses the numeric category `id` as the Firestore document ID.
+ */
+function saveCategoryToFirestore(category) {
+  if (!window.db) return Promise.resolve();
+
+  return window.db.collection('categories')
+    .doc(String(category.id))
+    .set(category)
+    .then(() => {
+      // Update localStorage cache
+      const cached = getCategories();
+      const idx = cached.findIndex(c => Number(c.id) === Number(category.id));
+      if (idx !== -1) {
+        cached[idx] = category;
+      } else {
+        cached.push(category);
+      }
+      localStorage.setItem('jcs_categories', JSON.stringify(cached));
+    })
+    .catch(err => {
+      console.error('[Firestore] Failed to save category:', err);
+      throw err; // Re-throw so caller can show user-facing error
+    });
+}
+
+/**
+ * Delete a category from Firestore by its numeric id.
+ */
+function deleteCategoryFromFirestore(categoryId) {
+  if (!window.db) return Promise.resolve();
+
+  return window.db.collection('categories')
+    .doc(String(categoryId))
+    .delete()
+    .then(() => {
+      // Update localStorage cache
+      const cached = getCategories().filter(c => Number(c.id) !== Number(categoryId));
+      localStorage.setItem('jcs_categories', JSON.stringify(cached));
+    })
+    .catch(err => {
+      console.error('[Firestore] Failed to delete category:', err);
+      throw err; // Re-throw so caller can show user-facing error
+    });
+}
+
+/**
+ * One-time bulk seed: pushes categories into Firestore.
+ * @param {Array} [sourceCategories] - Categories to seed. Defaults to localStorage, then DEFAULT_CATEGORIES.
+ */
+function seedFirestoreCategories(sourceCategories) {
+  if (!window.db) return Promise.resolve();
+
+  const categoriesToSeed = (sourceCategories && sourceCategories.length > 0)
+    ? sourceCategories
+    : (getCategories().length > 0 ? getCategories() : DEFAULT_CATEGORIES);
+
+  const batch = window.db.batch();
+  categoriesToSeed.forEach(cat => {
+    const ref = window.db.collection('categories').doc(String(cat.id));
+    batch.set(ref, cat);
+  });
+
+  return batch.commit().then(() => {
+    localStorage.setItem('jcs_categories', JSON.stringify(categoriesToSeed));
+    console.log('[Firestore] Seeded', categoriesToSeed.length, 'categories.');
+  });
+}
+
+/**
+ * Bulk save all categories to Firestore (replaces entire collection snapshot).
+ */
+function saveAllCategoriesToFirestore(categories) {
+  if (!window.db) return Promise.resolve();
+
+  const batch = window.db.batch();
+  categories.forEach(cat => {
+    const ref = window.db.collection('categories').doc(String(cat.id));
+    batch.set(ref, cat);
+  });
+
+  return batch.commit().then(() => {
+    localStorage.setItem('jcs_categories', JSON.stringify(categories));
+  })
+  .catch(err => {
+    console.error('[Firestore] Failed to bulk save categories:', err);
+    throw err; // Re-throw so caller can show user-facing error
+  });
+}

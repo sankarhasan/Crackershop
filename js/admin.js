@@ -207,6 +207,12 @@ function onAdminAuthenticated() {
   // Hydrate banners from Firestore into localStorage cache
   loadBannersFromFirestore();
 
+  // Hydrate categories from Firestore into localStorage cache, then refresh dropdowns
+  loadCategoriesFromFirestore().then(() => {
+    populateCategoryDropdowns();
+    renderCategoriesTable();
+  });
+
   // Start realtime Firestore enquiries stream (auto-refreshes tables + stats)
   listenToEnquiries();
 
@@ -778,6 +784,20 @@ function saveCategoryData() {
   }
 
   saveCategories(categories);
+  // Sync to Firestore (async) with visible error feedback
+  const categoryToSync = idVal === '' ? categories[categories.length - 1] : categories.find(c => Number(c.id) === Number(idVal));
+  if (!window.db) {
+    console.error('[Firestore] window.db is NULL — cannot sync categories.');
+    showAdminToast('Firestore not connected. Category saved locally only.', 'error');
+  } else if (categoryToSync) {
+    saveCategoryToFirestore(categoryToSync)
+      .then(() => console.log('[Firestore] Category synced successfully:', categoryToSync.name))
+      .catch(err => {
+        const code = err.code || 'unknown';
+        console.error('[Firestore] Category sync FAILED. Code:', code, 'Message:', err.message, err);
+        showAdminToast('Firestore category error [' + code + ']: ' + (err.message || 'Unknown'), 'error');
+      });
+  }
   closeCategoryModal();
   populateCategoryDropdowns();
   renderCategoriesTable();
@@ -959,6 +979,18 @@ function executePendingDelete() {
     let categories = getCategories();
     categories = categories.filter(c => Number(c.id) !== Number(deleteTargetId));
     saveCategories(categories);
+    // Delete from Firestore (async) with visible error feedback
+    if (!window.db) {
+      console.error('[Firestore] window.db is NULL — cannot delete category from Firestore.');
+    } else {
+      deleteCategoryFromFirestore(deleteTargetId)
+        .then(() => console.log('[Firestore] Category deleted successfully.'))
+        .catch(err => {
+          const code = err.code || 'unknown';
+          console.error('[Firestore] Category delete FAILED. Code:', code, 'Message:', err.message, err);
+          showAdminToast('Firestore category delete error [' + code + ']: ' + (err.message || 'Unknown'), 'error');
+        });
+    }
     showAdminToast('Category configuration deleted.', 'info');
     populateCategoryDropdowns();
     renderCategoriesTable();
