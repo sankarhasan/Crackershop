@@ -516,6 +516,16 @@ html, body, div, section, textarea, table {
   margin-left: 20px;
 }
 
+/* Desktop navbar: visible on screens > 768px, hidden on mobile */
+.desktop-navbar {
+  display: flex;
+}
+
+/* Mobile drawer: hidden on desktop, visible only on mobile ≤768px */
+.mobile-drawer-navbar {
+  display: none;
+}
+
 .nav-menu {
   display: flex;
   align-items: center;
@@ -3058,8 +3068,18 @@ select.form-control {
     position: relative !important;
   }
 
+  /* Hide desktop nav on mobile */
+  .desktop-navbar {
+    display: none !important;
+  }
+
+  /* Show mobile drawer on mobile */
+  .mobile-drawer-navbar {
+    display: flex !important;
+  }
+
   /* Drawer: absolute inside the sticky wrapper, anchored to top-right */
-  .navbar {
+  .mobile-drawer-navbar {
     position: absolute !important;
     top: 100% !important; /* sits exactly at the bottom edge of the header */
     right: 0 !important;
@@ -3080,7 +3100,7 @@ select.form-control {
     flex-direction: column;
   }
 
-  .navbar.active {
+  .mobile-drawer-navbar.active {
     transform: translateX(0) !important; /* slide in from right */
   }
 

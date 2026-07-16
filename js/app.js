@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Close menu on nav link clicks
   const navLinks = document.querySelectorAll('.nav-link');
-  const navMenu = document.getElementById('main-nav');
+  const navMenu = document.getElementById('mobile-nav'); // Mobile drawer only
   const menuToggle = document.getElementById('menu-toggle');
   
   // Sync the hamburger/X icon to the current menu open state
