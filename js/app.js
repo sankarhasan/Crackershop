@@ -378,7 +378,7 @@ function renderCategoriesGrid() {
     
     try {
       const card = document.createElement('div');
-      card.className = `category-card fade-in-up`;
+      card.className = `category-card fade-in-up visible`; // 'visible' ensures opacity:1 — without it, cards stay invisible (opacity:0) until scroll observer fires
       card.style.transitionDelay = `${index * 50}ms`;
       card.setAttribute('onclick', `filterByCategory('${cat.slug}')`);
       
