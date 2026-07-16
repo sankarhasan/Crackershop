@@ -433,7 +433,7 @@ html, body, div, section, textarea, table {
 /* Prevent header nav from being squeezed/repositioned by cart total growth */
 .logo {
   flex: 0 0 auto;
-  min-width: 220px;
+  min-width: 180px;
 }
 
 .navbar {
@@ -446,7 +446,7 @@ html, body, div, section, textarea, table {
 .nav-menu {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -526,13 +526,15 @@ html, body, div, section, textarea, table {
 
 .nav-link {
   font-family: 'Poppins', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-dark);
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 6px;
   position: relative;
   transition: background-color 0.25s ease, color 0.25s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Underline indicator removed in favour of the soft box highlight below */
