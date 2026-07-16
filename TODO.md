@@ -1,7 +1,1 @@
-- [x] Inspect banner modal preview container markup and related CSS
-- [x] Apply styling to make preview box look like standalone card/box
-- [x] Add distinct bottom margin/spacing before modal footer
-- [ ] Run a quick sanity check (open admin.html / ensure no JS regressions)
-
-
-
+- [ ] Add anchor `#premium-crackers` inside Products section in `index.html`.\n- [ ] Update enquiry success handler in `js/app.js`: remove success toast, open centered success modal, smooth scroll to `#premium-crackers`.\n- [ ] Append/override CSS in `css/styles.css` for centered modal + dark semi-transparent blurred overlay and styled card with dark-green left border.\n- [ ] Deploy fix to Vercel.\n

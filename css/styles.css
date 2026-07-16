@@ -4537,3 +4537,106 @@ html, body, div, section, textarea, table, tbody, .modal, .modal-body, [class*="
     scrollbar-width: none !important;
 }
 
+/* ==========================================================================
+   SUCCESS MODAL (Centered Card + Blurred Overlay)
+   Fix: Convert tiny toast-like success UI into a beautiful centered modal.
+   ========================================================================== */
+
+/* Backdrop overlay */
+#success-modal-overlay.success-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: none; /* toggled by .open */
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modal open state */
+#success-modal-overlay.success-modal-overlay.open {
+  display: flex;
+}
+
+/* White card centered */
+#success-modal-overlay.success-modal-overlay .success-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: min(560px, calc(100vw - 32px));
+  background: var(--white);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+
+  border-left: 6px solid var(--deep-green);
+  padding: 22px 22px 18px 22px;
+
+  text-align: center;
+}
+
+/* Title + message */
+#success-modal-overlay.success-modal-overlay .success-modal-title {
+  margin-top: 6px;
+  font-size: 1.4rem;
+  color: var(--deep-green-dark);
+}
+
+#success-modal-overlay.success-modal-overlay .success-modal-message {
+  margin-top: 10px;
+  color: var(--text-dark);
+  font-size: 0.98rem;
+}
+
+/* Icon */
+#success-modal-overlay.success-modal-overlay .success-modal-icon {
+  font-size: 2rem;
+}
+
+/* OK button */
+#success-modal-overlay.success-modal-overlay .success-modal-ok-btn {
+  margin-top: 16px;
+  background: var(--deep-green);
+  color: var(--white);
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+#success-modal-overlay.success-modal-overlay .success-modal-ok-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+/* Optional close X inside card (only if present in markup) */
+#success-modal-overlay.success-modal-overlay .success-modal-close-x {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 0;
+  background: rgba(10, 92, 54, 0.08);
+  color: var(--deep-green-dark);
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* If body is locked while modal open */
+body.success-modal-active {
+  overflow: hidden;
+}
+
+/* Ensure toast container doesn't interfere with modal */
+.toast-container {
+  z-index: 1;
+}
+

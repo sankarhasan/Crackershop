@@ -1294,6 +1294,72 @@ function checkoutCart() {
 /* ==========================================================================
    7. Enquiry Form submission
    ========================================================================== */
+function openSuccessModal() {
+  const overlay = document.getElementById('success-modal-overlay');
+  if (!overlay) return;
+
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+
+  // Optional: prevent background scroll while modal is open
+  document.body.classList.add('success-modal-active');
+
+  const okBtn = document.getElementById('success-modal-ok');
+  if (okBtn) okBtn.focus();
+
+  // Wire close handlers once (idempotent)
+  if (!overlay.dataset.handlersBound) {
+    overlay.dataset.handlersBound = 'true';
+
+    // OK button
+    if (okBtn) {
+      okBtn.addEventListener('click', (evt) => {
+        evt.preventDefault();
+        closeSuccessModal();
+      });
+    }
+
+    // Click on backdrop closes modal, but clicks inside the card should not
+    overlay.addEventListener('click', (evt) => {
+      const card = overlay.querySelector('.success-modal');
+      if (!card) return;
+      const clickedInside = card.contains(evt.target);
+      if (!clickedInside) closeSuccessModal();
+    });
+
+    // Escape key closes modal
+    document.addEventListener('keydown', (evt) => {
+      if (evt.key === 'Escape') closeSuccessModal();
+    });
+  }
+}
+
+function closeSuccessModal() {
+  const overlay = document.getElementById('success-modal-overlay');
+  if (!overlay) return;
+
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+
+  document.body.classList.remove('success-modal-active');
+}
+
+function triggerSuccessConfetti() {
+  // canvas-confetti is expected to be loaded via CDN in index.html
+  try {
+    if (typeof window.confetti !== 'function') return;
+
+    window.confetti({
+      particleCount: 150,
+      spread: 80,
+      origin: { y: 0.6 },
+      colors: ['#FFC107', '#004d40', '#d32f2f', '#ffffff']
+    });
+  } catch (e) {
+    // Fail silently if confetti script is blocked/unavailable
+  }
+}
+
 function initEnquiryForm() {
   const form = document.getElementById('enquiry-form');
   if (!form) {
@@ -1355,8 +1421,18 @@ function initEnquiryForm() {
         }
         
         form.reset();
-        alert('✅ Thank you! Your enquiry has been submitted successfully. Our team will contact you shortly.');
-        showToast('Enquiry submitted successfully! We will call you soon. 📞', 'success');
+        openSuccessModal();
+
+        // Trigger explosive festive confetti animation (fullscreen)
+        triggerSuccessConfetti();
+
+        // Smooth scroll ONLY to Premium Crackers catalog (no footer auto-scroll)
+        const premiumAnchor = document.getElementById('premium-crackers');
+        if (premiumAnchor) {
+          setTimeout(() => {
+            premiumAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 50);
+        }
       })
       .catch((err) => {
         console.error('[Enquiry] ✗ Firestore write FAILED:', err);
