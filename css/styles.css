@@ -398,6 +398,14 @@ html, body, div, section, textarea, table {
   transition: all 0.3s ease !important;
 }
 
+/* Sticky wrapper: keeps header + mobile drawer locked together on scroll */
+.header-sticky-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+}
+
 /* === FORCED STICKY OVERRIDES (bypasses parent overflow bugs) === */
 
 .top-green-bar {
@@ -407,12 +415,10 @@ html, body, div, section, textarea, table {
 }
 
 .main-white-navbar {
-  position: fixed !important;
-  position: sticky !important;
-  top: 0 !important;
+  position: relative !important;
   left: 0 !important;
   width: 100% !important;
-  z-index: 99999 !important;
+  z-index: 1000 !important;
   background: linear-gradient(135deg, #ffcc00 0%, #ff9e00 100%) !important; /* Bright Yellow → Warm Gold */
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12) !important; /* Soft premium shadow for depth */
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
@@ -435,6 +441,17 @@ html, body, div, section, textarea, table {
   flex: 0 0 auto;
   flex-shrink: 0;
   margin-left: 20px;
+}
+
+/* Desktop: nav is inside the sticky wrapper, position it centered in the header */
+@media (min-width: 769px) {
+  .navbar {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+  }
 }
 
 .nav-menu {
@@ -2991,15 +3008,12 @@ select.form-control {
 
 /* ========================================================================
    MOBILE & TABLET DRAWER FLUSH FIX (≤1023px only — desktop untouched)
-   Force the drawer to sit exactly at the bottom edge of the sticky navbar
-   so no background product content peeks through the gap.
+   Ensure the drawer slides from behind the header, not above it.
    ======================================================================== */
 @media (max-width: 1023px) {
   .navbar {
-    top: 100% !important;   /* flush to bottom edge of navbar (adaptive height) */
     margin-top: 0 !important;
     padding-top: 0 !important;
-    z-index: 9998 !important; /* directly beneath navbar (z-index 9999) */
   }
 }
 
@@ -3029,42 +3043,50 @@ select.form-control {
     padding: 0 20px;
   }
 
-  /* --- Navigation mobile: JCS-style content-fitting drawer with top-down slide --- */
+  /* --- Navigation mobile: right-side drawer inside sticky wrapper --- */
   .mobile-menu-toggle {
     display: flex;
   }
 
+  /* Wrapper handles sticky; header stays on top of drawer */
+  .header-sticky-wrapper {
+    z-index: 1000;
+  }
+
+  .main-header.main-white-navbar {
+    z-index: 1000 !important;
+    position: relative !important;
+  }
+
+  /* Drawer: absolute inside the sticky wrapper, anchored to top-right */
   .navbar {
-    position: fixed !important;
-    top: 70px !important; /* sits directly below the mobile header */
-    left: 0;
-    width: 100%;
-    height: auto !important; /* fit content dynamically, no full-viewport stretch */
-    max-height: calc(100vh - 70px) !important;
-    max-height: calc(100dvh - 70px) !important;
+    position: absolute !important;
+    top: 100% !important; /* sits exactly at the bottom edge of the header */
+    right: 0 !important;
+    left: auto !important;
+    width: 280px !important;
+    height: auto !important; /* fits content, no huge gap */
+    max-height: calc(100vh - 60px) !important;
+    max-height: calc(100dvh - 60px) !important;
     background: linear-gradient(180deg, #074729 0%, #03301B 100%) !important;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
+    box-shadow: -4px 4px 20px rgba(0,0,0,0.3) !important;
     padding: 0 !important;
     overflow-y: auto !important;
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease !important;
-    margin-left: 0 !important;
-    z-index: 99998 !important;
-    transform: translateY(-120%) !important; /* hidden above the viewport edge */
-    opacity: 0;
-    visibility: hidden;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    margin: 0 !important;
+    z-index: 990 !important; /* below the header (1000) */
+    transform: translateX(100%) !important; /* hidden off-screen right */
     display: flex;
     flex-direction: column;
   }
 
   .navbar.active {
-    transform: translateY(0) !important; /* slide down from top */
-    opacity: 1 !important;
-    visibility: visible !important;
+    transform: translateX(0) !important; /* slide in from right */
   }
 
   .nav-menu {
     flex-direction: column;
-    padding: 90px 0 0 0;
+    padding: 20px 0 !important; /* minimal top padding, no excessive space */
     align-items: stretch !important;
     gap: 0 !important;
     flex: 1;
@@ -3072,38 +3094,39 @@ select.form-control {
   }
 
   .nav-link {
-    font-size: 1.05rem !important;
-    display: flex !important;
-    align-items: center;
+    font-size: 1rem !important;
+    display: block !important;
     width: 100% !important;
-    text-align: left !important;
-    padding: 16px 28px !important;
-    color: rgba(255, 255, 255, 0.75) !important;
+    text-align: right !important;
+    padding: 14px 24px !important;
+    color: rgba(255, 255, 255, 0.85) !important;
     background-color: transparent !important;
     border-radius: 0 !important;
-    border-left: 4px solid transparent;
-    border-bottom: none !important;
+    border-left: none !important;
+    border-right: 4px solid transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
     transition: all 0.25s ease;
     font-family: 'Poppins', sans-serif;
     font-weight: 600;
     letter-spacing: 0.3px;
+    box-sizing: border-box;
   }
 
   .nav-link:hover {
     color: #ffffff !important;
-    background-color: rgba(255, 255, 255, 0.06) !important;
-    border-left-color: rgba(255, 215, 0, 0.5);
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-right-color: rgba(255, 215, 0, 0.5);
   }
 
   .nav-link.active {
-    color: #ffffff !important;
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    border-left-color: var(--golden-yellow);
+    color: var(--deep-green-dark) !important; /* dark green text on yellow bg for readability */
+    background-color: #fffde7 !important; /* dim pastel yellow */
+    border-right-color: var(--golden-yellow);
   }
 
   /* Mobile menu footer: brand + fireworks */
   .mobile-menu-footer {
-    padding: 20px 28px 32px;
+    padding: 14px 28px 18px;
     text-align: center;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     flex-shrink: 0;

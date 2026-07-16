@@ -70,55 +70,58 @@
     </div>
   </div>
 
-  <!-- White Navbar: Stays sticky at top:0 -->
-  <header class="main-header main-white-navbar sticky-element">
-    <div class="container header-container">
-      <!-- Logo -->
-      <a href="#home" class="logo">
-        <span class="logo-icon">🎆</span>
-        <div class="logo-text">
-          <span class="logo-main">KPR</span>
-          <span class="logo-sub">CRACKERS</span>
-        </div>
-      </a>
+  <!-- Sticky header wrapper: keeps header + mobile drawer locked together on scroll -->
+  <div class="header-sticky-wrapper">
+    <!-- Yellow sticky header -->
+    <header class="main-header main-white-navbar sticky-element">
+      <div class="container header-container">
+        <!-- Logo -->
+        <a href="#home" class="logo">
+          <span class="logo-icon">🎆</span>
+          <div class="logo-text">
+            <span class="logo-main">KPR</span>
+            <span class="logo-sub">CRACKERS</span>
+          </div>
+        </a>
 
-      <!-- Desktop Navigation Menu -->
-      <nav class="navbar" id="main-nav">
-        <ul class="nav-menu">
-          <li><a href="#home" class="nav-link active">Home</a></li>
-          <li><a href="#about" class="nav-link">About Us</a></li>
-          <li><a href="#categories" class="nav-link">Categories</a></li>
-          <li><a href="#products" class="nav-link">Products</a></li>
-          <li><a href="#quick-enquiry" class="nav-link">Quick Enquiry</a></li>
-          <li><a href="#safety" class="nav-link">Safety Tips</a></li>
-          <li><a href="#contact" class="nav-link">Contact Us</a></li>
-        </ul>
-      </nav>
+        <!-- Right Header Actions (Phone & Cart Indicator) -->
+        <div class="header-actions">
+          <div class="phone-box">
+            <span class="phone-label">Call to Order:</span>
+            <a href="tel:+919876543210" class="phone-number">📞 +91 98765 43210</a>
+            <a href="tel:+919876543211" class="phone-number second-phone">📞 +91 98765 43211</a>
+          </div>
+          
+          <!-- Cart Icon Widget -->
+          <div class="cart-widget" id="cart-toggle" onclick="toggleCartDrawer()">
+            <span class="cart-icon">🛒</span>
+            <span class="cart-count" id="cart-count">0</span>
+            <span class="cart-total" id="cart-total">₹0</span>
+          </div>
 
-      <!-- Right Header Actions (Phone & Cart Indicator) -->
-      <div class="header-actions">
-        <div class="phone-box">
-          <span class="phone-label">Call to Order:</span>
-          <a href="tel:+919876543210" class="phone-number">📞 +91 98765 43210</a>
-          <a href="tel:+919876543211" class="phone-number second-phone">📞 +91 98765 43211</a>
+          <!-- Mobile Menu Toggle -->
+          <button class="mobile-menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </button>
         </div>
-        
-        <!-- Cart Icon Widget -->
-        <div class="cart-widget" id="cart-toggle" onclick="toggleCartDrawer()">
-          <span class="cart-icon">🛒</span>
-          <span class="cart-count" id="cart-count">0</span>
-          <span class="cart-total" id="cart-total">₹0</span>
-        </div>
-
-        <!-- Mobile Menu Toggle -->
-        <button class="mobile-menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
-          <span class="bar"></span>
-          <span class="bar"></span>
-          <span class="bar"></span>
-        </button>
       </div>
-    </div>
-  </header>
+    </header>
+
+    <!-- Mobile Navigation Drawer (anchored to wrapper, slides from right) -->
+    <nav class="navbar" id="main-nav">
+      <ul class="nav-menu">
+        <li><a href="#home" class="nav-link active">Home</a></li>
+        <li><a href="#about" class="nav-link">About Us</a></li>
+        <li><a href="#categories" class="nav-link">Categories</a></li>
+        <li><a href="#products" class="nav-link">Products</a></li>
+        <li><a href="#quick-enquiry" class="nav-link">Quick Enquiry</a></li>
+        <li><a href="#safety" class="nav-link">Safety Tips</a></li>
+        <li><a href="#contact" class="nav-link">Contact Us</a></li>
+      </ul>
+    </nav>
+  </div>
 
   <main>
     <!-- Hero Carousel Section -->

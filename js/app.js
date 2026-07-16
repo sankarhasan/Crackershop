@@ -1301,52 +1301,23 @@ function initPreloader() {
 
 function initNavbarScroll() {
   const greenBar = document.querySelector('.top-green-bar') || document.querySelector('[class*="green"]');
+  const wrapper = document.querySelector('.header-sticky-wrapper');
   const navbar = document.querySelector('.main-white-navbar') || document.querySelector('nav');
   const mainEl = document.querySelector('main');
 
   if (!greenBar || !navbar) return;
 
-  // Start in relative (normal flow) with the soft premium shadow
-  navbar.style.setProperty('position', 'relative', 'important');
-  navbar.style.setProperty('box-shadow', '0 4px 15px rgba(0, 0, 0, 0.12)', 'important');
-
-  let isFixed = false;
-
-  // Toggle the navbar between in-flow (relative) and pinned (fixed).
-  // When it becomes fixed it leaves the document flow, so we reserve an
-  // equal amount of padding on <main>. Because the space is compensated in
-  // the SAME frame, the content never jumps — the transition is seamless
-  // (no sudden upward snap, no animated slide).
-  const applyFixed = (fixed) => {
-    if (fixed === isFixed) return;
-    isFixed = fixed;
-
-    if (fixed) {
-      const navH = navbar.offsetHeight || 80;
-      if (mainEl) mainEl.style.paddingTop = navH + 'px';
-      navbar.style.setProperty('position', 'fixed', 'important');
-      navbar.style.setProperty('top', '0', 'important');
-      navbar.style.setProperty('box-shadow', '0 6px 18px rgba(0, 0, 0, 0.16)', 'important');
-    } else {
-      if (mainEl) mainEl.style.paddingTop = '';
-      navbar.style.setProperty('position', 'relative', 'important');
-      navbar.style.removeProperty('top');
-      navbar.style.setProperty('box-shadow', '0 4px 15px rgba(0, 0, 0, 0.12)', 'important');
-    }
-  };
-
+  // The wrapper handles sticky positioning; no JS position toggling needed.
+  // Just enhance the shadow on scroll for a premium feel.
   window.addEventListener('scroll', () => {
     const triggerHeight = greenBar.offsetHeight || 40;
-    applyFixed(window.scrollY >= triggerHeight);
+    if (window.scrollY >= triggerHeight) {
+      navbar.style.setProperty('box-shadow', '0 6px 18px rgba(0, 0, 0, 0.16)', 'important');
+    } else {
+      navbar.style.setProperty('box-shadow', '0 4px 15px rgba(0, 0, 0, 0.12)', 'important');
+    }
     highlightNavLink();
   }, { passive: true });
-
-  // Keep the reserved space accurate if the navbar height changes (rotate/resize)
-  window.addEventListener('resize', () => {
-    if (isFixed && mainEl) {
-      mainEl.style.paddingTop = (navbar.offsetHeight || 80) + 'px';
-    }
-  });
 }
 
 function highlightNavLink() {
