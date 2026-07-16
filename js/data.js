@@ -136,29 +136,23 @@ initData();
    ========================================================================== */
 
 /**
- * Fetch all products from Firestore, ordered by id.
- * Caches the result to localStorage for offline/fast access.
- * Returns array of product objects.
+ * Fetch all products from Firestore (LIVE SERVER), ordered by id.
+ * Always overwrites localStorage with Firestore data — Firestore is the single source of truth.
+ * Only seeds Firestore if the collection is genuinely empty on the server.
  *
- * CRITICAL: Never overwrites localStorage with fewer items than it already has.
- * If Firestore is empty, seeds FROM localStorage (which may contain admin edits).
- * If Firestore has data but localStorage has MORE items, preserves localStorage.
+ * Uses { source: 'server' } to force a live network fetch, bypassing any local Firestore cache.
  */
 function loadProductsFromFirestore() {
   if (!window.db) return Promise.resolve(getProducts());
 
   return window.db.collection('products')
     .orderBy('id', 'asc')
-    .get()
+    .get({ source: 'server' })
     .then(snapshot => {
-      const localProducts = getProducts();
-
       if (snapshot.empty) {
-        // Firestore is empty — seed FROM localStorage (which may have admin edits)
-        // Only fall back to DEFAULT_PRODUCTS if localStorage is also empty
-        const seedSource = localProducts.length > 0 ? localProducts : DEFAULT_PRODUCTS;
-        console.log('[Firestore] Products collection empty. Seeding from', localProducts.length > 0 ? 'localStorage (' + localProducts.length + ' items)' : 'DEFAULT_PRODUCTS');
-        return seedFirestoreProducts(seedSource).then(() => seedSource);
+        // Firestore is genuinely empty on the server — seed from defaults
+        console.log('[Firestore] Products collection empty on server. Seeding DEFAULT_PRODUCTS.');
+        return seedFirestoreProducts(DEFAULT_PRODUCTS).then(() => DEFAULT_PRODUCTS);
       }
 
       const firestoreProducts = [];
@@ -166,26 +160,13 @@ function loadProductsFromFirestore() {
         firestoreProducts.push(doc.data());
       });
 
-      // Only overwrite localStorage if Firestore has at least as many items
-      // This prevents stale Firestore from wiping out local admin edits
-      if (firestoreProducts.length >= localProducts.length) {
-        localStorage.setItem('jcs_products', JSON.stringify(firestoreProducts));
-        return firestoreProducts;
-      } else {
-        console.warn('[Firestore] localStorage has', localProducts.length, 'items but Firestore only has', firestoreProducts.length, '. Keeping localStorage data (admin edits pending sync).');
-        // Try to push the extra localStorage items to Firestore
-        const extraItems = localProducts.filter(
-          lp => !firestoreProducts.some(fp => Number(fp.id) === Number(lp.id))
-        );
-        if (extraItems.length > 0) {
-          console.log('[Firestore] Attempting to sync', extraItems.length, 'unsaved local products...');
-          return saveAllProductsToFirestore(localProducts).then(() => localProducts);
-        }
-        return localProducts;
-      }
+      // ALWAYS overwrite localStorage with live Firestore data (single source of truth)
+      localStorage.setItem('jcs_products', JSON.stringify(firestoreProducts));
+      console.log('[Firestore] Loaded', firestoreProducts.length, 'products from server.');
+      return firestoreProducts;
     })
     .catch(err => {
-      console.warn('[Firestore] Failed to load products, using localStorage cache:', err.code || err.message, err);
+      console.warn('[Firestore] Server fetch failed, using localStorage cache:', err.code || err.message, err);
       return getProducts();
     });
 }
@@ -297,24 +278,21 @@ const DEFAULT_BANNERS = [
 ];
 
 /**
- * Fetch all banners from Firestore, ordered by `order` field.
- * Caches to localStorage under 'bannersData' for instant subsequent reads.
- * If the collection is empty, seeds FROM localStorage (which may have admin edits).
+ * Fetch all banners from Firestore (LIVE SERVER), ordered by `order` field.
+ * Always overwrites localStorage with Firestore data — Firestore is the single source of truth.
+ * Uses { source: 'server' } to force a live network fetch.
  */
 function loadBannersFromFirestore() {
   if (!window.db) return Promise.resolve(getBannersDataLocal());
 
   return window.db.collection('banners')
     .orderBy('order', 'asc')
-    .get()
+    .get({ source: 'server' })
     .then(snapshot => {
-      const localBanners = getBannersDataLocal();
-
       if (snapshot.empty) {
-        // Firestore empty — seed FROM localStorage
-        const seedSource = localBanners.length > 0 ? localBanners : DEFAULT_BANNERS;
-        console.log('[Firestore] Banners collection empty. Seeding from', localBanners.length > 0 ? 'localStorage' : 'DEFAULT_BANNERS');
-        return seedFirestoreBanners(seedSource).then(() => seedSource);
+        // Firestore is genuinely empty on the server — seed from defaults
+        console.log('[Firestore] Banners collection empty on server. Seeding DEFAULT_BANNERS.');
+        return seedFirestoreBanners(DEFAULT_BANNERS).then(() => DEFAULT_BANNERS);
       }
 
       const banners = [];
@@ -323,17 +301,13 @@ function loadBannersFromFirestore() {
       });
       const normalized = normalizeBanners(banners);
 
-      // Only overwrite localStorage if Firestore has at least as many banners
-      if (normalized.length >= localBanners.length) {
-        localStorage.setItem('bannersData', JSON.stringify(normalized));
-        return normalized;
-      } else {
-        console.warn('[Firestore] localStorage has', localBanners.length, 'banners but Firestore only has', normalized.length, '. Keeping localStorage data.');
-        return saveBannersToFirestore(localBanners).then(() => localBanners);
-      }
+      // ALWAYS overwrite localStorage with live Firestore data (single source of truth)
+      localStorage.setItem('bannersData', JSON.stringify(normalized));
+      console.log('[Firestore] Loaded', normalized.length, 'banners from server.');
+      return normalized;
     })
     .catch(err => {
-      console.warn('[Firestore] Failed to load banners, using localStorage cache:', err.code || err.message, err);
+      console.warn('[Firestore] Banner server fetch failed, using localStorage cache:', err.code || err.message, err);
       return getBannersDataLocal();
     });
 }
@@ -458,15 +432,12 @@ function loadCategoriesFromFirestore() {
 
   return window.db.collection('categories')
     .orderBy('id', 'asc')
-    .get()
+    .get({ source: 'server' })
     .then(snapshot => {
-      const localCategories = getCategories();
-
       if (snapshot.empty) {
-        // Firestore empty — seed FROM localStorage
-        const seedSource = localCategories.length > 0 ? localCategories : DEFAULT_CATEGORIES;
-        console.log('[Firestore] Categories collection empty. Seeding from', localCategories.length > 0 ? 'localStorage (' + localCategories.length + ' items)' : 'DEFAULT_CATEGORIES');
-        return seedFirestoreCategories(seedSource).then(() => seedSource);
+        // Firestore is genuinely empty on the server — seed from defaults
+        console.log('[Firestore] Categories collection empty on server. Seeding DEFAULT_CATEGORIES.');
+        return seedFirestoreCategories(DEFAULT_CATEGORIES).then(() => DEFAULT_CATEGORIES);
       }
 
       const firestoreCategories = [];
@@ -474,25 +445,13 @@ function loadCategoriesFromFirestore() {
         firestoreCategories.push(doc.data());
       });
 
-      // Only overwrite localStorage if Firestore has at least as many items
-      if (firestoreCategories.length >= localCategories.length) {
-        localStorage.setItem('jcs_categories', JSON.stringify(firestoreCategories));
-        return firestoreCategories;
-      } else {
-        console.warn('[Firestore] localStorage has', localCategories.length, 'categories but Firestore only has', firestoreCategories.length, '. Keeping localStorage data.');
-        // Try to push extra local items to Firestore
-        const extraItems = localCategories.filter(
-          lc => !firestoreCategories.some(fc => Number(fc.id) === Number(lc.id))
-        );
-        if (extraItems.length > 0) {
-          console.log('[Firestore] Attempting to sync', extraItems.length, 'unsaved local categories...');
-          return saveAllCategoriesToFirestore(localCategories).then(() => localCategories);
-        }
-        return localCategories;
-      }
+      // ALWAYS overwrite localStorage with live Firestore data (single source of truth)
+      localStorage.setItem('jcs_categories', JSON.stringify(firestoreCategories));
+      console.log('[Firestore] Loaded', firestoreCategories.length, 'categories from server.');
+      return firestoreCategories;
     })
     .catch(err => {
-      console.warn('[Firestore] Failed to load categories, using localStorage cache:', err.code || err.message, err);
+      console.warn('[Firestore] Category server fetch failed, using localStorage cache:', err.code || err.message, err);
       return getCategories();
     });
 }
