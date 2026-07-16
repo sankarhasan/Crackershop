@@ -141,8 +141,11 @@ function initCarousel() {
 
     const overlay = `<div class="slide-overlay"></div>`;
 
+    // Alternate banner content alignment: odd-indexed (1st, 3rd, 5th…) → right, even-indexed → left
+    const alignClass = (i % 2 === 0) ? 'slide-align-right' : 'slide-align-left';
+
     const content = `
-      <div class="container slide-content">
+      <div class="container slide-content ${alignClass}">
         <h4 class="slide-subtitle text-glow">${escapeHtml(b.tagline || '')}</h4>
         <h1 class="slide-title">${escapeHtml(b.headingTitle || '')}</h1>
         <p class="slide-desc">${escapeHtml(b.description || '')}</p>
