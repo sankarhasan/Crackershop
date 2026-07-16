@@ -917,15 +917,19 @@ function toggleCartDrawer() {
 }
 
 function loadCartFromStorage() {
-    const savedCart = sessionStorage.getItem('kpr_cart');
+  const savedCart = localStorage.getItem('kpr_cart');
   if (savedCart) {
-    cart = JSON.parse(savedCart);
+    try {
+      cart = JSON.parse(savedCart);
+    } catch (e) {
+      cart = [];
+    }
     updateCartUI();
   }
 }
 
 function saveCartToStorage() {
-  sessionStorage.setItem('kpr_cart', JSON.stringify(cart));
+  localStorage.setItem('kpr_cart', JSON.stringify(cart));
 }
 
 function addProductToCart(productId) {
