@@ -85,7 +85,22 @@ function initData() {
 // Getters and Setters
 function getCategories() {
   initData();
-  return JSON.parse(localStorage.getItem('jcs_categories'));
+  const stored = localStorage.getItem('jcs_categories');
+  if (!stored) {
+    console.warn('[getCategories] localStorage is empty. Returning DEFAULT_CATEGORIES.');
+    return DEFAULT_CATEGORIES;
+  }
+  try {
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) {
+      console.error('[getCategories] Parsed data is not an array. Returning DEFAULT_CATEGORIES.');
+      return DEFAULT_CATEGORIES;
+    }
+    return parsed;
+  } catch (e) {
+    console.error('[getCategories] JSON.parse failed. Returning DEFAULT_CATEGORIES.', e);
+    return DEFAULT_CATEGORIES;
+  }
 }
 
 function saveCategories(categories) {
@@ -94,7 +109,22 @@ function saveCategories(categories) {
 
 function getProducts() {
   initData();
-  return JSON.parse(localStorage.getItem('jcs_products'));
+  const stored = localStorage.getItem('jcs_products');
+  if (!stored) {
+    console.warn('[getProducts] localStorage is empty. Returning DEFAULT_PRODUCTS.');
+    return DEFAULT_PRODUCTS;
+  }
+  try {
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) {
+      console.error('[getProducts] Parsed data is not an array. Returning DEFAULT_PRODUCTS.');
+      return DEFAULT_PRODUCTS;
+    }
+    return parsed;
+  } catch (e) {
+    console.error('[getProducts] JSON.parse failed. Returning DEFAULT_PRODUCTS.', e);
+    return DEFAULT_PRODUCTS;
+  }
 }
 
 function saveProducts(products) {

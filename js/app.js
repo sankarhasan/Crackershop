@@ -38,11 +38,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Hydrate categories from Firestore (async) then re-render category grid, filters, and products
-  loadCategoriesFromFirestore().then(() => {
-    renderCategoriesGrid();
-    renderFilterButtons();
-    renderProductsCatalog(); // Re-render products to reflect any new category filters
-  });
+  loadCategoriesFromFirestore()
+    .then(() => {
+      console.log('[Categories] Firestore hydration complete. Re-rendering UI.');
+      renderCategoriesGrid();
+      renderFilterButtons();
+      renderProductsCatalog(); // Re-render products to reflect any new category filters
+    })
+    .catch(err => {
+      console.error('[Categories] Firestore hydration FAILED. Falling back to localStorage/defaults:', err);
+      // Ensure UI still renders with localStorage cache or default categories
+      try {
+        renderCategoriesGrid();
+        renderFilterButtons();
+        renderProductsCatalog();
+      } catch (renderErr) {
+        console.error('[Categories] Fallback render also failed:', renderErr);
+      }
+    });
   
   // Close menu on nav link clicks
   const navLinks = document.querySelectorAll('.nav-link');
