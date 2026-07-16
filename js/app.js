@@ -397,16 +397,25 @@ function renderCategoriesGrid() {
       const emoji = emojiMap[cat.slug] || '🎆';
       const bgClass = `cat-g-${(cat.id % 9) + 1}`;
 
-      const categoryImageUrl = (cat.categoryImageUrl ?? cat.image ?? '').toString().trim();
+      // Validate image URL: must be a real URL (http/https/data:/blob:) or a path with file extension
+      const rawUrl = (cat.categoryImageUrl ?? cat.image ?? '').toString().trim();
+      const isValidUrl = rawUrl && (
+        rawUrl.startsWith('http://') ||
+        rawUrl.startsWith('https://') ||
+        rawUrl.startsWith('data:') ||
+        rawUrl.startsWith('blob:') ||
+        /\.(jpg|jpeg|png|gif|webp|svg|avif)(\?.*)?$/i.test(rawUrl)
+      );
+      const categoryImageUrl = isValidUrl ? rawUrl : '';
 
       card.innerHTML = `
         <div class="cat-bg ${bgClass}">${categoryImageUrl ? '' : emoji}</div>
         ${categoryImageUrl
-          ? `<img src="${categoryImageUrl}" alt="${cat.name}" class="category-card-img" loading="lazy">`
+          ? `<img src="${categoryImageUrl}" alt="${escapeHtml(cat.name)}" class="category-card-img" loading="lazy" onerror="this.style.display='none';this.previousElementSibling.innerHTML='${emoji}';">`
           : ''}
         <div class="category-overlay"></div>
         <div class="category-info">
-          <h3 class="category-name">${cat.name}</h3>
+          <h3 class="category-name">${escapeHtml(cat.name)}</h3>
           <span class="category-link">View Collection ➔</span>
         </div>
       `;

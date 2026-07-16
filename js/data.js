@@ -1,15 +1,15 @@
 // JCS Crackers - Common Data & localStorage API
 
 const DEFAULT_CATEGORIES = [
-  { id: 1, name: 'Ground Chakkars', slug: 'ground-chakkars', image: 'ground-chakkars', categoryImageUrl: 'ground-chakkars' },
-  { id: 2, name: 'Flower Pots', slug: 'flower-pots', image: 'flower-pots', categoryImageUrl: 'flower-pots' },
-  { id: 3, name: 'Fancy Fountains', slug: 'fancy-fountains', image: 'fancy-fountains', categoryImageUrl: 'fancy-fountains' },
-  { id: 4, name: 'Pencils', slug: 'pencils', image: 'pencils', categoryImageUrl: 'pencils' },
-  { id: 5, name: 'Sparklers', slug: 'sparklers', image: 'sparklers', categoryImageUrl: 'sparklers' },
-  { id: 6, name: 'Atom Bombs', slug: 'atom-bombs', image: 'atom-bombs', categoryImageUrl: 'atom-bombs' },
-  { id: 7, name: 'Rockets', slug: 'rockets', image: 'rockets', categoryImageUrl: 'rockets' },
-  { id: 8, name: 'Bijili Crackers', slug: 'bijili-crackers', image: 'bijili-crackers', categoryImageUrl: 'bijili-crackers' },
-  { id: 9, name: 'Combo Packs', slug: 'combo-packs', image: 'combo-packs', categoryImageUrl: 'combo-packs' }
+  { id: 1, name: 'Ground Chakkars', slug: 'ground-chakkars', image: '', categoryImageUrl: '' },
+  { id: 2, name: 'Flower Pots', slug: 'flower-pots', image: '', categoryImageUrl: '' },
+  { id: 3, name: 'Fancy Fountains', slug: 'fancy-fountains', image: '', categoryImageUrl: '' },
+  { id: 4, name: 'Pencils', slug: 'pencils', image: '', categoryImageUrl: '' },
+  { id: 5, name: 'Sparklers', slug: 'sparklers', image: '', categoryImageUrl: '' },
+  { id: 6, name: 'Atom Bombs', slug: 'atom-bombs', image: '', categoryImageUrl: '' },
+  { id: 7, name: 'Rockets', slug: 'rockets', image: '', categoryImageUrl: '' },
+  { id: 8, name: 'Bijili Crackers', slug: 'bijili-crackers', image: '', categoryImageUrl: '' },
+  { id: 9, name: 'Combo Packs', slug: 'combo-packs', image: '', categoryImageUrl: '' }
 ];
 
 const DEFAULT_PRODUCTS = [
