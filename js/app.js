@@ -7,20 +7,40 @@ let currentSlide = 0;
 let carouselInterval = null;
 const MINIMUM_ORDER_VALUE = 2000;
 
+// CRITICAL: Render categories IMMEDIATELY when script loads (before DOMContentLoaded)
+// This ensures categories are never blank, even if other code fails
+console.log('[Categories] Script loaded. Attempting immediate render...');
+try {
+  // Wait for DOM to be ready (document.body exists)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('[Categories] DOM ready. Rendering from localStorage/defaults...');
+      try {
+        renderCategoriesGrid();
+        renderFilterButtons();
+        console.log('[Categories] ✓ Immediate render complete. Count:', getCategories().length);
+      } catch (err) {
+        console.error('[Categories] ✗ Immediate render failed:', err);
+      }
+    });
+  } else {
+    // DOM already loaded (script loaded defer/async)
+    console.log('[Categories] DOM already loaded. Rendering now...');
+    renderCategoriesGrid();
+    renderFilterButtons();
+    console.log('[Categories] ✓ Immediate render complete. Count:', getCategories().length);
+  }
+} catch (fatalErr) {
+  console.error('[Categories] ✗ FATAL error during immediate render:', fatalErr);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Lock scroll behind the full-screen preloader as early as possible
   document.body.classList.add('preloader-active');
   
-  // CRITICAL: Render categories IMMEDIATELY with localStorage/defaults before any async operations
-  // This ensures the UI is never blank, even if Firestore hangs or fails
-  console.log('[Categories] Initial render from localStorage/defaults...');
-  try {
-    renderCategoriesGrid();
-    renderFilterButtons();
-    console.log('[Categories] Initial render complete. Categories count:', getCategories().length);
-  } catch (initErr) {
-    console.error('[Categories] Initial render FAILED:', initErr);
-  }
+  // Categories already rendered by the immediate render block above (lines 10-35)
+  // No need to render again here unless Firestore updates them later
+  console.log('[Categories] DOMContentLoaded. Categories already rendered. Count:', getCategories().length);
   
   // Initialize app elements
   initCarousel();
