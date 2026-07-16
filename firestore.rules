@@ -3,35 +3,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Products collection: public read, admin write (requires authenticated user)
+    // Products collection: public read/write (development mode)
     match /products/{productId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Categories collection: public read, admin write
+    // Categories collection: public read/write (development mode)
     match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Enquiries collection: anyone can create (enquiry form), only admin can read/update/delete
+    // Enquiries collection: public read/write (development mode)
     match /enquiries/{enquiryId} {
-      allow read: if request.auth != null;
-      allow create: if true;
-      allow update, delete: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Banners collection: public read, admin write
+    // Banners collection: public read/write (development mode)
     match /banners/{bannerId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Offers collection: public read, admin write
+    // Offers collection: public read/write (development mode)
     match /offers/{offerId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }
