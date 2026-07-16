@@ -86,6 +86,11 @@
               <span class="sidebar-icon">🖼️</span> Banners
             </a>
           </li>
+          <li>
+            <a href="#" class="sidebar-link" data-section="offers">
+              <span class="sidebar-icon">🎉</span> Offers
+            </a>
+          </li>
         </ul>
       </nav>
 
@@ -318,6 +323,70 @@
             </tbody>
           </table>
         </div>
+      </section>
+
+      <!-- Section F: Offers Manager -->
+      <section id="section-offers" class="dashboard-section animate-fade" style="display: none;">
+        <div class="actions-panel justify-end">
+          <div class="text-right">
+            <div style="font-weight:700;color:var(--admin-text);">Manage Festival Offer Banner</div>
+          </div>
+        </div>
+
+        <form id="offer-form" class="modal-form-scrollable" style="max-width:700px;">
+          <div class="form-group">
+            <label for="offer-tag">Festival Tag Line</label>
+            <input type="text" id="offer-tag" class="form-control-admin" placeholder="e.g. 🎉 FESTIVAL EXTRAVAGANZA">
+          </div>
+
+          <div class="form-group">
+            <label for="offer-title">Main Title</label>
+            <input type="text" id="offer-title" class="form-control-admin" placeholder="e.g. DIWALI BIG SALE" required>
+          </div>
+
+          <div class="form-group">
+            <label for="offer-subtitle">Subtitle / Discount Info</label>
+            <input type="text" id="offer-subtitle" class="form-control-admin" placeholder="e.g. Get Flat 10% Extra Discount on orders above ₹10,000">
+          </div>
+
+          <div class="form-group">
+            <label for="offer-description">Description</label>
+            <textarea id="offer-description" class="form-control-admin" rows="3" placeholder="Describe the offer details..."></textarea>
+          </div>
+
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <div class="form-group" style="flex:1;min-width:200px;">
+              <label for="offer-button-text">Button Text</label>
+              <input type="text" id="offer-button-text" class="form-control-admin" placeholder="e.g. Claim Big Discount Now">
+            </div>
+            <div class="form-group" style="flex:1;min-width:200px;">
+              <label for="offer-button-link">Button Link</label>
+              <input type="text" id="offer-button-link" class="form-control-admin" placeholder="e.g. #products or https://...">
+            </div>
+          </div>
+
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <div class="form-group" style="flex:1;min-width:200px;">
+              <label for="offer-target-date">Offer End Date & Time</label>
+              <input type="datetime-local" id="offer-target-date" class="form-control-admin" required>
+            </div>
+            <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="offer-active" checked style="width:18px;height:18px;">
+                <span>Active (show on storefront)</span>
+              </label>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:20px;">
+            <button type="submit" class="btn-admin btn-admin-primary">
+              <span class="btn-icon-admin">💾</span> Save Offer to Cloud
+            </button>
+            <button type="button" class="btn-admin btn-admin-secondary" onclick="loadOfferForm()">
+              <span class="btn-icon-admin">🔄</span> Reload from Cloud
+            </button>
+          </div>
+        </form>
       </section>
     </main>
   </div>

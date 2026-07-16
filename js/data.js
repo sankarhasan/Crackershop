@@ -609,3 +609,116 @@ function saveAllCategoriesToFirestore(categories) {
     throw err; // Re-throw so caller can show user-facing error
   });
 }
+
+/* ==========================================================================
+   OFFER BANNER — Firestore Sync Layer
+   Single document (ID: 'diwali_sale') in the 'offers' collection.
+   Stores the configurable Diwali/festival sale banner with countdown timer.
+   ========================================================================== */
+
+const DEFAULT_OFFER = {
+  id: 'diwali_sale',
+  tag: '🎉 FESTIVAL EXTRAVAGANZA',
+  title: 'DIWALI BIG SALE',
+  subTitle: 'Get Flat 10% Extra Discount on orders above ₹10,000',
+  description: 'Stock up early for your community celebrations. Free delivery across major cities. Offer valid till Diwali eve!',
+  buttonText: 'Claim Big Discount Now',
+  buttonLink: '#',
+  targetDate: '2026-11-08T23:59:59',
+  active: true
+};
+
+/**
+ * Get offer from localStorage, falling back to DEFAULT_OFFER.
+ */
+function getOffer() {
+  const stored = localStorage.getItem('jcs_offer');
+  if (!stored) {
+    console.warn('[getOffer] localStorage empty. Returning DEFAULT_OFFER.');
+    return DEFAULT_OFFER;
+  }
+  try {
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== 'object') {
+      console.error('[getOffer] Parsed data invalid. Returning DEFAULT_OFFER.');
+      return DEFAULT_OFFER;
+    }
+    return parsed;
+  } catch (e) {
+    console.error('[getOffer] JSON.parse failed. Returning DEFAULT_OFFER.', e);
+    return DEFAULT_OFFER;
+  }
+}
+
+/**
+ * Fetch offer document from Firestore server.
+ * Falls back to localStorage -> DEFAULT_OFFER on failure.
+ */
+function loadOfferFromFirestore() {
+  console.log('[data.js] loadOfferFromFirestore() called. window.db:', window.db ? 'CONNECTED' : 'NULL');
+
+  if (!window.db) {
+    console.warn('[data.js] window.db is NULL. Returning localStorage offer.');
+    return Promise.resolve(getOffer());
+  }
+
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Firestore offer fetch timeout (10s)')), 10000);
+  });
+
+  const fetchPromise = window.db.collection('offers')
+    .doc('diwali_sale')
+    .get({ source: 'server' })
+    .then(doc => {
+      console.log('[data.js] Firestore offer doc received. Exists?', doc.exists);
+
+      if (!doc.exists) {
+        console.log('[data.js] Offer doc does not exist. Seeding DEFAULT_OFFER.');
+        return window.db.collection('offers').doc('diwali_sale').set(DEFAULT_OFFER).then(() => {
+          console.log('[data.js] ✓ DEFAULT_OFFER seeded to Firestore.');
+          localStorage.setItem('jcs_offer', JSON.stringify(DEFAULT_OFFER));
+          return DEFAULT_OFFER;
+        });
+      }
+
+      const offerData = doc.data();
+      console.log('[data.js] ✓ Loaded offer from Firestore server:', offerData.title);
+      localStorage.setItem('jcs_offer', JSON.stringify(offerData));
+      return offerData;
+    })
+    .catch(err => {
+      console.error('[data.js] ✗ Firestore offer fetch FAILED:', err);
+      return getOffer();
+    });
+
+  return Promise.race([fetchPromise, timeoutPromise]).catch(timeoutErr => {
+    console.error('[data.js] ✗ Timeout in loadOfferFromFirestore:', timeoutErr);
+    return getOffer();
+  });
+}
+
+/**
+ * Save offer document to Firestore.
+ */
+function saveOfferToFirestore(offer) {
+  console.log('[data.js] saveOfferToFirestore called with:', offer);
+
+  if (!window.db) {
+    console.warn('[data.js] window.db is NULL. Saving to localStorage only.');
+    localStorage.setItem('jcs_offer', JSON.stringify(offer));
+    return Promise.resolve();
+  }
+
+  return window.db.collection('offers')
+    .doc('diwali_sale')
+    .set(offer)
+    .then(() => {
+      console.log('[data.js] ✓ Offer saved to Firestore successfully.');
+      localStorage.setItem('jcs_offer', JSON.stringify(offer));
+    })
+    .catch(err => {
+      console.error('[data.js] ✗ Firestore offer save FAILED:', err);
+      console.error('[data.js] Error code:', err.code, 'Message:', err.message);
+      throw err;
+    });
+}

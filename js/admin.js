@@ -303,7 +303,8 @@ function showDashboardSection(sectionName) {
       'products': 'Manage Firecrackers Inventory',
       'categories': 'Manage Catalog Categories',
       'enquiries': 'Customer Enquiries Portal',
-      'banners': 'Manage Homepage Banners'
+      'banners': 'Manage Homepage Banners',
+      'offers': 'Manage Festival Offer Banner'
     };
     title.innerText = titles[sectionName] || 'Administration';
   }
@@ -319,6 +320,8 @@ function showDashboardSection(sectionName) {
     renderEnquiriesTable();
   } else if (sectionName === 'banners') {
     renderBannersTable();
+  } else if (sectionName === 'offers') {
+    loadOfferForm();
   }
 }
 
@@ -1417,3 +1420,89 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 })();
+
+/* ==========================================================================
+   OFFER BANNER — Admin Form Logic
+   Loads offer data into the form, handles save to Firestore.
+   ========================================================================== */
+
+/**
+ * Load offer data from Firestore into the admin form.
+ */
+function loadOfferForm() {
+  console.log('[Admin] Loading offer form...');
+  loadOfferFromFirestore()
+    .then(offer => {
+      console.log('[Admin] Offer loaded:', offer);
+      document.getElementById('offer-tag').value = offer.tag || '';
+      document.getElementById('offer-title').value = offer.title || '';
+      document.getElementById('offer-subtitle').value = offer.subTitle || '';
+      document.getElementById('offer-description').value = offer.description || '';
+      document.getElementById('offer-button-text').value = offer.buttonText || '';
+      document.getElementById('offer-button-link').value = offer.buttonLink || '#';
+      document.getElementById('offer-active').checked = offer.active !== false;
+
+      // Convert ISO date to datetime-local format (YYYY-MM-DDTHH:MM)
+      if (offer.targetDate) {
+        const dt = new Date(offer.targetDate);
+        const local = dt.getFullYear() + '-' +
+          String(dt.getMonth() + 1).padStart(2, '0') + '-' +
+          String(dt.getDate()).padStart(2, '0') + 'T' +
+          String(dt.getHours()).padStart(2, '0') + ':' +
+          String(dt.getMinutes()).padStart(2, '0');
+        document.getElementById('offer-target-date').value = local;
+      }
+
+      showAdminToast('Offer loaded from cloud database.', 'success');
+    })
+    .catch(err => {
+      console.error('[Admin] Failed to load offer:', err);
+      showAdminToast('Failed to load offer: ' + (err.message || 'Unknown error'), 'error');
+    });
+}
+
+// Offer form submit handler
+document.addEventListener('DOMContentLoaded', () => {
+  const offerForm = document.getElementById('offer-form');
+  if (offerForm) {
+    offerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      console.log('[Admin] Offer form submitted.');
+
+      const targetDateVal = document.getElementById('offer-target-date').value;
+      if (!targetDateVal) {
+        showAdminToast('Please set an offer end date.', 'error');
+        return;
+      }
+
+      const offerData = {
+        id: 'diwali_sale',
+        tag: document.getElementById('offer-tag').value.trim(),
+        title: document.getElementById('offer-title').value.trim(),
+        subTitle: document.getElementById('offer-subtitle').value.trim(),
+        description: document.getElementById('offer-description').value.trim(),
+        buttonText: document.getElementById('offer-button-text').value.trim(),
+        buttonLink: document.getElementById('offer-button-link').value.trim() || '#',
+        targetDate: new Date(targetDateVal).toISOString(),
+        active: document.getElementById('offer-active').checked
+      };
+
+      console.log('[Admin] Offer data to save:', offerData);
+
+      try {
+        saveOfferToFirestore(offerData)
+          .then(() => {
+            console.log('[Admin] ✓ Offer saved successfully.');
+            showAdminToast('Offer banner saved and synced to cloud!', 'success');
+          })
+          .catch(err => {
+            console.error('[Admin] Offer save failed:', err);
+            showAdminToast('Offer saved locally but cloud sync failed: ' + (err.message || 'Unknown'), 'error');
+          });
+      } catch (syncError) {
+        console.error('[Admin] Exception during offer save:', syncError);
+        showAdminToast('Exception: ' + (syncError.message || 'Unknown'), 'error');
+      }
+    });
+  }
+});

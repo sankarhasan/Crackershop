@@ -67,6 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initCarousel();
   });
 
+  // Hydrate offer banner from Firestore (async) then render offer section
+  loadOfferFromFirestore().then(offer => {
+    renderOfferBanner(offer);
+  });
+
   // Hydrate categories from Firestore (async) then re-render category grid, filters, and products
   console.log('[Categories] Starting Firestore hydration...');
   loadCategoriesFromFirestore()
@@ -923,6 +928,97 @@ function catalogStepQty(prodId, change) {
 // Backward-compatible alias for any older callers.
 function adjustCatalogQty(prodId, change) {
   catalogStepQty(prodId, change);
+}
+
+/* ==========================================================================
+   OFFER BANNER — Storefront Render & Countdown
+   Hydrates the offer section from Firestore data and runs a live countdown.
+   ========================================================================== */
+
+let offerCountdownInterval = null;
+
+function renderOfferBanner(offer) {
+  console.log('[Offer] renderOfferBanner called. active:', offer.active);
+
+  const section = document.getElementById('offer-banner');
+  if (!section) {
+    console.warn('[Offer] #offer-banner section not found in DOM.');
+    return;
+  }
+
+  // Hide if offer is inactive
+  if (offer.active === false) {
+    section.style.display = 'none';
+    console.log('[Offer] Offer is inactive. Hiding banner.');
+    return;
+  }
+
+  // Populate text content
+  const tagEl = document.getElementById('offer-tag-display');
+  const titleEl = document.getElementById('offer-title-display');
+  const subtitleEl = document.getElementById('offer-subtitle-display');
+  const descEl = document.getElementById('offer-desc-display');
+  const btnEl = document.getElementById('offer-btn-display');
+
+  if (tagEl) tagEl.textContent = offer.tag || '';
+  if (titleEl) titleEl.textContent = offer.title || '';
+  if (subtitleEl) subtitleEl.textContent = offer.subTitle || '';
+  if (descEl) descEl.textContent = offer.description || '';
+  if (btnEl) {
+    btnEl.textContent = offer.buttonText || 'Claim Offer';
+    btnEl.href = offer.buttonLink || '#';
+  }
+
+  // Show the section
+  section.style.display = 'block';
+
+  // Start countdown
+  startOfferCountdown(offer.targetDate);
+}
+
+function startOfferCountdown(targetDateStr) {
+  if (offerCountdownInterval) {
+    clearInterval(offerCountdownInterval);
+  }
+
+  const targetDate = new Date(targetDateStr).getTime();
+  if (isNaN(targetDate)) {
+    console.warn('[Offer] Invalid targetDate:', targetDateStr);
+    return;
+  }
+
+  function updateCountdown() {
+    const now = Date.now();
+    const diff = targetDate - now;
+
+    if (diff <= 0) {
+      // Offer expired
+      clearInterval(offerCountdownInterval);
+      const section = document.getElementById('offer-banner');
+      if (section) section.style.display = 'none';
+      console.log('[Offer] Countdown expired. Hiding banner.');
+      return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+    const daysEl = document.getElementById('cd-days');
+    const hoursEl = document.getElementById('cd-hours');
+    const minsEl = document.getElementById('cd-mins');
+    const secsEl = document.getElementById('cd-secs');
+
+    if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
+    if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
+    if (minsEl) minsEl.textContent = String(mins).padStart(2, '0');
+    if (secsEl) secsEl.textContent = String(secs).padStart(2, '0');
+  }
+
+  updateCountdown();
+  offerCountdownInterval = setInterval(updateCountdown, 1000);
+  console.log('[Offer] Countdown started. Target:', new Date(targetDate).toISOString());
 }
 
 /* ==========================================================================
