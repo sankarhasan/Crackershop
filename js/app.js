@@ -1408,21 +1408,45 @@ function initPreloader() {
 }
 
 function initNavbarScroll() {
-  const greenBar = document.querySelector('.top-green-bar') || document.querySelector('[class*="green"]');
-  const wrapper = document.querySelector('.header-sticky-wrapper');
-  const navbar = document.querySelector('.main-white-navbar') || document.querySelector('nav');
+  const greenBar = document.querySelector('.green-top-bar') || document.querySelector('.top-bar');
+  const navbar = document.querySelector('.main-header') || document.querySelector('header');
   const mainEl = document.querySelector('main');
 
   if (!greenBar || !navbar) return;
 
-  // The wrapper handles sticky positioning; no JS position toggling needed.
-  // Just enhance the shadow on scroll for a premium feel.
+  const triggerHeight = greenBar.offsetHeight || 40;
+  let isFixed = false;
+  let spacerAdded = false;
+
   window.addEventListener('scroll', () => {
-    const triggerHeight = greenBar.offsetHeight || 40;
     if (window.scrollY >= triggerHeight) {
-      navbar.style.setProperty('box-shadow', '0 6px 18px rgba(0, 0, 0, 0.16)', 'important');
+      if (!isFixed) {
+        // Lock header to top of viewport (JS fallback for position:sticky broken by overflow-x:hidden)
+        navbar.style.setProperty('position', 'fixed', 'important');
+        navbar.style.setProperty('top', '0', 'important');
+        navbar.style.setProperty('left', '0', 'important');
+        navbar.style.setProperty('width', '100%', 'important');
+        navbar.style.setProperty('z-index', '9999', 'important');
+        navbar.style.setProperty('box-shadow', '0 6px 18px rgba(0, 0, 0, 0.16)', 'important');
+        // Add spacer to prevent content jump
+        if (!spacerAdded && mainEl) {
+          const spacer = navbar.offsetHeight;
+          document.body.style.paddingTop = spacer + 'px';
+          spacerAdded = true;
+        }
+        isFixed = true;
+      }
     } else {
-      navbar.style.setProperty('box-shadow', '0 4px 15px rgba(0, 0, 0, 0.12)', 'important');
+      if (isFixed) {
+        // Restore normal flow
+        navbar.style.setProperty('position', 'sticky', 'important');
+        navbar.style.removeProperty('box-shadow');
+        if (spacerAdded) {
+          document.body.style.removeProperty('padding-top');
+          spacerAdded = false;
+        }
+        isFixed = false;
+      }
     }
     highlightNavLink();
   }, { passive: true });
