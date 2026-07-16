@@ -599,10 +599,13 @@ html, body, div, section, textarea, table {
   color: var(--white);
   font-size: 0.75rem;
   font-weight: 700;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
+  min-width: 22px;
+  width: auto;
+  height: 22px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 12px; /* pill shape for multi-digit counts */
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   position: absolute;
@@ -864,6 +867,32 @@ section {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Dynamic Alternating Banner Content Alignment
+   Odd slides (1st, 3rd, 5th...) → content RIGHT
+   Even slides (2nd, 4th, 6th...) → content LEFT
+   Automatically applies to admin-added banners via CSS :nth-child
+   ========================================================================== */
+.carousel-slide:nth-child(odd) .slide-content {
+  margin-left: auto;
+  margin-right: 0;
+  text-align: right;
+}
+
+.carousel-slide:nth-child(odd) .slide-buttons {
+  justify-content: flex-end;
+}
+
+.carousel-slide:nth-child(even) .slide-content {
+  margin-left: 0;
+  margin-right: auto;
+  text-align: left;
+}
+
+.carousel-slide:nth-child(even) .slide-buttons {
+  justify-content: flex-start;
 }
 
 /* Carousel controls */
@@ -3000,53 +3029,145 @@ select.form-control {
     padding: 0 20px;
   }
 
-  /* --- Navigation mobile --- */
+  /* --- Navigation mobile: JCS-style full-height sidebar drawer --- */
   .mobile-menu-toggle {
     display: flex;
   }
 
   .navbar {
-    position: fixed;
-    top: 70px;
+    position: fixed !important;
+    top: 0 !important;
     left: 0;
     width: 100%;
-    height: calc(100vh - 70px);
-    height: calc(100dvh - 70px);
-    background-color: var(--white);
-    box-shadow: var(--shadow-md);
-    padding: 0;
-    overflow-y: auto;
-    transition: transform 0.4s ease-in-out;
-    margin-left: 0;
-    transform: translateY(-100%);
-    z-index: 99998;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background: linear-gradient(180deg, #074729 0%, #03301B 100%) !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s !important;
+    margin-left: 0 !important;
+    z-index: 99998 !important;
+    transform: translateX(-100%);
+    visibility: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .navbar.active {
-    transform: translateY(0);
+    transform: translateX(0) !important;
+    visibility: visible !important;
   }
 
   .nav-menu {
     flex-direction: column;
-    padding: 0;
-    align-items: stretch;
-    gap: 0;
+    padding: 90px 0 0 0;
+    align-items: stretch !important;
+    gap: 0 !important;
+    flex: 1;
+    overflow-y: auto;
   }
 
   .nav-link {
-    font-size: 1rem;
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 16px 20px;
-    border-radius: 0;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-size: 1.05rem !important;
+    display: flex !important;
+    align-items: center;
+    width: 100% !important;
+    text-align: left !important;
+    padding: 16px 28px !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+    background-color: transparent !important;
+    border-radius: 0 !important;
+    border-left: 4px solid transparent;
+    border-bottom: none !important;
+    transition: all 0.25s ease;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.3px;
   }
 
-  .nav-link:hover,
+  .nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border-left-color: rgba(255, 215, 0, 0.5);
+  }
+
   .nav-link.active {
-    background-color: #fffde7;
-    color: var(--deep-green-dark);
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-left-color: var(--golden-yellow);
+  }
+
+  /* Mobile menu footer: brand + fireworks */
+  .mobile-menu-footer {
+    padding: 20px 28px 32px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mobile-menu-footer .menu-brand-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--golden-yellow);
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .mobile-menu-footer .menu-brand-tagline {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 1px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* CSS Fireworks particles at bottom of menu */
+  .menu-fireworks {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .menu-fireworks .fw-particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    animation: fw-burst 2.5s ease-out infinite;
+    opacity: 0;
+  }
+
+  .menu-fireworks .fw-particle:nth-child(1) { left: 15%; top: 50%; background: #FFD700; animation-delay: 0s; }
+  .menu-fireworks .fw-particle:nth-child(2) { left: 45%; top: 35%; background: #FF6B6B; animation-delay: 0.6s; }
+  .menu-fireworks .fw-particle:nth-child(3) { left: 75%; top: 55%; background: #FFD700; animation-delay: 1.2s; }
+  .menu-fireworks .fw-particle:nth-child(4) { left: 30%; top: 65%; background: #4ECDC4; animation-delay: 1.8s; }
+  .menu-fireworks .fw-particle:nth-child(5) { left: 60%; top: 40%; background: #FF6B6B; animation-delay: 0.3s; }
+  .menu-fireworks .fw-particle:nth-child(6) { left: 85%; top: 60%; background: #FFD700; animation-delay: 0.9s; }
+  .menu-fireworks .fw-particle:nth-child(7) { left: 10%; top: 30%; background: #4ECDC4; animation-delay: 1.5s; }
+  .menu-fireworks .fw-particle:nth-child(8) { left: 55%; top: 70%; background: #FFD700; animation-delay: 2.1s; }
+
+  @keyframes fw-burst {
+    0% {
+      transform: scale(0) translateY(0);
+      opacity: 1;
+    }
+    30% {
+      opacity: 1;
+    }
+    100% {
+      transform: scale(3) translateY(-30px);
+      opacity: 0;
+    }
   }
 
   /* Header */
@@ -3115,6 +3236,14 @@ select.form-control {
   .slide-content {
     max-width: 100%;
     padding: 0 10px;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    text-align: center !important;
+  }
+
+  .carousel-slide:nth-child(odd) .slide-buttons,
+  .carousel-slide:nth-child(even) .slide-buttons {
+    justify-content: center !important;
   }
 
   .slide-title {
@@ -3702,40 +3831,49 @@ select.form-control {
     font-size: 0.95rem;
   }
 
-  /* --- Contact --- */
+  /* --- Contact: equal-height cards with dynamic font sizing --- */
   .contact-grid {
     grid-template-columns: 1fr;
     gap: 24px;
   }
 
   .contact-info-cards {
-    display: flex;
-    flex-direction: column;
+    display: grid !important;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, 1fr);
     gap: 16px;
   }
 
   .contact-card-info {
     padding: 16px;
     gap: 12px;
-    /* Equal height for all three cards */
-    min-height: 110px;
+    min-height: 0;
     box-sizing: border-box;
   }
 
   .info-icon {
-    width: 38px;
-    height: 38px;
-    font-size: 1.3rem;
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+
+  .info-content {
+    overflow: hidden;
+    min-width: 0;
   }
 
   .info-content h3 {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     margin-bottom: 4px;
   }
 
   /* Shrink inner text so content fits without expanding the box */
   .info-content p,
-  .info-content a,
+  .info-content a {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
   .info-content {
     font-size: 0.78rem;
     line-height: 1.35;
@@ -4240,9 +4378,12 @@ select.form-control {
   }
 
   .cart-count {
-    width: 16px;
-    height: 16px;
+    min-width: 18px;
+    width: auto;
+    height: 18px;
+    padding: 0 5px;
     font-size: 0.65rem;
+    border-radius: 10px;
     top: -6px;
     right: -4px;
   }

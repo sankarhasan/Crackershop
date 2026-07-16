@@ -64,7 +64,30 @@ document.addEventListener('DOMContentLoaded', () => {
     navMenu.classList.toggle('active');
     menuToggle.classList.toggle('active');
     syncHamburgerIcon();
+    initMobileMenuFooter();
   });
+
+  // Inject JCS-style footer with fireworks into the mobile menu drawer
+  function initMobileMenuFooter() {
+    if (document.querySelector('.mobile-menu-footer')) return;
+    const footer = document.createElement('div');
+    footer.className = 'mobile-menu-footer';
+    footer.innerHTML = `
+      <div class="menu-fireworks">
+        <span class="fw-particle"></span>
+        <span class="fw-particle"></span>
+        <span class="fw-particle"></span>
+        <span class="fw-particle"></span>
+        <span class="fw-particle"></span>
+        <span class="fw-particle"></span>
+        <span class="fw-particle"></span>
+        <span class="fw-particle"></span>
+      </div>
+      <div class="menu-brand-title">\uD83C\uDF86 KPR Crackers</div>
+      <div class="menu-brand-tagline">Your Joy is our Pride</div>
+    `;
+    navMenu.appendChild(footer);
+  }
 });
 
 /* ==========================================================================
