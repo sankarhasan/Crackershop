@@ -31,29 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const navMenu = document.getElementById('main-nav');
   const menuToggle = document.getElementById('menu-toggle');
   
-  navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-      // Set active nav link
-      navLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-      
-      // Close mobile menu
-      if (navMenu.classList.contains('active')) {
-        navMenu.classList.remove('active');
-        menuToggle.classList.remove('active');
-      }
-    });
-  });
-  
-  // Hamburger toggle click
-  menuToggle.addEventListener('click', () => {
-    navMenu.classList.toggle('active');
-    menuToggle.classList.toggle('active');
-  });
-  
-  // Mobile hamburger spans change to cross
-  menuToggle.addEventListener('click', () => {
+  // Sync the hamburger/X icon to the current menu open state
+  const syncHamburgerIcon = () => {
     const bars = menuToggle.querySelectorAll('.bar');
+    if (bars.length < 3) return;
     if (menuToggle.classList.contains('active')) {
       bars[0].style.transform = 'rotate(-45deg) translate(-5px, 6px)';
       bars[1].style.opacity = '0';
@@ -63,6 +44,26 @@ document.addEventListener('DOMContentLoaded', () => {
       bars[1].style.opacity = '1';
       bars[2].style.transform = 'none';
     }
+  };
+
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      // Set active nav link
+      navLinks.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+      
+      // Close mobile menu AND reset the toggle icon back to the hamburger state
+      navMenu.classList.remove('active');
+      menuToggle.classList.remove('active');
+      syncHamburgerIcon();
+    });
+  });
+  
+  // Hamburger toggle click: open/close the drawer and morph the icon
+  menuToggle.addEventListener('click', () => {
+    navMenu.classList.toggle('active');
+    menuToggle.classList.toggle('active');
+    syncHamburgerIcon();
   });
 });
 

@@ -510,32 +510,21 @@ html, body, div, section, textarea, table {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-dark);
-  padding: 8px 4px;
+  padding: 8px 12px;
+  border-radius: 6px;
   position: relative;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
+/* Underline indicator removed in favour of the soft box highlight below */
 .nav-link::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 3px;
-  background-color: var(--deep-green); /* contrast underline on yellow bar */
-  transition: var(--transition);
+  display: none;
 }
 
-.nav-link:hover {
-  color: var(--deep-green);
-}
-
-.nav-link:hover::after,
-.nav-link.active::after {
-  width: 100%;
-}
-
+.nav-link:hover,
 .nav-link.active {
   color: var(--deep-green);
+  background-color: #fffde7; /* dim pastel yellow box, matches product cards */
 }
 
 /* Header Action Elements */
@@ -3018,15 +3007,16 @@ select.form-control {
   .nav-menu {
     flex-direction: column;
     padding: 20px;
-    align-items: flex-start;
+    align-items: flex-end;   /* slide the menu items to the right side */
     gap: 14px;
   }
 
   .nav-link {
     font-size: 1rem;
     display: block;
-    width: 100%;
-    padding: 10px 4px;
+    width: auto;
+    text-align: right;
+    padding: 10px 12px;
   }
 
   /* Header */
