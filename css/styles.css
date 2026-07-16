@@ -398,12 +398,10 @@ html, body, div, section, textarea, table {
   transition: all 0.3s ease !important;
 }
 
-/* Sticky wrapper: keeps header + mobile drawer locked together on scroll */
+/* Sticky wrapper: contains header + mobile drawer. NOT sticky itself — only the header is sticky */
 .header-sticky-wrapper {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
   width: 100%;
+  position: relative; /* Anchor for mobile drawer absolute positioning */
 }
 
 /* === FORCED STICKY OVERRIDES (bypasses parent overflow bugs) === */
@@ -415,12 +413,13 @@ html, body, div, section, textarea, table {
 }
 
 .main-white-navbar {
-  position: relative !important;
+  position: sticky !important;
+  top: 0 !important;
   left: 0 !important;
   width: 100% !important;
   z-index: 1000 !important;
   background: linear-gradient(135deg, #ffcc00 0%, #ff9e00 100%) !important; /* Bright Yellow → Warm Gold */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12) !important; /* Soft premium shadow for depth */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
@@ -438,24 +437,23 @@ html, body, div, section, textarea, table {
 }
 
 .navbar {
-  flex: 0 0 auto;
-  flex-shrink: 0;
-  margin-left: 20px;
-}
-
-/* Desktop: nav is inside the sticky wrapper, position it centered in the header */
-@media (min-width: 769px) {
-  .navbar {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1;
-  }
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  margin-left: 0;
 }
 
 .nav-menu {
-  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-menu li {
+  list-style: none;
 }
 
 
@@ -524,12 +522,6 @@ html, body, div, section, textarea, table {
 /* Mobile drawer: hidden on desktop, visible only on mobile ≤768px */
 .mobile-drawer-navbar {
   display: none;
-}
-
-.nav-menu {
-  display: flex;
-  align-items: center;
-  gap: 20px;
 }
 
 .nav-link {
@@ -3058,14 +3050,15 @@ select.form-control {
     display: flex;
   }
 
-  /* Wrapper handles sticky; header stays on top of drawer */
+  /* Wrapper stays above drawer; header is sticky inside it */
   .header-sticky-wrapper {
     z-index: 1000;
   }
 
   .main-header.main-white-navbar {
-    z-index: 1000 !important;
-    position: relative !important;
+    z-index: 1001 !important;
+    position: sticky !important;
+    top: 0 !important;
   }
 
   /* Hide desktop nav on mobile */
