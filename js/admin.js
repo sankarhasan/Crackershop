@@ -784,19 +784,38 @@ function saveCategoryData() {
   }
 
   saveCategories(categories);
+  console.log('[Category Save] localStorage updated. Categories count:', categories.length);
+  
   // Sync to Firestore (async) with visible error feedback
   const categoryToSync = idVal === '' ? categories[categories.length - 1] : categories.find(c => Number(c.id) === Number(idVal));
+  
+  console.log('[Category Save] categoryToSync:', categoryToSync);
+  console.log('[Category Save] window.db status:', window.db ? 'CONNECTED' : 'NULL');
+  
   if (!window.db) {
     console.error('[Firestore] window.db is NULL — cannot sync categories.');
     showAdminToast('Firestore not connected. Category saved locally only.', 'error');
   } else if (categoryToSync) {
-    saveCategoryToFirestore(categoryToSync)
-      .then(() => console.log('[Firestore] Category synced successfully:', categoryToSync.name))
-      .catch(err => {
-        const code = err.code || 'unknown';
-        console.error('[Firestore] Category sync FAILED. Code:', code, 'Message:', err.message, err);
-        showAdminToast('Firestore category error [' + code + ']: ' + (err.message || 'Unknown'), 'error');
-      });
+    console.log('[Category Save] Attempting Firestore write for category ID:', categoryToSync.id);
+    try {
+      saveCategoryToFirestore(categoryToSync)
+        .then(() => {
+          console.log('[Firestore] ✓ Category synced successfully:', categoryToSync.name);
+          showAdminToast('Category synced to cloud database.', 'success');
+        })
+        .catch(err => {
+          const code = err.code || 'unknown';
+          const msg = err.message || 'Unknown error';
+          console.error('[Firestore] ✗ Category sync FAILED. Code:', code, 'Message:', msg, err);
+          showAdminToast('Firestore category error [' + code + ']: ' + msg, 'error');
+        });
+    } catch (syncError) {
+      console.error('[Category Save] Exception during saveCategoryToFirestore():', syncError);
+      showAdminToast('Exception: ' + (syncError.message || 'Unknown'), 'error');
+    }
+  } else {
+    console.error('[Category Save] categoryToSync is NULL/undefined. Cannot sync to Firestore.');
+    showAdminToast('Category data invalid. Cannot sync to cloud.', 'error');
   }
   closeCategoryModal();
   populateCategoryDropdowns();

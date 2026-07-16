@@ -461,12 +461,20 @@ function loadCategoriesFromFirestore() {
  * Uses the numeric category `id` as the Firestore document ID.
  */
 function saveCategoryToFirestore(category) {
-  if (!window.db) return Promise.resolve();
+  console.log('[data.js] saveCategoryToFirestore called with:', category);
+  console.log('[data.js] window.db status:', window.db ? 'CONNECTED' : 'NULL');
+  
+  if (!window.db) {
+    console.warn('[data.js] window.db is NULL, returning resolved promise.');
+    return Promise.resolve();
+  }
 
+  console.log('[data.js] Attempting Firestore set() for doc ID:', String(category.id));
   return window.db.collection('categories')
     .doc(String(category.id))
     .set(category)
     .then(() => {
+      console.log('[data.js] ✓ Firestore set() succeeded for category:', category.id);
       // Update localStorage cache
       const cached = getCategories();
       const idx = cached.findIndex(c => Number(c.id) === Number(category.id));
@@ -478,7 +486,8 @@ function saveCategoryToFirestore(category) {
       localStorage.setItem('jcs_categories', JSON.stringify(cached));
     })
     .catch(err => {
-      console.error('[Firestore] Failed to save category:', err);
+      console.error('[data.js] ✗ Firestore set() FAILED for category:', err);
+      console.error('[data.js] Error code:', err.code, 'Message:', err.message);
       throw err; // Re-throw so caller can show user-facing error
     });
 }
