@@ -1397,13 +1397,13 @@ section {
 }
 
 .product-card {
-  background-color: var(--white);
+  background-color: #fffde7; /* soft dim pastel yellow (was white) */
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--golden-light);
   transition: var(--transition);
   position: relative;
 }
