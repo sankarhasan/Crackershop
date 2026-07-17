@@ -4738,6 +4738,8 @@ body.success-modal-active {
   color: var(--text-muted);
   border-radius: 20px;
   margin: 0 4px;
+  /* Disable tap highlight on touch devices */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .notice-lang-tab:hover {
@@ -4817,6 +4819,8 @@ body.success-modal-active {
   user-select: none;
   text-align: center;
   justify-content: center;
+  /* Disable tap highlight on touch devices */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .notice-modal-checkbox input[type="checkbox"] {
@@ -4825,6 +4829,13 @@ body.success-modal-active {
   min-width: 16px;
   accent-color: #7c3aed;
   cursor: pointer;
+  /* Disable tap highlight on touch devices */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Remove default focus outline for checkbox (custom focus handling via JS if needed) */
+.notice-modal-checkbox input[type="checkbox"]:focus {
+  outline: none;
 }
 
 /* Button - compact and centered with premium green active state */
@@ -4842,6 +4853,8 @@ body.success-modal-active {
   color: var(--text-muted);
   box-shadow: none;
   opacity: 0.5;
+  /* Disable tap highlight on touch devices */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .notice-understand-btn:hover:not(:disabled) {
@@ -4921,7 +4934,7 @@ html.notice-modal-active {
     font-size: 0.7rem;
   }
   
-  .notice-modal-footer {
+.notice-modal-footer {
     padding: 10px 16px;
   }
   
@@ -4931,8 +4944,19 @@ html.notice-modal-active {
   }
 }
 
-/* Ensure toast container doesn't interfere with modal */
+
 .toast-container {
   z-index: 1;
 }
+
+
+.toast-container {
+  z-index: 1;
+}
+
+
+.toast-container {
+  z-index: 1;
+}
+
 
