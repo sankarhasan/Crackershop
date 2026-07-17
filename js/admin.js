@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Category image upload -> preview (base64)
+  // Category image upload -> preview (base64) + dimension reading & validation
   const catFileInput = document.getElementById('categoryImageFile');
 
   if (catFileInput) {
@@ -93,12 +93,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
       if (!file) {
         setCategoryImagePreview('');
+        resetCategoryImageDimensionInfo();
         return;
       }
 
+      // Read file as data URL for preview
       const reader = new FileReader();
       reader.onload = (event) => {
-        setCategoryImagePreview(event.target.result);
+        const dataUrl = event.target.result;
+        setCategoryImagePreview(dataUrl);
+
+        // Read image dimensions from the selected file
+        readImageDimensions(file, (width, height) => {
+          updateCategoryImageDimensionInfo(width, height);
+          validateCategoryImageDimensions(width, height);
+        });
       };
       reader.readAsDataURL(file);
     });
@@ -659,7 +668,6 @@ function saveProductData() {
       id: newId, name, categoryId, price, originalPrice, discount, qty, description, inStock, image
     };
     products.push(newProduct);
-    showAdminToast('New firecracker item added!', 'success');
   } else {
     // Edit Mode
     const pIndex = products.findIndex(prod => Number(prod.id) === Number(idVal));
@@ -667,9 +675,11 @@ function saveProductData() {
       products[pIndex] = {
         id: Number(idVal), name, categoryId, price, originalPrice, discount, qty, description, inStock, image
       };
-      showAdminToast('Firecracker specifications updated.', 'success');
     }
   }
+
+  // Show a single clean success toast
+  showAdminToast('Product saved successfully!', 'success');
   
   saveProducts(products);
   // Sync to Firestore (async) with visible error feedback
@@ -751,6 +761,9 @@ function openCategoryAddModal() {
   document.getElementById('category-modal-title').innerText = 'Add Category';
   document.getElementById('category-form').reset();
   document.getElementById('category-modal-id').value = '';
+  // Reset image preview to placeholder state
+  setCategoryImagePreview('');
+  resetCategoryImageDimensionInfo();
   document.getElementById('category-modal').style.display = 'flex';
 }
 
@@ -801,7 +814,6 @@ function saveCategoryData() {
   if (idVal === '') {
     // Add Mode
     const newId = generateId(categories);
-
     const newCat = {
       id: newId,
       name,
@@ -810,15 +822,11 @@ function saveCategoryData() {
       // legacy field
       image: selectedImg
     };
-
     categories.push(newCat);
-    showAdminToast('New category link established!', 'success');
   } else {
     // Edit Mode
     const index = categories.findIndex(c => Number(c.id) === Number(idVal));
     if (index !== -1) {
-      const existing = categories[index];
-
       // If no new upload happened, selectedImg may still be the existing value
       // (we prefill it in openCategoryEditModal), so it will be preserved.
       // If admin clears preview, it will save empty string.
@@ -827,30 +835,24 @@ function saveCategoryData() {
       categories[index].categoryImageUrl = selectedImg;
       // legacy field
       categories[index].image = selectedImg;
-
-      showAdminToast('Category configuration modified.', 'success');
     }
   }
 
   saveCategories(categories);
   console.log('[Category Save] localStorage updated. Categories count:', categories.length);
-  
-  // Sync to Firestore (async) with visible error feedback
+
+  // Show a single clean success toast immediately
+  showAdminToast('Category saved successfully!', 'success');
+
+  // Async Firestore sync (fire-and-forget, error only shown if sync fails)
   const categoryToSync = idVal === '' ? categories[categories.length - 1] : categories.find(c => Number(c.id) === Number(idVal));
-  
-  console.log('[Category Save] categoryToSync:', categoryToSync);
-  console.log('[Category Save] window.db status:', window.db ? 'CONNECTED' : 'NULL');
-  
-  if (!window.db) {
-    console.error('[Firestore] window.db is NULL — cannot sync categories.');
-    showAdminToast('Firestore not connected. Category saved locally only.', 'error');
-  } else if (categoryToSync) {
+
+  if (window.db && categoryToSync) {
     console.log('[Category Save] Attempting Firestore write for category ID:', categoryToSync.id);
     try {
       saveCategoryToFirestore(categoryToSync)
         .then(() => {
           console.log('[Firestore] ✓ Category synced successfully:', categoryToSync.name);
-          showAdminToast('Category synced to cloud database.', 'success');
         })
         .catch(err => {
           const code = err.code || 'unknown';
@@ -860,12 +862,12 @@ function saveCategoryData() {
         });
     } catch (syncError) {
       console.error('[Category Save] Exception during saveCategoryToFirestore():', syncError);
-      showAdminToast('Exception: ' + (syncError.message || 'Unknown'), 'error');
+      showAdminToast('Sync error: ' + (syncError.message || 'Unknown'), 'error');
     }
-  } else {
-    console.error('[Category Save] categoryToSync is NULL/undefined. Cannot sync to Firestore.');
-    showAdminToast('Category data invalid. Cannot sync to cloud.', 'error');
+  } else if (!window.db) {
+    console.error('[Firestore] window.db is NULL — cannot sync categories.');
   }
+
   closeCategoryModal();
   populateCategoryDropdowns();
   renderCategoriesTable();
@@ -1041,7 +1043,7 @@ function executePendingDelete() {
           showAdminToast('Firestore delete error [' + code + ']: ' + (err.message || 'Unknown'), 'error');
         });
     }
-    showAdminToast('Firecracker item deleted.', 'info');
+    showAdminToast('Product removed successfully!', 'success');
     renderProductsTable();
   } else if (deleteTargetType === 'category') {
     let categories = getCategories();
@@ -1059,7 +1061,7 @@ function executePendingDelete() {
           showAdminToast('Firestore category delete error [' + code + ']: ' + (err.message || 'Unknown'), 'error');
         });
     }
-    showAdminToast('Category configuration deleted.', 'info');
+    showAdminToast('Category removed successfully!', 'success');
     populateCategoryDropdowns();
     renderCategoriesTable();
   } else if (deleteTargetType === 'enquiry') {
@@ -1151,24 +1153,43 @@ window.triggerCategoryImageUpload = function triggerCategoryImageUpload() {
 function setCategoryImagePreview(dataUrl) {
   const previewImg = document.getElementById('category-modal-image-preview');
   const placeholder = document.getElementById('category-modal-image-placeholder');
+  const removeBtn = document.getElementById('category-image-remove-btn');
+  const previewBox = document.getElementById('category-image-preview-box');
   const hiddenInput = document.getElementById('categoryImageUrl');
 
   if (hiddenInput) hiddenInput.value = (dataUrl || '').toString();
 
   if (dataUrl && String(dataUrl).trim() !== '') {
+    // Image selected: show img + remove btn, hide placeholder
     if (previewImg) {
       previewImg.src = dataUrl;
       previewImg.style.display = 'block';
     }
     if (placeholder) placeholder.style.display = 'none';
+    if (removeBtn) removeBtn.style.display = 'flex';
+    if (previewBox) previewBox.style.borderColor = 'var(--admin-success)';
   } else {
+    // No image: hide img + remove btn, show placeholder
     if (previewImg) {
       previewImg.src = '';
       previewImg.style.display = 'none';
     }
+    if (removeBtn) removeBtn.style.display = 'none';
     if (placeholder) placeholder.style.display = 'flex';
+    if (previewBox) previewBox.style.borderColor = '';
   }
 }
+
+/**
+ * Removes the selected category image and resets the preview to placeholder state.
+ */
+window.removeCategoryImage = function removeCategoryImage() {
+  const fileInput = document.getElementById('categoryImageFile');
+  if (fileInput) fileInput.value = '';
+
+  setCategoryImagePreview('');
+  resetCategoryImageDimensionInfo();
+};
 
 
 // Toggle between URL and File input groups
@@ -1214,6 +1235,102 @@ function updateImagePreview(src) {
     preview.style.display = 'none';
     placeholder.style.display = 'flex';
   }
+}
+
+/* ==========================================================================
+   8b. Category Image Dimension Helpers & Validation
+   ========================================================================== */
+
+// Recommended dimensions for category images (4:3 aspect ratio matching front-end cards)
+const CATEGORY_IMAGE_RECOMMENDED_WIDTH = 400;
+const CATEGORY_IMAGE_RECOMMENDED_HEIGHT = 300;
+
+/**
+ * Reads an image file's natural dimensions asynchronously.
+ * @param {File} file - The image file selected by the user.
+ * @param {function} callback - Called with (width, height) once loaded.
+ */
+function readImageDimensions(file, callback) {
+  if (!file || !callback) return;
+
+  const img = new Image();
+  const objectUrl = URL.createObjectURL(file);
+
+  img.onload = function () {
+    callback(this.width, this.height);
+    URL.revokeObjectURL(objectUrl);
+  };
+
+  img.onerror = function () {
+    console.error('[Admin] Failed to read image dimensions for:', file.name);
+    URL.revokeObjectURL(objectUrl);
+    callback(0, 0);
+  };
+
+  img.src = objectUrl;
+}
+
+/**
+ * Updates the dimension info text in the category modal.
+ * @param {number} width - Image width in pixels.
+ * @param {number} height - Image height in pixels.
+ */
+function updateCategoryImageDimensionInfo(width, height) {
+  const infoEl = document.getElementById('category-image-dimension-values');
+  if (!infoEl) return;
+
+  if (width > 0 && height > 0) {
+    infoEl.textContent = `${width} × ${height} px`;
+  } else {
+    infoEl.textContent = '-- × -- px';
+  }
+}
+
+/**
+ * Resets the dimension display to the default placeholder.
+ */
+function resetCategoryImageDimensionInfo() {
+  const infoEl = document.getElementById('category-image-dimension-values');
+  if (infoEl) {
+    infoEl.textContent = '-- × -- px';
+  }
+
+  // Also reset any color styling from validation
+  const dimInfo = document.getElementById('category-image-dimension-info');
+  if (dimInfo) {
+    dimInfo.style.color = '';
+  }
+}
+
+/**
+ * Validates the uploaded image dimensions against the recommended size.
+ * Shows a warning toast/popup if dimensions exceed recommended values.
+ * @param {number} width - Image width in pixels.
+ * @param {number} height - Image height in pixels.
+ */
+function validateCategoryImageDimensions(width, height) {
+  const dimInfo = document.getElementById('category-image-dimension-info');
+  if (!dimInfo) return;
+
+  // If dimensions couldn't be read, skip validation
+  if (!width || !height) return;
+
+  const widthOk = width <= CATEGORY_IMAGE_RECOMMENDED_WIDTH;
+  const heightOk = height <= CATEGORY_IMAGE_RECOMMENDED_HEIGHT;
+
+  if (widthOk && heightOk) {
+    // Within recommended range — show green indicator
+    dimInfo.style.color = 'var(--admin-success, #22c55e)';
+    return;
+  }
+
+  // Exceeds recommended size — show warning toast
+  dimInfo.style.color = 'var(--admin-danger, #ef4444)';
+
+  showAdminToast(
+    `⚠️ Warning: The uploaded image size is ${width}×${height} px. For best display in the user page category box, please upload an image of exactly ${CATEGORY_IMAGE_RECOMMENDED_WIDTH}×${CATEGORY_IMAGE_RECOMMENDED_HEIGHT} px or smaller.`,
+    'warning'
+  );
 }
 
 /* ==========================================================================

@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavbarScroll();
   loadCartFromStorage();
   initPreloader();
+  setupNoticeTrigger();
 
   // Hydrate products from Firestore (async) then re-render catalog
   loadProductsFromFirestore().then(products => {
@@ -1678,4 +1679,129 @@ function showToast(message, type = 'success') {
       toast.remove();
     }, 300);
   }, 4000);
+}
+
+/* ==========================================================================
+   13. Important Notice Modal (Bilingual, Scroll-triggered, once per session)
+   ========================================================================== */
+
+const NOTICE_STORAGE_KEY = 'noticeAcknowledged';
+
+/**
+ * Opens the Important Notice modal and locks body scroll.
+ */
+function openNoticeModal() {
+  const overlay = document.getElementById('notice-modal-overlay');
+  if (!overlay) return;
+
+  // Show the modal
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+
+  // Strict scroll lock on body and html
+  document.body.classList.add('notice-modal-active');
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+}
+
+/**
+ * Closes the Important Notice modal and unlocks body scroll.
+ */
+function closeNoticeModal() {
+  const overlay = document.getElementById('notice-modal-overlay');
+  if (!overlay) return;
+
+  // Hide the modal
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+
+  // Unlock scroll - restore original state
+  document.body.classList.remove('notice-modal-active');
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.width = '';
+
+  // Mark as seen so it never shows again this session
+  try {
+    sessionStorage.setItem(NOTICE_STORAGE_KEY, 'true');
+  } catch (e) {
+    // sessionStorage may not be available, silently ignore
+  }
+}
+
+/**
+ * Switch language between English and Tamil.
+ */
+function switchNoticeLanguage(lang) {
+  const track = document.getElementById('notice-slide-track');
+  const enBtn = document.getElementById('notice-lang-en');
+  const taBtn = document.getElementById('notice-lang-ta');
+  
+  if (!track) return;
+  
+  if (lang === 'ta') {
+    track.classList.add('lang-ta');
+    track.classList.remove('lang-en');
+    if (enBtn) enBtn.classList.remove('active');
+    if (taBtn) taBtn.classList.add('active');
+  } else {
+    track.classList.add('lang-en');
+    track.classList.remove('lang-ta');
+    if (taBtn) taBtn.classList.remove('active');
+    if (enBtn) enBtn.classList.add('active');
+  }
+}
+
+/**
+ * Handle checkbox change to enable/disable understand button.
+ */
+function handleNoticeCheckbox() {
+  const checkbox = document.getElementById('notice-agree-checkbox');
+  const button = document.getElementById('notice-understand-btn');
+  
+  if (checkbox && button) {
+    button.disabled = !checkbox.checked;
+  }
+}
+
+/**
+ * Trigger when the categories section scrolls into view.
+ * Only fires once per session (checks sessionStorage).
+ */
+function setupNoticeTrigger() {
+  // Check if already seen this session
+  try {
+    if (sessionStorage.getItem(NOTICE_STORAGE_KEY) === 'true') return;
+  } catch (e) {
+    // If sessionStorage is unavailable, always show
+  }
+
+  const targetSection = document.getElementById('categories');
+  if (!targetSection) return;
+
+  // Use IntersectionObserver to detect when categories section comes into view
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // Only trigger once
+          observer.disconnect();
+          openNoticeModal();
+        }
+      });
+    }, {
+      rootMargin: '0px',
+      threshold: 0.1 // Trigger when at least 10% of the section is visible
+    });
+
+    observer.observe(targetSection);
+  } else {
+    // Fallback: show modal after a short delay if IntersectionObserver not supported
+    setTimeout(() => {
+      openNoticeModal();
+    }, 3000);
+  }
 }

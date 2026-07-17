@@ -603,6 +603,52 @@ KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu 
     </div>
   </div>
 
+  <!-- Important Notice Modal (Scroll-triggered, once per session, bilingual) -->
+  <div id="notice-modal-overlay" class="notice-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="notice-modal-card">
+      <div class="notice-modal-header">
+        <span class="notice-modal-icon">📢</span>
+        <h2 class="notice-modal-title" id="notice-modal-title">Important Notice</h2>
+      </div>
+
+      <!-- Language Selection Tabs -->
+      <div class="notice-lang-tabs">
+        <button type="button" class="notice-lang-tab active" data-lang="en" id="notice-lang-en" onclick="switchNoticeLanguage('en')">English</button>
+        <button type="button" class="notice-lang-tab" data-lang="ta" id="notice-lang-ta" onclick="switchNoticeLanguage('ta')">தமிழ்</button>
+      </div>
+
+      <!-- Sliding Content Wrapper -->
+      <div class="notice-slide-wrapper">
+        <div class="notice-slide-track" id="notice-slide-track">
+          <!-- English Panel -->
+          <div class="notice-slide-panel" data-lang="en">
+            <div class="notice-modal-body">
+              <p>
+                As per the Hon'ble High Court order, direct online sale of crackers is strictly prohibited and punishable by law. This website is provided primarily for enquiry purposes. Customers may check product details, availability and price range. Customers may submit an enquiry form through this website. If the customer agrees, the enquiry can be converted into an order as per their interest, subject to applicable laws and regulations. This website does not provide an instant online purchase or checkout system, any payment or order process will be handled only after customer confirmation. Our KPR Crackers strictly follows all protocols and is 100% compliant with legal and statutory requirements as per the Explosives Act. All parcels are dispatched only through registered and legally authorized transport service providers.
+              </p>
+            </div>
+          </div>
+          <!-- Tamil Panel -->
+          <div class="notice-slide-panel" data-lang="ta">
+            <div class="notice-modal-body">
+              <p>
+                கௌரவ உயர் நீதிமன்ற உத்தரவின்படி, பட்டாசுகளை நேரடியாக ஆன்லைனில் விற்பனை செய்வது சட்டப்படி கண்டிப்பாக தடைசெய்யப்பட்டுள்ளது மற்றும் தண்டனைக்குரிய குற்றமாகும். இந்த இணையதளம் முதன்மையாக விசாரிக்கும் (Enquiry) நோக்கத்திற்காக மட்டுமே வழங்கப்படுகிறது. வாடிக்கையாளர்கள் தயாரிப்பு விவரங்கள், இருப்பு மற்றும் விலை வரம்புகளைச் சரிபார்த்துக் கொள்ளலாம். வாடிக்கையாளர்கள் இந்த இணையதளம் மூலம் விசாரிப்பு படிவத்தை (Enquiry form) சமர்ப்பிக்கலாம். வாடிக்கையாளர் ஒப்புக்கொண்டால், அவர்களின் விருப்பத்திற்கு ஏற்ப, பொருந்தக்கூடிய சட்டங்கள் மற்றும் விதிகளுக்கு உட்பட்டு, விசாரிப்பு ஒரு ஆர்டராக மாற்றப்படும். இந்த இணையதளம் உடனடி ஆன்லைன் கொள்முதல் அல்லது செக்அவுட் சிஸ்டத்தை வழங்காது, வாடிக்கையாளர் உறுதிப்படுத்திய பின்னரே எந்தவொரு கட்டணமும் அல்லது ஆர்டர் செயல்முறையும் கையாளப்படும். எங்களது KPR Crackers அனைத்து விதிகளையும் கண்டிப்பாக பின்பற்றுகிறது மற்றும் வெடிபொருட்கள் சட்டத்தின்படி சட்டபூர்வமான மற்றும் தகுதிவாய்ந்த தேவைகளுக்கு 100% இணங்குகிறது. அனைத்து பார்சல்களும் பதிவுசெய்யப்பட்ட மற்றும் சட்டப்பூர்வமாக அங்கீகரிக்கப்பட்ட போக்குவரத்து சேவை வழங்குநர்கள் மூலம் மட்டுமே அனுப்பப்படும்.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice-modal-footer">
+        <label class="notice-modal-checkbox">
+          <input type="checkbox" id="notice-agree-checkbox">
+          <span id="notice-checkbox-label">By clicking "I Understand", you acknowledge and agree to these terms before proceeding to make an enquiry.</span>
+        </label>
+        <button type="button" id="notice-understand-btn" class="notice-understand-btn" disabled>I Understand</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 

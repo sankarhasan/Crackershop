@@ -490,48 +490,55 @@
         <h3 id="category-modal-title">Add Category</h3>
         <button class="modal-close-btn" onclick="closeCategoryModal()">✕</button>
       </div>
-      <form id="category-form" class="modal-form">
+      <form id="category-form" class="modal-form-scrollable">
         <input type="hidden" id="category-modal-id">
         
-        <div class="form-group">
-          <label for="category-modal-name">Category Name <span class="required">*</span></label>
-          <input type="text" id="category-modal-name" class="form-control-admin" placeholder="e.g. Ground Chakkars" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="category-modal-slug">Slug (Auto-generated)</label>
-          <input type="text" id="category-modal-slug" class="form-control-admin" readonly placeholder="slug-name-link">
-        </div>
-
-        <div class="form-group">
-          <label>Category Image</label>
-
-          <!-- Hidden File Input -->
-          <input type="file" id="categoryImageFile" accept="image/*" class="hidden">
-
-          <!-- Upload Row -->
-          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top: 6px;">
-            <button type="button" class="btn-admin btn-admin-secondary" onclick="triggerCategoryImageUpload()">
-              <span style="font-size:1.05rem;">⬆️</span> Upload Image
-            </button>
-
-            <div class="admin-category-image-preview" style="display:flex; align-items:center; gap:12px;">
-              <img id="category-modal-image-preview" src="" alt="Category Image Preview" style="max-height: 70px; max-width: 120px; border: 1px solid var(--admin-border); border-radius: var(--radius-sm); display:none; object-fit: contain;">
-              <div id="category-modal-image-placeholder" style="height: 70px; width: 120px; border: 1px dashed var(--admin-border); border-radius: var(--radius-sm); display:flex; align-items:center; justify-content:center; color: var(--admin-text-muted); font-size: 0.85rem;">
-                No Image
-              </div>
-            </div>
+        <!-- Scrollable Body Container -->
+        <div class="modal-body-scroll category-modal-body-scroll">
+          <div class="form-group">
+            <label for="category-modal-name">Category Name <span class="required">*</span></label>
+            <input type="text" id="category-modal-name" class="form-control-admin" placeholder="e.g. Ground Chakkars" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="category-modal-slug">Slug (Auto-generated)</label>
+            <input type="text" id="category-modal-slug" class="form-control-admin" readonly placeholder="slug-name-link">
           </div>
 
-          <!-- Compatibility hidden legacy field (not shown to user) -->
-          <input type="hidden" id="categoryImageUrl" name="categoryImageUrl" value="">
+          <div class="form-group">
+            <label>Category Image</label>
+
+            <!-- Hidden File Input -->
+            <input type="file" id="categoryImageFile" accept="image/*" class="hidden">
+
+            <!-- Compact 200x150 Preview Box (clickable to upload) -->
+            <div class="category-image-preview-box" id="category-image-preview-box" onclick="triggerCategoryImageUpload()">
+              
+              <!-- The image element (hidden by default, shown after upload) -->
+              <img id="category-modal-image-preview" src="" alt="Category Image Preview">
+              
+              <!-- Floating Remove Button (hidden by default, shown after upload) -->
+              <button type="button" class="category-image-remove-btn" id="category-image-remove-btn" onclick="event.stopPropagation(); removeCategoryImage();" title="Remove image">✕</button>
+              
+              <!-- Placeholder content (hidden after upload) -->
+              <div id="category-modal-image-placeholder" class="category-image-placeholder">
+                <button type="button" class="category-upload-btn-inline" onclick="event.stopPropagation(); triggerCategoryImageUpload();">
+                  <span class="upload-icon">⬆️</span> Upload Image
+                </button>
+                <span class="placeholder-text">Recommended: 400 × 300 px (4:3)</span>
+              </div>
+            </div>
+
+            <!-- Compatibility hidden legacy field (not shown to user) -->
+            <input type="hidden" id="categoryImageUrl" name="categoryImageUrl" value="">
+          </div>
         </div>
 
-        <div class="modal-footer">
+        <!-- Fixed Footer -->
+        <div class="modal-footer-sticky">
           <button type="button" class="btn-admin btn-admin-secondary" onclick="closeCategoryModal()">Cancel</button>
           <button type="submit" class="btn-admin btn-admin-primary">Save Category</button>
         </div>
-
       </form>
     </div>
   </div>
