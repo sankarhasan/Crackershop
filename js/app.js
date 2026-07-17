@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavbarScroll();
   loadCartFromStorage();
   initPreloader();
+  initNoticeModal();
   setupNoticeTrigger();
 
   // Hydrate products from Firestore (async) then re-render catalog
@@ -1756,14 +1757,30 @@ function switchNoticeLanguage(lang) {
 }
 
 /**
- * Handle checkbox change to enable/disable understand button.
+ * Initialize Notice Modal event listeners and behavior.
+ * Called when DOM is ready.
  */
-function handleNoticeCheckbox() {
+function initNoticeModal() {
   const checkbox = document.getElementById('notice-agree-checkbox');
   const button = document.getElementById('notice-understand-btn');
+  const footer = document.querySelector('.notice-modal-footer');
   
-  if (checkbox && button) {
-    button.disabled = !checkbox.checked;
+  // Set up checkbox change handler
+  if (checkbox) {
+    checkbox.addEventListener('change', () => {
+      if (button) {
+        button.disabled = !checkbox.checked;
+      }
+    });
+  }
+  
+  // Set up button click handler to close modal
+  if (button) {
+    button.addEventListener('click', () => {
+      if (!button.disabled) {
+        closeNoticeModal();
+      }
+    });
   }
 }
 

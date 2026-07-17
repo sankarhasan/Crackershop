@@ -4636,8 +4636,14 @@ body.success-modal-active {
 }
 
 /* ==========================================================================
-   IMPORTANT NOTICE MODAL (Scroll-triggered, once per session, compact & sleek)
-   ========================================================================== */
+    IMPORTANT NOTICE MODAL (Scroll-triggered, once per session, compact & sleek)
+    ========================================================================== */
+
+/* Utility flex classes for modal header */
+.flex { display: flex !important; }
+.items-center { align-items: center !important; }
+.justify-center { justify-content: center !important; }
+.gap-2 { gap: 0.5rem !important; }
 
 /* Backdrop overlay - locks body scroll */
 .notice-modal-overlay {
@@ -4709,9 +4715,11 @@ body.success-modal-active {
   flex: 1;
 }
 
-/* Language Selection Tabs - compact */
+/* Language Selection Tabs - centered with green active state */
 .notice-lang-tabs {
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 0;
   padding: 0 20px;
   border-bottom: 1px solid #e5e7eb;
@@ -4719,28 +4727,28 @@ body.success-modal-active {
 }
 
 .notice-lang-tab {
-  padding: 8px 14px;
+  padding: 8px 20px;
   font-family: 'Poppins', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   border: none;
   cursor: pointer;
   transition: all 0.25s ease;
-  background: transparent;
+  background: var(--light-gray);
   color: var(--text-muted);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  border-radius: 20px;
+  margin: 0 4px;
 }
 
 .notice-lang-tab:hover {
   color: var(--deep-green);
-  background-color: rgba(10, 92, 54, 0.04);
+  background-color: rgba(10, 92, 54, 0.08);
 }
 
 .notice-lang-tab.active {
-  color: var(--deep-green-dark);
-  border-bottom-color: var(--deep-green);
-  background-color: transparent;
+  background: var(--deep-green) !important;
+  color: var(--white) !important;
+  border-bottom-color: transparent;
 }
 
 /* Sliding Content Wrapper */
@@ -4819,7 +4827,7 @@ body.success-modal-active {
   cursor: pointer;
 }
 
-/* Button - compact and centered */
+/* Button - compact and centered with premium green active state */
 .notice-understand-btn {
   width: 100%;
   padding: 10px 16px;
@@ -4830,21 +4838,33 @@ body.success-modal-active {
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s ease;
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  color: #fff;
-  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.3);
+  background: var(--light-gray);
+  color: var(--text-muted);
+  box-shadow: none;
+  opacity: 0.5;
 }
 
 .notice-understand-btn:hover:not(:disabled) {
+  background: var(--deep-green);
+  color: var(--white);
+  opacity: 0.7;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 3px 10px rgba(10, 92, 54, 0.25);
 }
 
-.notice-understand-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+.notice-understand-btn:enabled {
+  background: var(--deep-green) !important;
+  color: var(--white) !important;
+  opacity: 1 !important;
+  box-shadow: 0 3px 10px rgba(10, 92, 54, 0.3) !important;
+  cursor: pointer;
+}
+
+.notice-understand-btn:enabled:hover {
+  background: var(--deep-green-dark) !important;
+  opacity: 1 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(10, 92, 54, 0.4) !important;
 }
 
 /* Body scroll lock when modal is active */
