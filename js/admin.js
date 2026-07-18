@@ -243,15 +243,18 @@ function onAdminAuthenticated() {
             } else {
               dateStr = d.date || new Date().toISOString();
             }
+            const customer = d.customer || {};
             return {
               docId: doc.id,
-              name: d.name || '',
-              phone: d.phone || '',
-              deliveryAddress: d.deliveryAddress || '',
-              category: d.category || '',
+              name: customer.name || d.name || '',
+              phone: customer.phone || d.phone || '',
+              deliveryAddress: customer.deliveryAddress || d.deliveryAddress || '',
+              category: customer.categoryInterest || d.category || '',
               message: d.message || '',
               status: d.status || 'new',
-              date: dateStr
+              date: dateStr,
+              cartItems: d.cartItems || null,
+              financialBreakdown: d.financialBreakdown || null
             };
           });
           updateDashboardStats();
@@ -304,15 +307,20 @@ function listenToEnquiries() {
         } else {
           dateStr = d.date || new Date().toISOString();
         }
+        // Support BOTH old flat format and new structured format
+        const customer = d.customer || {};
         return {
           docId: doc.id,
-          name: d.name || '',
-          phone: d.phone || '',
-          deliveryAddress: d.deliveryAddress || '',
-          category: d.category || '',
+          name: customer.name || d.name || '',
+          phone: customer.phone || d.phone || '',
+          deliveryAddress: customer.deliveryAddress || d.deliveryAddress || '',
+          category: customer.categoryInterest || d.category || '',
           message: d.message || '',
           status: d.status || 'new',
-          date: dateStr
+          date: dateStr,
+          // New structured data (if present)
+          cartItems: d.cartItems || null,
+          financialBreakdown: d.financialBreakdown || null
         };
       });
 
@@ -398,10 +406,15 @@ function updateDashboardStats() {
   const totalCategories = categories.length;
   const newEnquiriesCount = enquiries.filter(e => e.status === 'new').length;
   
-  // Sum up estimated revenue pool based on "Total Est: ₹XXXX" string parsing or calculating
+  // Sum up estimated revenue pool — prefer structured financialBreakdown, fallback to message parsing
   let revenuePoolVal = 0;
   enquiries.forEach(enq => {
-    if (enq.message && enq.message.includes('Total Est: ₹')) {
+    // New structured format: use grandTotal from financialBreakdown
+    if (enq.financialBreakdown && enq.financialBreakdown.grandTotal) {
+      revenuePoolVal += enq.financialBreakdown.grandTotal;
+    }
+    // Fallback: parse from message string "Total Est: ₹XXXX"
+    else if (enq.message && enq.message.includes('Total Est: ₹')) {
       const parts = enq.message.split('Total Est: ₹');
       if (parts.length > 1) {
         const val = parseInt(parts[1].replace(/,/g, ''));

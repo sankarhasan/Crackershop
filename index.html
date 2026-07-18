@@ -318,9 +318,44 @@
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="enquiry-message">Your Message / Special Requests <span class="required">*</span></label>
-              <textarea id="enquiry-message" name="message" rows="4" class="form-control" placeholder="Mention your requirements, preferred quantities, or delivery location details..." required></textarea>
+            <!-- ORDER SUMMARY CARD -->
+            <div class="order-summary-card">
+              <div class="order-summary-header">ORDER SUMMARY</div>
+
+              <!-- Coupon Box -->
+              <div class="coupon-box">
+                <div class="coupon-row">
+                  <input type="text" class="coupon-input" placeholder="COUPON CODE" />
+                  <span class="coupon-apply">APPLY</span>
+                </div>
+              </div>
+
+              <!-- Pricing Rows -->
+              <div class="summary-row">
+                <span class="summary-label">Total</span>
+                <span class="summary-value" id="summary-total">₹0</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Discounted Price <span class="discount-badge">55% OFF</span></span>
+                <span class="summary-value summary-discount" id="summary-discount">-₹0</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Non Discounted Items</span>
+                <span class="summary-value" id="summary-non-discounted">₹0</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Spin Wheel</span>
+                <span class="summary-value" id="summary-spin-wheel">—</span>
+              </div>
+
+              <!-- Divider -->
+              <div class="summary-divider"></div>
+
+              <!-- Grand Total -->
+              <div class="summary-row summary-grand-total-row">
+                <span class="summary-label summary-grand-label">Grand Total (C)</span>
+                <span class="summary-value summary-grand-value" id="summary-grand-total">₹0</span>
+              </div>
             </div>
             
             <button type="submit" class="btn btn-primary btn-block btn-lg">Submit Quick Enquiry</button>

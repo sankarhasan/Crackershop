@@ -2132,6 +2132,134 @@ select.form-control {
   padding-right: 40px;
 }
 
+/* --- Order Summary Card (Quick Enquiry) --- */
+.order-summary-card {
+  background-color: #f8f9fa;
+  border-radius: var(--radius-md);
+  padding: 24px 20px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.order-summary-header {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+/* Coupon Box */
+.coupon-box {
+  background-color: var(--white);
+  border: 1.5px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+}
+
+.coupon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.coupon-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-dark);
+  background: transparent;
+  padding: 6px 0;
+}
+
+.coupon-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.coupon-apply {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #d97706;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.coupon-apply:hover {
+  color: #b45309;
+}
+
+/* Summary Rows */
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.summary-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  text-align: right;
+}
+
+.summary-discount {
+  color: var(--festive-red);
+}
+
+.discount-badge {
+  display: inline-block;
+  background-color: #fef3c7;
+  color: #d97706;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Divider */
+.summary-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 2px 0;
+}
+
+/* Grand Total */
+.summary-grand-total-row {
+  padding-top: 2px;
+}
+
+.summary-grand-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.summary-grand-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--deep-green);
+}
+
 /* --- Contact Details & Map Section --- */
 .contact-section {
   background-color: var(--light-gray);

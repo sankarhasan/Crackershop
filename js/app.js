@@ -1196,6 +1196,9 @@ function updateCartUI() {
   if (cartTotalElem) cartTotalElem.innerText = `₹${subtotal.toLocaleString()}`;
   if (drawerSubtotal) drawerSubtotal.innerText = `₹${subtotal.toLocaleString()}`;
   
+  // Keep the Order Summary card in sync with cart changes
+  populateOrderSummaryFromCart();
+  
   // Clear drawer list
   if (!container) return;
   container.innerHTML = '';
@@ -1285,9 +1288,136 @@ function checkoutCart() {
     messageInput.value = summary;
   }
   
+  // Populate the Order Summary card with live cart calculations
+  populateOrderSummaryFromCart();
+  
   // Auto scroll to enquiry form
   document.getElementById('quick-enquiry').scrollIntoView({ behavior: 'smooth' });
   showToast('Items imported into enquiry form. Please fill in details below! 📝', 'info');
+}
+
+/* ==========================================================================
+   Order Summary Calculation Engine
+   Computes Total, Discounted Price (with weighted %), Non-Discounted Items,
+   Spin Wheel placeholder, and Grand Total from the current cart state.
+   ========================================================================== */
+
+/**
+ * Calculate the full financial breakdown from the current cart.
+ * Returns an object with all computed values.
+ */
+function calculateOrderSummaryData() {
+  const products = getProducts();
+  let totalOriginal = 0;          // Sum of originalPrice × qty for ALL items
+  let totalDiscounted = 0;        // Sum of price × qty for ALL items
+  let totalSavings = 0;           // Sum of (originalPrice - price) × qty for discounted items
+  let nonDiscountedTotal = 0;     // Sum of originalPrice × qty for items WITHOUT discount badge
+  let discountedItemCount = 0;    // Count of items that have a discount badge
+  let totalDiscountPercentSum = 0; // Sum of discount percentages for weighted average
+
+  cart.forEach(cartItem => {
+    const prod = products.find(p => p.id === cartItem.id);
+    if (!prod) return;
+
+    const qty = cartItem.quantity;
+    const origPrice = prod.originalPrice || prod.price;
+    const discPrice = prod.price;
+    const itemOriginalTotal = origPrice * qty;
+    const itemDiscountedTotal = discPrice * qty;
+
+    // Add to overall totals
+    totalOriginal += itemOriginalTotal;
+    totalDiscounted += itemDiscountedTotal;
+
+    // Check if this product has an active discount badge
+    const hasDiscount = prod.discount && prod.discount.trim() !== '' && prod.discount !== 'Special';
+
+    if (hasDiscount) {
+      // Calculate savings for this item
+      const itemSavings = (origPrice - discPrice) * qty;
+      totalSavings += itemSavings;
+      discountedItemCount++;
+
+      // Extract percentage from discount badge string e.g. "40% OFF" -> 40
+      const percentMatch = String(prod.discount).match(/(\d+)/);
+      if (percentMatch) {
+        totalDiscountPercentSum += parseFloat(percentMatch[1]) * qty;
+      }
+    } else {
+      // No discount badge — add to non-discounted total (use original price)
+      nonDiscountedTotal += itemOriginalTotal;
+    }
+  });
+
+  // Calculate weighted average discount percentage
+  let overallPercent = 0;
+  if (totalOriginal > 0) {
+    // Weighted average: totalSavings / totalOriginal * 100
+    overallPercent = Math.round((totalSavings / totalOriginal) * 100);
+  }
+
+  // Spin wheel placeholder (injectable later)
+  let spinWheelDiscount = 0;
+
+  // Grand Total = Total - Total Savings - Spin Wheel Discount
+  const grandTotal = totalOriginal - totalSavings - spinWheelDiscount;
+
+  return {
+    totalOriginal,           // Sum of all original prices × qty
+    totalDiscounted,         // Sum of all discounted prices × qty
+    totalSavings,            // Absolute savings amount
+    overallPercent,          // Weighted average discount % (integer)
+    nonDiscountedTotal,      // Sum of non-discounted items (original price × qty)
+    spinWheelDiscount,       // Placeholder (0)
+    grandTotal               // Final payable amount
+  };
+}
+
+/**
+ * Read current cart, compute order summary, and update the Order Summary card DOM.
+ * Called by checkoutCart() and updateCartUI() to keep the card in sync.
+ */
+function populateOrderSummaryFromCart() {
+  const data = calculateOrderSummaryData();
+
+  // Update DOM elements
+  const totalEl = document.getElementById('summary-total');
+  const discountEl = document.getElementById('summary-discount');
+  const discountBadge = document.querySelector('.discount-badge');
+  const nonDiscountedEl = document.getElementById('summary-non-discounted');
+  const spinWheelEl = document.getElementById('summary-spin-wheel');
+  const grandTotalEl = document.getElementById('summary-grand-total');
+
+  if (totalEl) totalEl.textContent = `₹${data.totalOriginal.toLocaleString()}`;
+
+  if (discountEl) {
+    if (data.totalSavings > 0) {
+      discountEl.textContent = `-₹${data.totalSavings.toLocaleString()}`;
+    } else {
+      discountEl.textContent = `-₹0`;
+    }
+  }
+
+  // Update the discount badge with weighted average percentage
+  if (discountBadge) {
+    if (data.overallPercent > 0) {
+      discountBadge.textContent = `${data.overallPercent}% OFF`;
+    } else {
+      discountBadge.textContent = `0% OFF`;
+    }
+  }
+
+  if (nonDiscountedEl) {
+    nonDiscountedEl.textContent = `₹${data.nonDiscountedTotal.toLocaleString()}`;
+  }
+
+  if (spinWheelEl) {
+    spinWheelEl.textContent = data.spinWheelDiscount > 0 ? `-₹${data.spinWheelDiscount.toLocaleString()}` : '—';
+  }
+
+  if (grandTotalEl) {
+    grandTotalEl.textContent = `₹${data.grandTotal.toLocaleString()}`;
+  }
 }
 
 /* ==========================================================================
@@ -1397,16 +1527,58 @@ function initEnquiryForm() {
     
     console.log('[Enquiry] window.db is available. Writing to Firestore...');
     
-    // Save the enquiry into the Firestore "enquiries" collection.
-    window.db.collection('enquiries').add({
-      name,
-      phone,
-      deliveryAddress,
-      category,
+    // Compute the latest financial breakdown from the current cart state
+    const orderSummary = calculateOrderSummaryData();
+    
+    // Build cart items array with product details
+    const products = getProducts();
+    const cartItemsPayload = cart.map(cartItem => {
+      const prod = products.find(p => p.id === cartItem.id);
+      return {
+        productId: cartItem.id,
+        productName: cartItem.name,
+        quantity: cartItem.quantity,
+        unitPrice: cartItem.price,
+        originalUnitPrice: prod ? (prod.originalPrice || prod.price) : cartItem.price,
+        totalPrice: cartItem.price * cartItem.quantity,
+        totalOriginalPrice: prod ? ((prod.originalPrice || prod.price) * cartItem.quantity) : (cartItem.price * cartItem.quantity),
+        discountBadge: prod ? (prod.discount || '') : '',
+        categoryId: cartItem.categoryId
+      };
+    });
+    
+    // Build the structured payload
+    const enquiryPayload = {
+      // Customer Details
+      customer: {
+        name,
+        phone,
+        deliveryAddress,
+        categoryInterest: category
+      },
+      // Cart Items Array
+      cartItems: cartItemsPayload,
+      // Final Financial Breakdown
+      financialBreakdown: {
+        totalOriginal: orderSummary.totalOriginal,
+        totalDiscounted: orderSummary.totalDiscounted,
+        totalSavings: orderSummary.totalSavings,
+        overallDiscountPercent: orderSummary.overallPercent,
+        nonDiscountedTotal: orderSummary.nonDiscountedTotal,
+        spinWheelDiscount: orderSummary.spinWheelDiscount,
+        grandTotal: orderSummary.grandTotal
+      },
+      // Raw message
       message,
+      // Status & Timestamp
       status: 'new',
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    })
+    };
+    
+    console.log('[Enquiry] Payload:', JSON.stringify(enquiryPayload, null, 2));
+    
+    // Save the enquiry into the Firestore "enquiries" collection.
+    window.db.collection('enquiries').add(enquiryPayload)
       .then((docRef) => {
         console.log('[Enquiry] ✓ Successfully written to Firestore. Doc ID:', docRef.id);
         
