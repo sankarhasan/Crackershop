@@ -1620,8 +1620,9 @@ function initEnquiryForm() {
             cart = [];
             saveCartToStorage();
             updateCartUI();
-            // Reset catalog labels
-            document.querySelectorAll('.qty-number').forEach(lbl => lbl.innerText = '0');
+            // Reset ALL product card UI to ADD button state (not just qty-number)
+            const allProducts = getProducts();
+            allProducts.forEach(prod => syncProductAction(prod.id));
           }
           
           form.reset();
