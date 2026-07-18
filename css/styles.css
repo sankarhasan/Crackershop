@@ -3463,10 +3463,11 @@ select.form-control {
   }
 
   .card-discount-badge {
-    font-size: 0.6rem;
-    padding: 2px 6px;
-    top: 3px;
-    left: 3px;
+    font-size: 0.35rem;
+    padding: 1px 3px;
+    top: 2px;
+    left: 2px;
+    transform: scale(0.85);
   }
 
   .card-stock-badge {
@@ -3474,6 +3475,14 @@ select.form-control {
     padding: 2px 6px;
     top: 3px;
     right: 3px;
+  }
+
+  /* SOLD OUT button - bold red background for clear visibility */
+  .product-card.out-of-stock .jcs-add-btn,
+  .jcs-add-btn.sold-out {
+    background-color: #dc2626 !important;
+    color: var(--white) !important;
+    border-color: #dc2626 !important;
   }
 
   .product-card-body {

@@ -621,15 +621,13 @@ function renderProductsCatalog() {
       cardImgContent = `<img src="${prod.image}" alt="${prod.name}" class="product-card-img" style="width: 100%; height: 100%; object-fit: cover; transition: var(--transition);">`;
     }
 
-    card.innerHTML = `
-      <div class="card-img-container">
-        ${cardImgContent}
-        <span class="card-discount-badge">${prod.discount || 'Special'}</span>
-        ${!prod.inStock ? '<span class="card-stock-badge">Sold Out</span>' : ''}
-      </div>
-      <div class="product-card-body">
-
-        <h3 class="product-card-title">${prod.name}</h3>
+   card.innerHTML = `
+     <div class="card-img-container">
+       ${cardImgContent}
+       <span class="card-discount-badge">${prod.discount || 'Special'}</span>
+     </div>
+     <div class="product-card-body">
+       <h3 class="product-card-title">${prod.name}</h3>
         <span class="product-card-qty">${prod.qty}</span>
         <p class="product-card-desc">${prod.description}</p>
         <div class="product-card-price-row">
@@ -784,13 +782,12 @@ function createMobileProductCard(prod, cartQty) {
     cardImgContent = `<img src="${prod.image}" alt="${prod.name}" class="product-card-img" style="width: 100%; height: 100%; object-fit: cover; transition: var(--transition);">`;
   }
 
-  card.innerHTML = `
-    <div class="card-img-container">
-      ${cardImgContent}
-      <span class="card-discount-badge">${prod.discount || 'Special'}</span>
-      ${!prod.inStock ? '<span class="card-stock-badge">Sold Out</span>' : ''}
-    </div>
-    <div class="product-card-body">
+   card.innerHTML = `
+     <div class="card-img-container">
+       ${cardImgContent}
+       <span class="card-discount-badge">${prod.discount || 'Special'}</span>
+     </div>
+     <div class="product-card-body">
       <h3 class="product-card-title">${prod.name}</h3>
       <span class="product-card-qty">${prod.qty}</span>
       <p class="product-card-desc">${prod.description}</p>
@@ -882,7 +879,7 @@ function getCartQty(prodId) {
 // Inner HTML for a single card's action area based on current quantity.
 function buildProductActionInner(prodId, qty, inStock) {
   if (!inStock) {
-    return `<button class="jcs-add-btn" disabled>N/A</button>`;
+    return `<button class="jcs-add-btn" disabled>SOLD OUT</button>`;
   }
   if (qty > 0) {
     return `
