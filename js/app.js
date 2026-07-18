@@ -1506,7 +1506,8 @@ function initEnquiryForm() {
     const phone = document.getElementById('enquiry-phone')?.value.trim();
     const deliveryAddress = document.getElementById('enquiry-delivery-address')?.value.trim();
     const category = document.getElementById('enquiry-category')?.value;
-    const message = document.getElementById('enquiry-message')?.value.trim();
+    // Note: "enquiry-message" field was removed from HTML, so we safely default to empty string
+    const message = document.getElementById('enquiry-message')?.value.trim() || "";
     
     console.log('[Enquiry] Data:', { name, phone, deliveryAddress, category, message });
     
@@ -1517,7 +1518,20 @@ function initEnquiryForm() {
       submitBtn.innerText = 'Submitting...';
     }
     
+    // SAFETY TIMEOUT: Set IMMEDIATELY after disabling the button, BEFORE any
+    // code that could throw synchronously (e.g. firebase.firestore.FieldValue
+    // access, payload construction). This guarantees the button ALWAYS resets,
+    // preventing the infinite "Submitting..." state.
+    const safetyTimeout = setTimeout(() => {
+      console.warn('[Enquiry] ⚠ Safety timeout fired after 30s. Resetting button forcefully.');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalBtnText;
+      }
+    }, 30000);
+    
     if (!window.db) {
+      clearTimeout(safetyTimeout);
       console.error('[Enquiry] ✗ window.db is NULL. Firestore not initialized.');
       alert('❌ Sorry, the enquiry service is temporarily unavailable. Please reach us on WhatsApp.');
       showToast('Enquiry service unavailable. Please try again later.', 'error');
@@ -1527,96 +1541,131 @@ function initEnquiryForm() {
     
     console.log('[Enquiry] window.db is available. Writing to Firestore...');
     
-    // Compute the latest financial breakdown from the current cart state
-    const orderSummary = calculateOrderSummaryData();
-    
-    // Build cart items array with product details
-    const products = getProducts();
-    const cartItemsPayload = cart.map(cartItem => {
-      const prod = products.find(p => p.id === cartItem.id);
-      return {
-        productId: cartItem.id,
-        productName: cartItem.name,
-        quantity: cartItem.quantity,
-        unitPrice: cartItem.price,
-        originalUnitPrice: prod ? (prod.originalPrice || prod.price) : cartItem.price,
-        totalPrice: cartItem.price * cartItem.quantity,
-        totalOriginalPrice: prod ? ((prod.originalPrice || prod.price) * cartItem.quantity) : (cartItem.price * cartItem.quantity),
-        discountBadge: prod ? (prod.discount || '') : '',
-        categoryId: cartItem.categoryId
-      };
-    });
-    
-    // Build the structured payload
-    const enquiryPayload = {
-      // Customer Details
-      customer: {
-        name,
-        phone,
-        deliveryAddress,
-        categoryInterest: category
-      },
-      // Cart Items Array
-      cartItems: cartItemsPayload,
-      // Final Financial Breakdown
-      financialBreakdown: {
-        totalOriginal: orderSummary.totalOriginal,
-        totalDiscounted: orderSummary.totalDiscounted,
-        totalSavings: orderSummary.totalSavings,
-        overallDiscountPercent: orderSummary.overallPercent,
-        nonDiscountedTotal: orderSummary.nonDiscountedTotal,
-        spinWheelDiscount: orderSummary.spinWheelDiscount,
-        grandTotal: orderSummary.grandTotal
-      },
-      // Raw message
-      message,
-      // Status & Timestamp
-      status: 'new',
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    
-    console.log('[Enquiry] Payload:', JSON.stringify(enquiryPayload, null, 2));
-    
-    // Save the enquiry into the Firestore "enquiries" collection.
-    window.db.collection('enquiries').add(enquiryPayload)
-      .then((docRef) => {
-        console.log('[Enquiry] ✓ Successfully written to Firestore. Doc ID:', docRef.id);
-        
-        // Clear cart if enquiry was submitted from cart
-        if (cart.length > 0) {
-          cart = [];
-          saveCartToStorage();
-          updateCartUI();
-          // Reset catalog labels
-          document.querySelectorAll('.qty-number').forEach(lbl => lbl.innerText = '0');
-        }
-        
-        form.reset();
-        openSuccessModal();
-
-        // Trigger explosive festive confetti animation (fullscreen)
-        triggerSuccessConfetti();
-
-        // Smooth scroll ONLY to Premium Crackers catalog (no footer auto-scroll)
-        const premiumAnchor = document.getElementById('premium-crackers');
-        if (premiumAnchor) {
-          setTimeout(() => {
-            premiumAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 50);
-        }
-      })
-      .catch((err) => {
-        console.error('[Enquiry] ✗ Firestore write FAILED:', err);
-        console.error('[Enquiry] Error code:', err.code, 'Message:', err.message);
-        alert('❌ Sorry, something went wrong while submitting your enquiry. Please try again or contact us on WhatsApp.');
-        showToast('Could not submit enquiry. Please try again.', 'error');
-      })
-      .finally(() => {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerText = originalBtnText;
-        }
+    // Wrap payload construction in try-catch to handle synchronous errors
+    // (e.g. firebase.firestore.FieldValue.serverTimestamp() throwing if SDK
+    //  is partially loaded). Without this, the error propagates uncaught and
+    //  the button stays stuck on "Submitting..." forever.
+    try {
+      // Compute the latest financial breakdown from the current cart state
+      const orderSummary = calculateOrderSummaryData();
+      
+      // Build cart items array with product details
+      const products = getProducts();
+      const cartItemsPayload = cart.map(cartItem => {
+        const prod = products.find(p => p.id === cartItem.id);
+        return {
+          productId: cartItem.id,
+          productName: cartItem.name,
+          quantity: cartItem.quantity,
+          unitPrice: cartItem.price,
+          originalUnitPrice: prod ? (prod.originalPrice || prod.price) : cartItem.price,
+          totalPrice: cartItem.price * cartItem.quantity,
+          totalOriginalPrice: prod ? ((prod.originalPrice || prod.price) * cartItem.quantity) : (cartItem.price * cartItem.quantity),
+          discountBadge: prod ? (prod.discount || '') : '',
+          categoryId: cartItem.categoryId
+        };
       });
+      
+      // Build the structured payload with ALL Order Summary fields
+      const enquiryPayload = {
+        // Customer Details
+        customer: {
+          name,
+          phone,
+          deliveryAddress,
+          categoryInterest: category
+        },
+        // Cart Items Array
+        cartItems: cartItemsPayload,
+        // Final Financial Breakdown (Total, Discounted Price %, Non-Discounted Sum, Grand Total)
+        // Safe fallbacks ensure Firestore never receives undefined values
+        financialBreakdown: {
+          totalOriginal: orderSummary.totalOriginal || 0,
+          totalDiscounted: orderSummary.totalDiscounted || 0,
+          totalSavings: orderSummary.totalSavings || 0,
+          overallDiscountPercent: orderSummary.overallPercent || 0,
+          nonDiscountedTotal: orderSummary.nonDiscountedTotal || 0,
+          spinWheelDiscount: orderSummary.spinWheelDiscount || 0,
+          grandTotal: orderSummary.grandTotal || 0
+        },
+        // Raw message (empty string fallback since enquiry-message field was removed from HTML)
+        message: message || "",
+        // Status & Timestamp
+        status: 'new',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      console.log('[Enquiry] Payload:', JSON.stringify(enquiryPayload, null, 2));
+      
+      // Save the enquiry into the Firestore "enquiries" collection.
+      window.db.collection('enquiries').add(enquiryPayload)
+        .then((docRef) => {
+          clearTimeout(safetyTimeout);
+          console.log('[Enquiry] ✓ Successfully written to Firestore. Doc ID:', docRef.id);
+          
+          // Exit loading state IMMEDIATELY on success (before modal/confetti)
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalBtnText;
+          }
+          
+          // Clear cart if enquiry was submitted from cart
+          if (cart.length > 0) {
+            cart = [];
+            saveCartToStorage();
+            updateCartUI();
+            // Reset catalog labels
+            document.querySelectorAll('.qty-number').forEach(lbl => lbl.innerText = '0');
+          }
+          
+          form.reset();
+          
+          // Reset the Order Summary card to zero state after submission
+          populateOrderSummaryFromCart();
+          
+          // Trigger the existing Thank You pop-up (Success Modal)
+          openSuccessModal();
+          
+          // Trigger explosive festive confetti animation (fullscreen)
+          triggerSuccessConfetti();
+          
+          // Smooth scroll ONLY to Premium Crackers catalog (no footer auto-scroll)
+          const premiumAnchor = document.getElementById('premium-crackers');
+          if (premiumAnchor) {
+            setTimeout(() => {
+              premiumAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
+          }
+        })
+        .catch((err) => {
+          clearTimeout(safetyTimeout);
+          console.error('[Enquiry] ✗ Firestore write FAILED:', err);
+          console.error('[Enquiry] Error code:', err.code, 'Message:', err.message);
+          alert('❌ Sorry, something went wrong while submitting your enquiry. Please try again or contact us on WhatsApp.');
+          showToast('Could not submit enquiry. Please try again.', 'error');
+          
+          // Reset button explicitly in .catch()
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalBtnText;
+          }
+        });
+    } catch (syncErr) {
+      // Catch synchronous errors during payload construction (e.g. if
+      // firebase.firestore.FieldValue.serverTimestamp() throws because the
+      // SDK is partially loaded). Without this catch block, the error
+      // propagates uncaught and the button stays stuck on "Submitting..."
+      // since the safety timeout was already set but the .add() promise
+      // was never created, so .then()/.catch() never fire.
+      clearTimeout(safetyTimeout);
+      console.error('[Enquiry] ✗ Synchronous error during payload construction:', syncErr);
+      alert('❌ Sorry, something went wrong while submitting your enquiry. Please try again or contact us on WhatsApp.');
+      showToast('Could not submit enquiry. Please try again.', 'error');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalBtnText;
+      }
+    }
   });
 }
 
