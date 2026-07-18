@@ -272,17 +272,17 @@
 
         <div class="table-responsive">
           <table class="table-admin">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Date</th>
-                <th>Customer Details</th>
-                <th>Category Interest</th>
-                <th>Customer Message</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+               <thead>
+                 <tr>
+                   <th>ID</th>
+                   <th>Date</th>
+                   <th>Customer Details</th>
+                   <th>Category Interest</th>
+                   <th>ORDER TOTAL</th>
+                   <th>Status</th>
+                   <th>Actions</th>
+                 </tr>
+               </thead>
             <tbody id="enquiries-table-body">
               <tr>
                 <td colspan="7" class="text-center">Loading customer enquiries...</td>
@@ -545,12 +545,12 @@
 
   <!-- MODAL: VIEW / UPDATE ENQUIRY -->
   <div class="modal-overlay" id="enquiry-modal" style="display: none;">
-    <div class="modal-card">
+    <div class="modal-card modal-enquiry-card" style="max-width: 700px;">
       <div class="modal-header">
           <h3>Customer Enquiry Details</h3>
         <button class="modal-close-btn" onclick="closeEnquiryModal()">✕</button>
       </div>
-      <div class="modal-body-content">
+      <div class="modal-body-content modal-container">
         <input type="hidden" id="enquiry-modal-id">
         <div class="enquiry-detail-row">
           <strong>Customer Name:</strong>
@@ -560,7 +560,7 @@
           <strong>WhatsApp Phone:</strong>
           <span id="enquiry-modal-phone">Loading...</span>
         </div>
-            <div class="enquiry-detail-row">
+        <div class="enquiry-detail-row">
           <strong>Delivery Address:</strong>
           <span id="enquiry-modal-email">Loading...</span>
         </div>
@@ -580,7 +580,62 @@
         
         <hr class="modal-divider">
         
-        <div class="form-group">
+        <!-- Order Details Section -->
+        <div class="order-details-section">
+          <h4 style="margin-bottom: 12px; color: var(--admin-text);">Order Details</h4>
+          
+          <!-- Purchased Items List -->
+          <div class="order-details-items">
+            <strong style="display: block; margin-bottom: 8px; color: var(--admin-text-muted); font-size: 0.85rem;">Purchased Items:</strong>
+            <div id="order-details-items-list" class="order-details-items-list">
+              <div class="order-detail-empty">Loading items...</div>
+            </div>
+          </div>
+          
+          <hr class="modal-divider" style="margin: 16px 0;">
+          
+          <!-- Financial Summary Block -->
+          <div class="order-financial-summary">
+            <strong style="display: block; margin-bottom: 12px; color: var(--admin-text-muted); font-size: 0.85rem;">Financial Summary:</strong>
+            
+            <div class="order-summary-row">
+              <span class="order-summary-label">Original Total:</span>
+              <span id="order-summary-total" class="order-summary-value">₹0</span>
+            </div>
+            
+            <div class="order-summary-row">
+              <span class="order-summary-label">Overall Discount:</span>
+              <span id="order-summary-discount-badge" class="order-summary-badge">0% OFF</span>
+            </div>
+            
+            <div class="order-summary-row">
+              <span class="order-summary-label">Discounted Price:</span>
+              <span id="order-summary-discounted-price" class="order-summary-value">₹0</span>
+            </div>
+            
+            <div class="order-summary-row">
+              <span class="order-summary-label">Non-Discounted Items:</span>
+              <span id="order-summary-non-discounted" class="order-summary-value">₹0</span>
+            </div>
+            
+            <div class="order-summary-row">
+              <span class="order-summary-label">Coupon Applied:</span>
+              <span id="order-summary-coupon" class="order-summary-value">—</span>
+            </div>
+            
+            <div class="order-summary-row">
+              <span class="order-summary-label">Spin Wheel Reward:</span>
+              <span id="order-summary-spin-wheel" class="order-summary-value">—</span>
+            </div>
+            
+            <div class="order-summary-row grand-total-row">
+              <span class="order-summary-label" style="color: var(--admin-success); font-weight: 700;">Grand Total:</span>
+              <span id="order-summary-grand-total" class="order-summary-value grand-total-value">₹0</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-top: 20px;">
           <label for="enquiry-modal-status">Change Enquiry Processing Status</label>
           <select id="enquiry-modal-status" class="form-control-admin">
             <option value="new">🆕 New / Unread</option>

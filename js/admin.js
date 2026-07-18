@@ -929,6 +929,15 @@ function renderEnquiriesTable() {
     // Shorten preview text
     const messagePreview = enq.message.length > 80 ? enq.message.substring(0, 80) + '...' : enq.message;
     
+    // Calculate grand total for display
+    let grandTotalDisplay = '—';
+    if (enq.financialBreakdown && enq.financialBreakdown.grandTotal) {
+      grandTotalDisplay = `₹${enq.financialBreakdown.grandTotal.toLocaleString('en-IN')}`;
+    } else if (enq.cartItems && enq.cartItems.length > 0) {
+      const totalFromItems = enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+      grandTotalDisplay = `₹${totalFromItems.toLocaleString('en-IN')}`;
+    }
+
     tbody.innerHTML += `
       <tr>
         <td>#${(enq.docId || '').substring(0, 6)}</td>
@@ -940,7 +949,11 @@ function renderEnquiriesTable() {
 
         </td>
         <td><span class="badge-cat-label">${catName}</span></td>
-        <td><div style="max-width:300px;word-break:break-all;">${escapeHtml(messagePreview)}</div></td>
+        <td>
+          <a href="#" class="grand-total-badge" onclick="openEnquiryModal('${enq.docId}');return false;" title="View Order Details">
+            ${grandTotalDisplay}
+          </a>
+        </td>
         <td><span class="status-badge ${enq.status}">${enq.status}</span></td>
         <td>
           <div class="table-actions">
@@ -975,11 +988,91 @@ function openEnquiryModal(id) {
   document.getElementById('enquiry-modal-message').innerText = enq.message;
   document.getElementById('enquiry-modal-status').value = enq.status;
   
+  // Populate Order Details Modal with cart items and financial breakdown
+  populateOrderDetailsModal(enq);
+  
   document.getElementById('enquiry-modal').style.display = 'flex';
 }
 
 function closeEnquiryModal() {
   document.getElementById('enquiry-modal').style.display = 'none';
+}
+
+/**
+ * Populate the Order Details Modal with purchased items and financial summary.
+ * @param {Object} enq - The enquiry object with cartItems and financialBreakdown.
+ */
+function populateOrderDetailsModal(enq) {
+  // Populate purchased items list
+  const itemsListEl = document.getElementById('order-details-items-list');
+  if (itemsListEl) {
+    if (enq.cartItems && enq.cartItems.length > 0) {
+      let itemsHtml = '';
+      enq.cartItems.forEach(item => {
+        const productName = item.productName || item.name || 'Unknown Product';
+        const quantity = item.quantity || 1;
+        const finalPrice = (item.totalPrice || item.totalOriginalPrice || 0).toLocaleString('en-IN');
+        itemsHtml += `
+          <div class="order-detail-item">
+            <span class="order-detail-name">${escapeHtml(productName)}</span>
+            <span class="order-detail-qty">x${quantity}</span>
+            <span class="order-detail-price">₹${finalPrice}</span>
+          </div>
+        `;
+      });
+      itemsListEl.innerHTML = itemsHtml;
+    } else {
+      itemsListEl.innerHTML = '<div class="order-detail-empty">No items in this order.</div>';
+    }
+  }
+  
+  // Populate financial summary block
+  const fb = enq.financialBreakdown || {};
+  
+  // Original Total
+  const totalEl = document.getElementById('order-summary-total');
+  if (totalEl) {
+    totalEl.textContent = `₹${(fb.totalOriginal || 0).toLocaleString('en-IN')}`;
+  }
+  
+  // Discount Percentage Badge
+  const discountBadgeEl = document.getElementById('order-summary-discount-badge');
+  if (discountBadgeEl) {
+    const discountPercent = fb.overallDiscountPercent || 0;
+    discountBadgeEl.textContent = `${discountPercent}% OFF`;
+  }
+  
+  // Discounted Price (total after discount)
+  const discountedPriceEl = document.getElementById('order-summary-discounted-price');
+  if (discountedPriceEl) {
+    const discountedPrice = fb.totalDiscounted || 0;
+    discountedPriceEl.textContent = `₹${discountedPrice.toLocaleString('en-IN')}`;
+  }
+  
+  // Non-Discounted Items Total
+  const nonDiscountedEl = document.getElementById('order-summary-non-discounted');
+  if (nonDiscountedEl) {
+    nonDiscountedEl.textContent = `₹${(fb.nonDiscountedTotal || 0).toLocaleString('en-IN')}`;
+  }
+  
+  // Spin Wheel Discount
+  const spinWheelEl = document.getElementById('order-summary-spin-wheel');
+  if (spinWheelEl) {
+    const spinWheel = fb.spinWheelDiscount || 0;
+    spinWheelEl.textContent = spinWheel > 0 ? `-₹${spinWheel.toLocaleString('en-IN')}` : '—';
+  }
+  
+  // Grand Total
+  const grandTotalEl = document.getElementById('order-summary-grand-total');
+  if (grandTotalEl) {
+    grandTotalEl.textContent = `₹${(fb.grandTotal || 0).toLocaleString('en-IN')}`;
+  }
+  
+  // Coupon applied (placeholder - will be added if exists in future)
+  const couponEl = document.getElementById('order-summary-coupon');
+  if (couponEl) {
+    couponEl.textContent = '—';
+  }
 }
 
 function saveEnquiryStatus() {
