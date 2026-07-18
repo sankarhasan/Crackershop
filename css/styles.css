@@ -3664,8 +3664,8 @@ select.form-control {
     height: 26px;
     border-radius: 50%;
     border: none;
-    background: rgba(255, 255, 255, 0.22);
-    color: var(--white);
+    background: var(--white);
+    color: var(--deep-green);
     font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
@@ -3673,18 +3673,22 @@ select.form-control {
     flex-shrink: 0;
     line-height: 1;
     user-select: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .slide-arrow:hover {
-    background: rgba(255, 255, 255, 0.35);
+    background: var(--white);
+    color: var(--deep-green-dark);
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
   }
 
   /* Disabled/faded arrow state */
   .slide-arrow.disabled {
-    opacity: 0.3;
+    opacity: 0.35;
     cursor: default;
     pointer-events: none;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--white);
   }
 
   /* Scrollable product list inside each slide */
@@ -4945,21 +4949,6 @@ html.notice-modal-active {
     padding: 8px 14px;
     font-size: 0.8rem;
   }
-}
-
-
-.toast-container {
-  z-index: 1;
-}
-
-
-.toast-container {
-  z-index: 1;
-}
-
-
-.toast-container {
-  z-index: 1;
 }
 
 
