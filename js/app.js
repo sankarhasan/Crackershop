@@ -621,23 +621,26 @@ function renderProductsCatalog() {
       cardImgContent = `<img src="${prod.image}" alt="${prod.name}" class="product-card-img" style="width: 100%; height: 100%; object-fit: cover; transition: var(--transition);">`;
     }
 
+   // Conditionally render discount badge only if discount exists and is not empty
+   const hasValidDiscount = prod.discount && String(prod.discount).trim() !== '' && prod.discount !== 'Special';
+   
    card.innerHTML = `
-     <div class="card-img-container">
-       ${cardImgContent}
-       <span class="card-discount-badge">${prod.discount || 'Special'}</span>
-     </div>
-     <div class="product-card-body">
-       <h3 class="product-card-title">${prod.name}</h3>
-        <span class="product-card-qty">${prod.qty}</span>
-        <p class="product-card-desc">${prod.description}</p>
-        <div class="product-card-price-row">
-          <span class="current-price">₹${prod.price}</span>
-          <span class="original-price">₹${prod.originalPrice}</span>
-        </div>
-        ${buildActionContainer(prod, cartQty)}
+      <div class="card-img-container">
+        ${cardImgContent}
+        ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
       </div>
-    `;
-    grid.appendChild(card);
+      <div class="product-card-body">
+        <h3 class="product-card-title">${prod.name}</h3>
+         <span class="product-card-qty">${prod.qty}</span>
+         <p class="product-card-desc">${prod.description}</p>
+         <div class="product-card-price-row">
+           <span class="current-price">₹${prod.price}</span>
+           ${hasValidDiscount ? `<span class="original-price">₹${prod.originalPrice}</span>` : ''}
+         </div>
+         ${buildActionContainer(prod, cartQty)}
+       </div>
+     `;
+     grid.appendChild(card);
   });
 }
 
@@ -782,10 +785,13 @@ function createMobileProductCard(prod, cartQty) {
     cardImgContent = `<img src="${prod.image}" alt="${prod.name}" class="product-card-img" style="width: 100%; height: 100%; object-fit: cover; transition: var(--transition);">`;
   }
 
+ // Conditionally render discount badge only if discount exists and is not empty
+   const hasValidDiscount = prod.discount && String(prod.discount).trim() !== '' && prod.discount !== 'Special';
+   
    card.innerHTML = `
      <div class="card-img-container">
        ${cardImgContent}
-       <span class="card-discount-badge">${prod.discount || 'Special'}</span>
+       ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
      </div>
      <div class="product-card-body">
       <h3 class="product-card-title">${prod.name}</h3>
@@ -793,7 +799,7 @@ function createMobileProductCard(prod, cartQty) {
       <p class="product-card-desc">${prod.description}</p>
       <div class="product-card-price-row">
         <span class="current-price">₹${prod.price}</span>
-        <span class="original-price">₹${prod.originalPrice}</span>
+        ${hasValidDiscount ? `<span class="original-price">₹${prod.originalPrice}</span>` : ''}
       </div>
       ${buildActionContainer(prod, cartQty)}
     </div>
@@ -1311,7 +1317,7 @@ function calculateOrderSummaryData() {
   let totalOriginal = 0;          // Sum of originalPrice × qty for ALL items
   let totalDiscounted = 0;        // Sum of price × qty for ALL items
   let totalSavings = 0;           // Sum of (originalPrice - price) × qty for discounted items
-  let nonDiscountedTotal = 0;     // Sum of originalPrice × qty for items WITHOUT discount badge
+  let nonDiscountedTotal = 0;     // Sum of price × qty for items WITHOUT discount badge (final amount)
   let discountedItemCount = 0;    // Count of items that have a discount badge
   let totalDiscountPercentSum = 0; // Sum of discount percentages for weighted average
 
@@ -1344,8 +1350,8 @@ function calculateOrderSummaryData() {
         totalDiscountPercentSum += parseFloat(percentMatch[1]) * qty;
       }
     } else {
-      // No discount badge — add to non-discounted total (use original price)
-      nonDiscountedTotal += itemOriginalTotal;
+      // No discount badge — add to non-discounted total (use final price: price × qty)
+      nonDiscountedTotal += itemDiscountedTotal;
     }
   });
 
@@ -1367,7 +1373,7 @@ function calculateOrderSummaryData() {
     totalDiscounted,         // Sum of all discounted prices × qty
     totalSavings,            // Absolute savings amount
     overallPercent,          // Weighted average discount % (integer)
-    nonDiscountedTotal,      // Sum of non-discounted items (original price × qty)
+    nonDiscountedTotal,      // Sum of non-discounted items (final price × qty)
     spinWheelDiscount,       // Placeholder (0)
     grandTotal               // Final payable amount
   };

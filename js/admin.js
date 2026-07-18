@@ -1029,49 +1029,58 @@ function populateOrderDetailsModal(enq) {
   // Populate financial summary block
   const fb = enq.financialBreakdown || {};
   
+  // Extract values for dynamic calculation (matching Firebase payload keys)
+  const totalOriginal = fb.totalOriginal || 0;
+  const totalSavings = fb.totalSavings || 0;
+  const overallDiscountPercent = fb.overallDiscountPercent || 0;
+  const nonDiscountedTotal = fb.nonDiscountedTotal || 0;
+  const spinWheelDiscount = fb.spinWheelDiscount || 0;
+  const couponDiscount = fb.couponDiscount || 0;
+  
+  // Calculate Grand Total dynamically using the correct formula:
+  // Grand Total = (Original Total - Savings) + Non-Discounted Items Total - Spin Wheel Discount - Coupon Discount
+  const grandTotal = totalOriginal - totalSavings + nonDiscountedTotal - spinWheelDiscount - couponDiscount;
+  
   // Original Total
   const totalEl = document.getElementById('order-summary-total');
   if (totalEl) {
-    totalEl.textContent = `₹${(fb.totalOriginal || 0).toLocaleString('en-IN')}`;
+    totalEl.textContent = '₹' + totalOriginal.toLocaleString('en-IN');
   }
   
-  // Discount Percentage Badge
-  const discountBadgeEl = document.getElementById('order-summary-discount-badge');
+  // Discount Percentage Badge - FIXED: Use correct selector for class-based element
+  const discountBadgeEl = document.querySelector('.order-summary-badge');
   if (discountBadgeEl) {
-    const discountPercent = fb.overallDiscountPercent || 0;
-    discountBadgeEl.textContent = `${discountPercent}% OFF`;
+    discountBadgeEl.textContent = overallDiscountPercent > 0 ? overallDiscountPercent + '% OFF' : '0% OFF';
   }
   
-  // Discounted Price (total after discount)
-  const discountedPriceEl = document.getElementById('order-summary-discounted-price');
-  if (discountedPriceEl) {
-    const discountedPrice = fb.totalDiscounted || 0;
-    discountedPriceEl.textContent = `₹${discountedPrice.toLocaleString('en-IN')}`;
+  // You Saved Amount display
+  const savedAmountEl = document.getElementById('order-summary-saved-amount');
+  if (savedAmountEl) {
+    savedAmountEl.textContent = totalSavings > 0 ? '-₹' + totalSavings.toLocaleString('en-IN') : '—';
   }
   
   // Non-Discounted Items Total
   const nonDiscountedEl = document.getElementById('order-summary-non-discounted');
   if (nonDiscountedEl) {
-    nonDiscountedEl.textContent = `₹${(fb.nonDiscountedTotal || 0).toLocaleString('en-IN')}`;
+    nonDiscountedEl.textContent = '₹' + nonDiscountedTotal.toLocaleString('en-IN');
   }
   
   // Spin Wheel Discount
   const spinWheelEl = document.getElementById('order-summary-spin-wheel');
   if (spinWheelEl) {
-    const spinWheel = fb.spinWheelDiscount || 0;
-    spinWheelEl.textContent = spinWheel > 0 ? `-₹${spinWheel.toLocaleString('en-IN')}` : '—';
+    spinWheelEl.textContent = spinWheelDiscount > 0 ? '-₹' + spinWheelDiscount.toLocaleString('en-IN') : '—';
   }
   
-  // Grand Total
+  // Grand Total - FIXED: Use dynamic calculation based on formula
   const grandTotalEl = document.getElementById('order-summary-grand-total');
   if (grandTotalEl) {
-    grandTotalEl.textContent = `₹${(fb.grandTotal || 0).toLocaleString('en-IN')}`;
+    grandTotalEl.textContent = '₹' + grandTotal.toLocaleString('en-IN');
   }
   
-  // Coupon applied (placeholder - will be added if exists in future)
+  // Coupon applied
   const couponEl = document.getElementById('order-summary-coupon');
   if (couponEl) {
-    couponEl.textContent = '—';
+    couponEl.textContent = couponDiscount > 0 ? '-₹' + couponDiscount.toLocaleString('en-IN') : '—';
   }
 }
 
