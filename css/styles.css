@@ -2393,8 +2393,8 @@ select.form-control {
 }
 
 .cart-item-img-placeholder {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  aspect-ratio: 18 / 13;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -2402,6 +2402,8 @@ select.form-control {
   font-size: 1.5rem;
   color: var(--white);
   flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
 }
 
 .cart-item-details {
@@ -4692,27 +4694,28 @@ body.success-modal-active {
 
 /* Header - sticky at top */
 .notice-modal-header {
-  padding: 16px 20px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+}
+
+.notice-header-content {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  border-bottom: 1px solid #e5e7eb;
-  background: var(--white);
-  z-index: 10;
 }
 
 .notice-modal-icon {
-  font-size: 1.4rem;
+  font-size: 1.8rem;
 }
 
 .notice-modal-title {
-  font-family: 'Poppins', sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
+  color: var(--festive-red);
   font-weight: 700;
-  color: var(--deep-green-dark);
   margin: 0;
-  text-align: center;
-  flex: 1;
 }
 
 /* Language Selection Tabs - centered with green active state */
@@ -4793,7 +4796,6 @@ body.success-modal-active {
   line-height: 1.5;
   color: var(--text-dark);
   margin: 0;
-  text-align: center; /* Center-align text */
 }
 
 /* Footer - sticky at bottom */
@@ -4892,52 +4894,44 @@ html.notice-modal-active {
   overflow: hidden !important;
 }
 
-/* Center align all text content */
-.notice-modal-body p,
-.notice-modal-title,
-.notice-lang-tab,
-.notice-modal-checkbox,
-.notice-understand-btn {
-  text-align: center;
-}
-
 /* Responsive tweaks */
 @media (max-width: 480px) {
   .notice-modal-card {
     width: 92%;
     max-height: 85vh;
   }
-  
+
   .notice-modal-header {
     padding: 14px 16px;
   }
-  
+
   .notice-modal-title {
     font-size: 1rem;
   }
-  
+
   .notice-lang-tabs {
     padding: 0 16px;
   }
-  
+
   .notice-lang-tab {
     padding: 6px 12px;
     font-size: 0.7rem;
   }
-  
+
   .notice-modal-body {
     padding: 14px 16px;
     max-height: 200px;
   }
-  
+
   .notice-modal-body p {
     font-size: 0.7rem;
+    text-align: center;
   }
-  
-.notice-modal-footer {
+
+  .notice-modal-footer {
     padding: 10px 16px;
   }
-  
+
   .notice-understand-btn {
     padding: 8px 14px;
     font-size: 0.8rem;

@@ -1227,9 +1227,9 @@ function updateCartUI() {
     const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁' };
     const emoji = emojiMap[item.categoryId] || '🎆';
     
-    let cartImgContent = `<div class="cart-item-img-placeholder p-bg-${bgIndex}">${emoji}</div>`;
+let cartImgContent = `<div class="cart-item-img-placeholder p-bg-${bgIndex}">${emoji}</div>`;
     if (item.image) {
-      cartImgContent = `<img src="${item.image}" alt="${item.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); flex-shrink: 0; border: 1px solid var(--border-color);">`;
+      cartImgContent = `<img src="${item.image}" alt="${item.name}" style="width: 80px; aspect-ratio: 18 / 13; object-fit: contain; border-radius: var(--radius-sm); flex-shrink: 0; border: 1px solid var(--border-color);">`;
     }
 
     itemRow.innerHTML = `
