@@ -2303,8 +2303,8 @@ select.form-control {
 }
 
 .contact-info-cards {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 20px;
 }
 
@@ -2314,9 +2314,11 @@ select.form-control {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   display: flex;
+  align-items: center;
   gap: 20px;
   border-left: 4px solid var(--deep-green);
   transition: var(--transition);
+  min-height: 120px;
 }
 
 .contact-card-info:hover {
@@ -2324,7 +2326,7 @@ select.form-control {
   box-shadow: var(--shadow-md);
 }
 
-.info-icon {
+.icon-wrapper {
   font-size: 2rem;
   background-color: rgba(10, 92, 54, 0.08);
   width: 50px;
@@ -2336,18 +2338,32 @@ select.form-control {
   flex-shrink: 0;
 }
 
-.info-content h3 {
-  font-size: 1.1rem;
+.content-stack {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.heading {
+  font-size: 1rem;
   color: var(--text-dark);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
-.info-content p {
-  font-size: 0.9rem;
+.text {
+  font-size: 0.85rem;
   color: var(--text-muted);
+  margin-bottom: 3px;
+  line-height: 1.4;
 }
 
-.info-content a:hover {
+.text:last-child {
+  margin-bottom: 0;
+}
+
+.text a:hover {
   color: var(--deep-green);
   text-decoration: underline;
 }
@@ -4052,43 +4068,46 @@ select.form-control {
   .contact-info-cards {
     display: grid !important;
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(3, 1fr);
+    grid-template-rows: repeat(4, 1fr);
     gap: 16px;
+    align-items: stretch;
   }
 
   .contact-card-info {
     padding: 16px;
     gap: 12px;
-    min-height: 0;
+    min-height: 120px;
     box-sizing: border-box;
+    display: flex !important;
+    align-items: center !important;
   }
 
-  .info-icon {
+  .icon-wrapper {
     width: 36px;
     height: 36px;
     font-size: 1.2rem;
   }
 
-  .info-content {
+  .content-stack {
     overflow: hidden;
     min-width: 0;
   }
 
-  .info-content h3 {
+  .heading {
     font-size: 0.88rem;
     margin-bottom: 4px;
   }
 
   /* Shrink inner text so content fits without expanding the box */
-  .info-content p,
-  .info-content a {
+  .text,
+  .text a {
     font-size: 0.78rem;
-    line-height: 1.35;
+    line-height: 1.4;
   }
 
-  .info-content {
+  .content-stack {
     font-size: 0.78rem;
-    line-height: 1.35;
+    line-height: 1.4;
   }
 
   .styled-map-placeholder {
