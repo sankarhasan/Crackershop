@@ -2163,20 +2163,22 @@ select.form-control {
 /* Coupon Box */
 .coupon-box {
   background-color: var(--white);
-  border: 1.5px solid #f59e0b;
+  border: 1.5px solid #FCA311;
   border-radius: var(--radius-sm);
   padding: 8px 14px;
 }
 
 .coupon-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
 .coupon-input {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   border: none;
   outline: none;
   font-family: inherit;
@@ -2195,22 +2197,23 @@ select.form-control {
 }
 
 .coupon-input.coupon-applied {
-  color: var(--deep-green);
+  color: var(--primary);
   font-weight: 700;
 }
 
 .coupon-apply {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #d97706;
+  color: var(--primary);
   text-transform: uppercase;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
   transition: var(--transition);
 }
 
 .coupon-apply:hover {
-  color: #b45309;
+  color: var(--primary-light);
 }
 
 /* Coupon Success Indicator - Green background with white checkmark */
