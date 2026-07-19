@@ -27,5 +27,10 @@ service cloud.firestore {
     match /offers/{offerId} {
       allow read, write: if true;
     }
+
+    // Coupons collection: public read/write (development mode)
+    match /coupons/{couponId} {
+      allow read, write: if true;
+    }
   }
 }

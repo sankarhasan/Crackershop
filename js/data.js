@@ -722,3 +722,175 @@ function saveOfferToFirestore(offer) {
       throw err;
     });
 }
+
+/* ==========================================================================
+   COUPON CODES - Firestore Sync Layer
+   - loadCouponsFromFirestore(): fetches coupons collection, caches to localStorage
+   - saveCouponToFirestore(coupon): upserts a single coupon doc
+   - deleteCouponFromFirestore(code): removes a coupon doc by code
+   - seedFirestoreCoupons(): one-time bulk seed from defaults
+   All functions are async and return Promises.
+   ========================================================================== */
+
+const DEFAULT_COUPONS = [
+  { code: 'FESTIVE20', discountPercent: 20, validUntil: '2026-12-31T23:59:59', active: true }
+];
+
+/**
+ * Get coupons from localStorage, falling back to DEFAULT_COUPONS.
+ */
+function getCoupons() {
+  const stored = localStorage.getItem('jcs_coupons');
+  if (!stored) {
+    console.warn('[getCoupons] localStorage empty. Returning DEFAULT_COUPONS.');
+    return DEFAULT_COUPONS;
+  }
+  try {
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) {
+      console.error('[getCoupons] Parsed data is not an array. Returning DEFAULT_COUPONS.');
+      return DEFAULT_COUPONS;
+    }
+    return parsed;
+  } catch (e) {
+    console.error('[getCoupons] JSON.parse failed. Returning DEFAULT_COUPONS.', e);
+    return DEFAULT_COUPONS;
+  }
+}
+
+/**
+ * Fetch all coupons from Firestore (LIVE SERVER), ordered by code.
+ * Caches to localStorage under 'jcs_coupons' for instant subsequent reads.
+ * Seeds Firestore if the collection is empty.
+ */
+function loadCouponsFromFirestore() {
+  console.log('[data.js] loadCouponsFromFirestore() called. window.db:', window.db ? 'CONNECTED' : 'NULL');
+
+  if (!window.db) {
+    console.warn('[data.js] window.db is NULL. Returning localStorage coupons.');
+    return Promise.resolve(getCoupons());
+  }
+
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Firestore coupons fetch timeout (10s)')), 10000);
+  });
+
+  const fetchPromise = window.db.collection('coupons')
+    .orderBy('code', 'asc')
+    .get({ source: 'server' })
+    .then(snapshot => {
+      console.log('[data.js] Firestore coupons snapshot received. Empty?', snapshot.empty);
+
+      if (snapshot.empty) {
+        console.log('[data.js] Coupons collection empty on server. Seeding DEFAULT_COUPONS.');
+        return seedFirestoreCoupons(DEFAULT_COUPONS).then(() => DEFAULT_COUPONS);
+      }
+
+      const coupons = [];
+      snapshot.forEach(doc => {
+        coupons.push(doc.data());
+      });
+
+      console.log('[data.js] ✓ Loaded', coupons.length, 'coupons from Firestore server.');
+      localStorage.setItem('jcs_coupons', JSON.stringify(coupons));
+      return coupons;
+    })
+    .catch(err => {
+      console.error('[data.js] ✗ Firestore coupons fetch FAILED:', err);
+      return getCoupons();
+    });
+
+  return Promise.race([fetchPromise, timeoutPromise]).catch(timeoutErr => {
+    console.error('[data.js] ✗ Timeout in loadCouponsFromFirestore:', timeoutErr);
+    return getCoupons();
+  });
+}
+
+/**
+ * Save (upsert) a single coupon to Firestore.
+ * Uses the coupon code as the Firestore document ID.
+ */
+function saveCouponToFirestore(coupon) {
+  console.log('[data.js] saveCouponToFirestore called with:', coupon);
+
+  if (!window.db) {
+    console.warn('[data.js] window.db is NULL, returning resolved promise.');
+    return Promise.resolve();
+  }
+
+  const code = String(coupon.code || '').toUpperCase();
+  return window.db.collection('coupons')
+    .doc(code)
+    .set({
+      code: code,
+      discountPercent: coupon.discountPercent || 0,
+      validUntil: coupon.validUntil || '',
+      active: coupon.active !== false
+    })
+    .then(() => {
+      console.log('[data.js] ✓ Coupon saved to Firestore successfully:', code);
+      // Update localStorage cache
+      const cached = getCoupons();
+      const idx = cached.findIndex(c => c.code === code);
+      if (idx !== -1) {
+        cached[idx] = coupon;
+      } else {
+        cached.push(coupon);
+      }
+      localStorage.setItem('jcs_coupons', JSON.stringify(cached));
+    })
+    .catch(err => {
+      console.error('[data.js] ✗ Firestore coupon save FAILED:', err);
+      throw err;
+    });
+}
+
+/**
+ * Delete a coupon from Firestore by its code.
+ */
+function deleteCouponFromFirestore(code) {
+  if (!window.db) return Promise.resolve();
+
+  const upperCode = String(code).toUpperCase();
+  return window.db.collection('coupons')
+    .doc(upperCode)
+    .delete()
+    .then(() => {
+      console.log('[data.js] ✓ Coupon deleted from Firestore:', upperCode);
+      // Update localStorage cache
+      const cached = getCoupons().filter(c => c.code !== upperCode);
+      localStorage.setItem('jcs_coupons', JSON.stringify(cached));
+    })
+    .catch(err => {
+      console.error('[data.js] ✗ Firestore coupon delete FAILED:', err);
+      throw err;
+    });
+}
+
+/**
+ * One-time bulk seed: pushes coupons into Firestore.
+ */
+function seedFirestoreCoupons(sourceCoupons) {
+  if (!window.db) return Promise.resolve();
+
+  const couponsToSeed = (sourceCoupons && sourceCoupons.length > 0)
+    ? sourceCoupons
+    : DEFAULT_COUPONS;
+
+  const batch = window.db.batch();
+  couponsToSeed.forEach(coupon => {
+    const code = String(coupon.code || '').toUpperCase();
+    const ref = window.db.collection('coupons').doc(code);
+    batch.set(ref, {
+      code: code,
+      discountPercent: coupon.discountPercent || 0,
+      validUntil: coupon.validUntil || '',
+      active: coupon.active !== false
+    });
+  });
+
+  return batch.commit().then(() => {
+    localStorage.setItem('jcs_coupons', JSON.stringify(couponsToSeed));
+    console.log('[Firestore] Seeded', couponsToSeed.length, 'coupons.');
+  });
+}

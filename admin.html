@@ -91,8 +91,13 @@
               <span class="sidebar-icon">🎉</span> Offers
             </a>
           </li>
-        </ul>
-      </nav>
+          <li>
+            <a href="#" class="sidebar-link" data-section="coupons">
+              <span class="sidebar-icon">🎟️</span> Coupon Code
+            </a>
+          </li>
+         </ul>
+        </nav>
 
       
       <div class="sidebar-footer">
@@ -387,6 +392,34 @@
             </button>
           </div>
         </form>
+      </section>
+
+      <!-- Section G: Coupon Codes Management -->
+      <section id="section-coupons" class="dashboard-section animate-fade" style="display: none;">
+        <div class="actions-panel justify-end">
+          <button class="btn-admin btn-admin-primary" onclick="openCouponAddModal()">
+            <span class="btn-icon-admin">+</span> Create Coupon
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-admin">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Discount %</th>
+                <th>Valid Until</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="coupons-table-body">
+              <tr>
+                <td colspan="5" class="text-center">Loading coupons...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
   </div>
@@ -714,6 +747,50 @@
 
           <button type="button" class="btn-admin btn-admin-secondary" onclick="closeBannerModal()">Cancel</button>
           <button type="button" class="btn-admin btn-admin-primary" onclick="saveBannerEdit()">Save Banner</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT COUPON -->
+  <div class="modal-overlay" id="coupon-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="coupon-modal-title">Create Coupon</h3>
+        <button class="modal-close-btn" onclick="closeCouponModal()">✕</button>
+      </div>
+
+      <form id="coupon-form" class="modal-form-scrollable">
+        <div class="modal-body-scroll" style="max-height:80vh;overflow-y:auto;padding:24px;">
+          <input type="hidden" id="coupon-modal-id">
+
+          <div class="form-group">
+            <label for="coupon-modal-code">Coupon Code <span class="required">*</span></label>
+            <input type="text" id="coupon-modal-code" class="form-control-admin" placeholder="e.g. FESTIVE20" required style="text-transform:uppercase;">
+          </div>
+
+          <div class="form-group">
+            <label for="coupon-modal-discount">Discount Percentage <span class="required">*</span></label>
+            <input type="number" id="coupon-modal-discount" class="form-control-admin" placeholder="e.g. 10" min="1" max="100" required>
+            <small class="field-hint">Enter a value between 1-100 for the discount percentage</small>
+          </div>
+
+          <div class="form-group">
+            <label for="coupon-modal-valid-until">Validity Duration <span class="required">*</span></label>
+            <input type="datetime-local" id="coupon-modal-valid-until" class="form-control-admin" required>
+          </div>
+
+          <div class="form-group" style="display:flex;align-items:center;gap:12px;">
+            <label for="coupon-modal-active" style="margin:0;cursor:pointer;">
+              <input type="checkbox" id="coupon-modal-active" checked style="width:18px;height:18px;">
+              <span>Status: Active (On/Off)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer-sticky">
+          <button type="button" class="btn-admin btn-admin-secondary" onclick="closeCouponModal()">Cancel</button>
+          <button type="submit" class="btn-admin btn-admin-primary">Save Coupon</button>
         </div>
       </form>
     </div>

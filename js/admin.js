@@ -367,7 +367,8 @@ function showDashboardSection(sectionName) {
       'categories': 'Manage Catalog Categories',
       'enquiries': 'Customer Enquiries Portal',
       'banners': 'Manage Homepage Banners',
-      'offers': 'Manage Festival Offer Banner'
+      'offers': 'Manage Festival Offer Banner',
+      'coupons': 'Manage Coupon Codes'
     };
     title.innerText = titles[sectionName] || 'Administration';
   }
@@ -385,6 +386,11 @@ function showDashboardSection(sectionName) {
     renderBannersTable();
   } else if (sectionName === 'offers') {
     loadOfferForm();
+  } else if (sectionName === 'coupons') {
+    loadCouponsFromFirestore().then(coupons => {
+      adminCoupons = coupons;
+      renderCouponsTable();
+    });
   }
 }
 
@@ -1209,6 +1215,25 @@ function executePendingDelete() {
       showAdminToast('Banner deleted successfully.', 'info');
       renderBannersTable();
     }
+  } else if (deleteTargetType === 'coupon') {
+    if (!window.db) {
+      console.error('[Firestore] window.db is NULL — cannot delete coupon from Firestore.');
+      showAdminToast('Firestore not connected. Coupon saved locally only.', 'error');
+    } else {
+      deleteCouponFromFirestore(deleteTargetId)
+        .then(() => {
+          console.log('[Admin] ✓ Coupon deleted from Firestore:', deleteTargetId);
+          showAdminToast('Coupon code deleted successfully.', 'success');
+          loadCouponsFromFirestore().then(coupons => {
+            adminCoupons = coupons;
+            renderCouponsTable();
+          });
+        })
+        .catch(err => {
+          console.error('[Admin] Coupon delete failed:', err);
+          showAdminToast('Failed to delete coupon: ' + (err.message || 'Unknown'), 'error');
+        });
+    }
   }
   
   closeDeleteModal();
@@ -1777,10 +1802,218 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('[Admin] Offer save failed:', err);
             showAdminToast('Offer saved locally but cloud sync failed: ' + (err.message || 'Unknown'), 'error');
           });
-      } catch (syncError) {
-        console.error('[Admin] Exception during offer save:', syncError);
-        showAdminToast('Exception: ' + (syncError.message || 'Unknown'), 'error');
-      }
+       } catch (syncError) {
+         console.error('[Admin] Exception during offer save:', syncError);
+         showAdminToast('Exception: ' + (syncError.message || 'Unknown'), 'error');
+       }
+     });
+   }
+});
+
+/* ==========================================================================
+   COUPON CODES - Admin Management Module
+   ========================================================================== */
+
+let adminCoupons = []; // Cache for coupon codes
+
+/**
+ * Render the coupons table in the admin panel.
+ */
+function renderCouponsTable() {
+  const tbody = document.getElementById('coupons-table-body');
+  if (!tbody) return;
+
+  const coupons = adminCoupons;
+  tbody.innerHTML = '';
+
+  if (coupons.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No coupon codes created yet.</td></tr>';
+    return;
+  }
+
+  coupons.forEach(coupon => {
+    const validUntilDate = coupon.validUntil ? new Date(coupon.validUntil).toLocaleString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric'
+    }) : '—';
+
+    const statusBadge = coupon.active ? 
+      '<span class="status-badge resolved">Active</span>' : 
+      '<span class="status-badge out">Inactive</span>';
+
+    tbody.innerHTML += `
+      <tr>
+        <td><strong>${escapeHtml(coupon.code)}</strong></td>
+        <td>${coupon.discountPercent}%</td>
+        <td>${validUntilDate}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-action edit" onclick="openCouponEditModal('${escapeHtml(coupon.code)}')" title="Edit Coupon">✏️</button>
+            <button class="btn-action delete" onclick="confirmDelete('coupon', '${escapeHtml(coupon.code)}')" title="Delete Coupon">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/**
+ * Open the Add Coupon modal.
+ */
+function openCouponAddModal() {
+  document.getElementById('coupon-modal-title').innerText = 'Create Coupon';
+  document.getElementById('coupon-form').reset();
+  document.getElementById('coupon-modal-id').value = '';
+  
+  // Set default datetime to 1 month from now
+  const defaultDate = new Date();
+  defaultDate.setMonth(defaultDate.getMonth() + 1);
+  const defaultDateTime = defaultDate.toISOString().slice(0, 16);
+  document.getElementById('coupon-modal-valid-until').value = defaultDateTime;
+  
+  document.getElementById('coupon-modal').style.display = 'flex';
+}
+
+/**
+ * Open the Edit Coupon modal.
+ */
+function openCouponEditModal(code) {
+  const coupon = adminCoupons.find(c => c.code === code);
+  if (!coupon) return;
+
+  document.getElementById('coupon-modal-title').innerText = 'Edit Coupon';
+  document.getElementById('coupon-modal-id').value = coupon.code;
+  document.getElementById('coupon-modal-code').value = coupon.code;
+  document.getElementById('coupon-modal-discount').value = coupon.discountPercent;
+  
+  // Format validUntil for datetime-local input
+  if (coupon.validUntil) {
+    const dt = new Date(coupon.validUntil);
+    const local = dt.getFullYear() + '-' +
+      String(dt.getMonth() + 1).padStart(2, '0') + '-' +
+      String(dt.getDate()).padStart(2, '0') + 'T' +
+      String(dt.getHours()).padStart(2, '0') + ':' +
+      String(dt.getMinutes()).padStart(2, '0');
+    document.getElementById('coupon-modal-valid-until').value = local;
+  }
+  
+  document.getElementById('coupon-modal-active').checked = coupon.active !== false;
+  
+  document.getElementById('coupon-modal').style.display = 'flex';
+}
+
+/**
+ * Close the Coupon modal.
+ */
+function closeCouponModal() {
+  document.getElementById('coupon-modal').style.display = 'none';
+}
+
+/**
+ * Save coupon data to Firestore.
+ */
+function saveCouponData() {
+  const idVal = document.getElementById('coupon-modal-id').value;
+  const code = document.getElementById('coupon-modal-code').value.trim().toUpperCase();
+  const discountPercent = parseInt(document.getElementById('coupon-modal-discount').value) || 0;
+  const validUntilRaw = document.getElementById('coupon-modal-valid-until').value;
+  const active = document.getElementById('coupon-modal-active').checked;
+
+  if (!code) {
+    showAdminToast('Coupon code is required.', 'error');
+    return;
+  }
+
+  if (discountPercent < 1 || discountPercent > 100) {
+    showAdminToast('Discount percentage must be between 1-100.', 'error');
+    return;
+  }
+
+  const couponData = {
+    code: code,
+    discountPercent: discountPercent,
+    validUntil: validUntilRaw ? new Date(validUntilRaw).toISOString() : '',
+    active: active
+  };
+
+  showAdminToast('Saving coupon...', 'info');
+
+  if (!window.db) {
+    console.error('[Firestore] window.db is NULL — cannot sync coupons.');
+    showAdminToast('Firestore not connected. Coupon saved locally only.', 'error');
+    closeCouponModal();
+    return;
+  }
+
+  // Check if admin is authenticated
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) {
+      console.error('[Admin] No authenticated admin user for coupon save.');
+      showAdminToast('Admin authentication required. Please log in again.', 'error');
+      closeCouponModal();
+      return;
+    }
+  }
+
+  saveCouponToFirestore(couponData)
+    .then(() => {
+      console.log('[Admin] ✓ Coupon saved to Firestore:', code);
+      showAdminToast('Coupon saved to cloud successfully!', 'success');
+    })
+    .catch(err => {
+      console.error('[Admin] Coupon save failed:', err);
+      const code = err.code || 'unknown';
+      const msg = err.message || 'Unknown error';
+      showAdminToast('Cloud sync failed [' + code + ']: ' + msg, 'error');
+    });
+
+  closeCouponModal();
+  loadCouponsFromFirestore().then(coupons => {
+    adminCoupons = coupons;
+    renderCouponsTable();
+  });
+}
+
+/**
+ * Handle coupon form submission.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  const couponForm = document.getElementById('coupon-form');
+  if (couponForm) {
+    couponForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      saveCouponData();
     });
   }
 });
+
+/**
+ * Add coupon to delete confirmation types.
+ */
+function confirmDelete(type, id) {
+  deleteTargetType = type;
+  deleteTargetId = id;
+
+  const label = document.getElementById('delete-modal-text');
+
+  if (type === 'product') {
+    label.innerText = 'This will permanently remove this firecracker product from your storefront catalogs.';
+  } else if (type === 'category') {
+    const products = getProducts();
+    const isLinked = products.some(p => Number(p.categoryId) === Number(id));
+    if (isLinked) {
+      showAdminToast('Cannot delete category linked to existing products!', 'error');
+      return;
+    }
+    label.innerText = 'This will permanently delete this category link from system.';
+  } else if (type === 'enquiry') {
+    label.innerText = 'This will permanently delete the selected customer enquiry record.';
+  } else if (type === 'banner') {
+    label.innerText = 'This will permanently delete the selected homepage banner.';
+  } else if (type === 'coupon') {
+    label.innerText = 'This will permanently delete the selected coupon code.';
+  }
+
+  document.getElementById('delete-modal').style.display = 'flex';
+}

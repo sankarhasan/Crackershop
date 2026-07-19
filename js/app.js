@@ -1365,8 +1365,25 @@ function calculateOrderSummaryData() {
   // Spin wheel placeholder (injectable later)
   let spinWheelDiscount = 0;
 
-  // Grand Total = Total - Total Savings - Spin Wheel Discount
-  const grandTotal = totalOriginal - totalSavings - spinWheelDiscount;
+  // Coupon discount calculation - get applied coupon from localStorage
+  const appliedCouponCode = localStorage.getItem('applied_coupon_code');
+  let couponDiscount = 0;
+  let couponPercent = 0;
+  
+  if (appliedCouponCode) {
+    const coupons = getCoupons ? getCoupons() : [];
+    const coupon = coupons.find(c => c.code === appliedCouponCode && c.active === true);
+    
+    if (coupon && totalOriginal > 0) {
+      // Calculate coupon discount on the grand total before coupon
+      const subtotalBeforeCoupon = totalOriginal - totalSavings;
+      couponDiscount = Math.round(subtotalBeforeCoupon * (coupon.discountPercent / 100));
+      couponPercent = coupon.discountPercent;
+    }
+  }
+
+  // Grand Total = Total - Total Savings - Spin Wheel Discount - Coupon Discount
+  const grandTotal = totalOriginal - totalSavings - spinWheelDiscount - couponDiscount;
 
   return {
     totalOriginal,           // Sum of all original prices × qty
@@ -1375,9 +1392,150 @@ function calculateOrderSummaryData() {
     overallPercent,          // Weighted average discount % (integer)
     nonDiscountedTotal,      // Sum of non-discounted items (final price × qty)
     spinWheelDiscount,       // Placeholder (0)
+    couponDiscount,          // Coupon discount amount
+    couponPercent,           // Coupon discount percentage
     grandTotal               // Final payable amount
   };
 }
+
+/* ==========================================================================
+   COUPON CODE - Front-end Verification & Application
+   Handles APPLY button click, validates against Firestore, and shows success UI.
+   ========================================================================== */
+
+/**
+ * Apply coupon code to the current cart.
+ * Validates against Firestore and shows success/error feedback.
+ * Includes guard rails: empty cart check and minimum order amount validation.
+ */
+function applyCoupon() {
+  const couponInput = document.getElementById('coupon-input');
+  const couponApplyBtn = document.getElementById('coupon-apply-btn');
+  const couponSuccessIndicator = document.getElementById('coupon-success-indicator');
+  
+  if (!couponInput) return;
+  
+  const code = couponInput.value.trim().toUpperCase();
+  if (!code) {
+    showToast('Please enter a coupon code.', 'error');
+    return;
+  }
+
+  // === VALIDATION CHECK 1: Empty Cart Check ===
+  if (cart.length === 0 || calculateSubtotal() <= 0) {
+    showToast('Please add products to your cart first before applying a coupon code!', 'error');
+    // Scroll to products section
+    const productsSection = document.getElementById('products');
+    if (productsSection) {
+      productsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    return;
+  }
+
+  // === VALIDATION CHECK 2: Minimum Order Purchase Cap (₹2,000) ===
+  const orderSummary = calculateOrderSummaryData();
+  const eligibleTotal = orderSummary.totalOriginal - orderSummary.totalSavings;
+  
+  if (eligibleTotal < 2000) {
+    showToast('Minimum purchase amount required to use this coupon code is ₹2,000.', 'error');
+    // Scroll to products section
+    const productsSection = document.getElementById('products');
+    if (productsSection) {
+      productsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    return;
+  }
+
+  // Disable input during validation
+  couponInput.disabled = true;
+  couponApplyBtn.style.opacity = '0.6';
+  couponApplyBtn.style.cursor = 'not-allowed';
+
+  // Fetch coupons from Firestore and validate
+  const validationPromise = window.db ? 
+    loadCouponsFromFirestore() : 
+    Promise.resolve(getCoupons ? getCoupons() : []);
+
+  validationPromise.then(coupons => {
+    const coupon = coupons.find(c => c.code === code);
+    
+    if (!coupon) {
+      showToast('Invalid coupon code!', 'error');
+      resetCouponInput();
+      return;
+    }
+    
+    if (!coupon.active) {
+      showToast('This coupon is currently inactive.', 'error');
+      resetCouponInput();
+      return;
+    }
+    
+    // Check validity date
+    if (coupon.validUntil) {
+      const validUntil = new Date(coupon.validUntil);
+      if (validUntil < new Date()) {
+        showToast('This coupon has expired.', 'error');
+        resetCouponInput();
+        return;
+      }
+    }
+    
+    // Valid coupon - apply and show success
+    localStorage.setItem('applied_coupon_code', code);
+    populateOrderSummaryFromCart();
+    
+    // Show success indicator with green background
+    couponSuccessIndicator.style.display = 'block';
+    couponInput.disabled = true;
+    couponInput.classList.add('coupon-applied');
+    
+    showToast(`Coupon ${code} applied successfully! ${coupon.discountPercent}% discount activated.`, 'success');
+  }).catch(err => {
+    console.error('[Coupon] Validation failed:', err);
+    showToast('Could not verify coupon. Please try again.', 'error');
+    resetCouponInput();
+  });
+}
+
+/**
+ * Reset coupon input after validation failure.
+ */
+function resetCouponInput() {
+  const couponInput = document.getElementById('coupon-input');
+  const couponApplyBtn = document.getElementById('coupon-apply-btn');
+  
+  if (couponInput) {
+    couponInput.disabled = false;
+    couponInput.value = '';
+    couponInput.classList.remove('coupon-applied');
+  }
+  if (couponApplyBtn) {
+    couponApplyBtn.style.opacity = '1';
+    couponApplyBtn.style.cursor = 'pointer';
+  }
+}
+
+/**
+ * Initialize coupon apply button click handler.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  const couponApplyBtn = document.getElementById('coupon-apply-btn');
+  if (couponApplyBtn) {
+    couponApplyBtn.addEventListener('click', applyCoupon);
+  }
+  
+  // Also handle Enter key in coupon input
+  const couponInput = document.getElementById('coupon-input');
+  if (couponInput) {
+    couponInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyCoupon();
+      }
+    });
+  }
+});
 
 /**
  * Read current cart, compute order summary, and update the Order Summary card DOM.
@@ -1393,6 +1551,8 @@ function populateOrderSummaryFromCart() {
   const nonDiscountedEl = document.getElementById('summary-non-discounted');
   const spinWheelEl = document.getElementById('summary-spin-wheel');
   const grandTotalEl = document.getElementById('summary-grand-total');
+  const couponDiscountEl = document.getElementById('summary-coupon-discount');
+  const couponBadgeEl = document.getElementById('coupon-discount-badge');
 
   if (totalEl) totalEl.textContent = `₹${data.totalOriginal.toLocaleString()}`;
 
@@ -1421,8 +1581,53 @@ function populateOrderSummaryFromCart() {
     spinWheelEl.textContent = data.spinWheelDiscount > 0 ? `-₹${data.spinWheelDiscount.toLocaleString()}` : '—';
   }
 
+  // Coupon discount display
+  if (couponDiscountEl && couponBadgeEl) {
+    if (data.couponDiscount > 0) {
+      couponDiscountEl.textContent = `-₹${data.couponDiscount.toLocaleString()}`;
+      couponBadgeEl.style.display = 'inline-block';
+      couponBadgeEl.textContent = `[ ${data.couponPercent}% OFF ]`;
+    } else {
+      couponDiscountEl.textContent = '—';
+      couponBadgeEl.style.display = 'none';
+    }
+  }
+
   if (grandTotalEl) {
     grandTotalEl.textContent = `₹${data.grandTotal.toLocaleString()}`;
+  }
+}
+
+/**
+ * Reset all coupon-related UI state to initial values.
+ * Called after successful enquiry submission to clear the coupon display.
+ */
+function resetCouponState() {
+  // Remove applied coupon from localStorage
+  localStorage.removeItem('applied_coupon_code');
+  
+  // Reset coupon input field
+  const couponInput = document.getElementById('coupon-input');
+  if (couponInput) {
+    couponInput.value = '';
+    couponInput.disabled = false;
+    couponInput.classList.remove('coupon-applied');
+  }
+  
+  // Hide the success indicator (green ✓ APPLIED box)
+  const couponSuccessIndicator = document.getElementById('coupon-success-indicator');
+  if (couponSuccessIndicator) {
+    couponSuccessIndicator.style.display = 'none';
+  }
+  
+  // Reset coupon discount row to default state
+  const couponDiscountEl = document.getElementById('summary-coupon-discount');
+  const couponBadgeEl = document.getElementById('coupon-discount-badge');
+  if (couponDiscountEl) {
+    couponDiscountEl.textContent = '—';
+  }
+  if (couponBadgeEl) {
+    couponBadgeEl.style.display = 'none';
   }
 }
 
@@ -1583,7 +1788,7 @@ function initEnquiryForm() {
         },
         // Cart Items Array
         cartItems: cartItemsPayload,
-        // Final Financial Breakdown (Total, Discounted Price %, Non-Discounted Sum, Grand Total)
+        // Final Financial Breakdown (Total, Discounted Price %, Non-Discounted Sum, Grand Total, Coupon)
         // Safe fallbacks ensure Firestore never receives undefined values
         financialBreakdown: {
           totalOriginal: orderSummary.totalOriginal || 0,
@@ -1592,6 +1797,8 @@ function initEnquiryForm() {
           overallDiscountPercent: orderSummary.overallPercent || 0,
           nonDiscountedTotal: orderSummary.nonDiscountedTotal || 0,
           spinWheelDiscount: orderSummary.spinWheelDiscount || 0,
+          couponDiscount: orderSummary.couponDiscount || 0,
+          couponPercent: orderSummary.couponPercent || 0,
           grandTotal: orderSummary.grandTotal || 0
         },
         // Raw message (empty string fallback since enquiry-message field was removed from HTML)
@@ -1626,6 +1833,9 @@ function initEnquiryForm() {
           }
           
           form.reset();
+          
+          // Reset coupon state along with cart and order summary
+          resetCouponState();
           
           // Reset the Order Summary card to zero state after submission
           populateOrderSummaryFromCart();

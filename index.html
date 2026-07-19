@@ -325,8 +325,11 @@
               <!-- Coupon Box -->
               <div class="coupon-box">
                 <div class="coupon-row">
-                  <input type="text" class="coupon-input" placeholder="COUPON CODE" />
-                  <span class="coupon-apply">APPLY</span>
+                  <input type="text" id="coupon-input" class="coupon-input" placeholder="COUPON CODE" />
+                  <span id="coupon-apply-btn" class="coupon-apply">APPLY</span>
+                </div>
+                <div id="coupon-success-indicator" class="coupon-success-indicator" style="display: none;">
+                  <span class="coupon-success-badge">✓ APPLIED</span>
                 </div>
               </div>
 
@@ -346,6 +349,10 @@
               <div class="summary-row">
                 <span class="summary-label">Spin Wheel</span>
                 <span class="summary-value" id="summary-spin-wheel">—</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Coupon Applied <span id="coupon-discount-badge" class="discount-badge coupon-badge" style="display: none;"></span></span>
+                <span class="summary-value" id="summary-coupon-discount">—</span>
               </div>
 
               <!-- Divider -->
