@@ -31,10 +31,10 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
   background-color: var(--admin-bg);
   color: var(--admin-text);
   line-height: 1.5;
@@ -42,7 +42,6 @@ body {
 }
 
 h1, h2, h3, h4 {
-  font-family: 'Poppins', sans-serif;
   font-weight: 600;
 }
 

@@ -51,6 +51,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 html {
@@ -61,7 +62,6 @@ html {
 }
 
 body {
-  font-family: 'Inter', sans-serif;
   color: var(--text-dark);
   background-color: var(--cream);
   line-height: 1.6;
@@ -146,7 +146,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .brand-subtitle {
-  font-family: 'Inter', sans-serif;
   font-size: 1rem;
   font-weight: 500;
   color: var(--white);
@@ -160,7 +159,6 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-family: 'Inter', sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 4px;
@@ -556,10 +554,12 @@ html, body, div, section, textarea, table {
   gap: 20px;
 }
 
+/* Phone Box - Header contact block */
 .phone-box {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  gap: 2px;
 }
 
 .phone-label {
@@ -567,22 +567,29 @@ html, body, div, section, textarea, table {
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .phone-number {
   font-family: 'Poppins', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--festive-red);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
 }
 
 .phone-number:hover {
   color: var(--deep-green);
 }
 
-.phone-number.second-phone {
-  font-size: 0.8rem;
-  margin-top: -2px;
+/* Phone icon (emoji) styling for consistent sizing */
+.phone-number .phone-icon,
+.phone-number > span:first-child {
+  font-size: 0.85rem;
+  line-height: 1;
 }
 
 /* Cart Icon Widget */
