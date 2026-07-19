@@ -1289,6 +1289,14 @@ function adjustDrawerQty(prodId, change) {
 }
 
 function checkoutCart() {
+  // Check if below minimum order - trigger shake and block
+  const checkoutBtn = document.getElementById('checkout-btn');
+  if (checkoutBtn && checkoutBtn.disabled) {
+    triggerMinimumOrderShake();
+    showToast('Please add more crackers to reach the minimum order of ₹2,000!', 'error');
+    return;
+  }
+  
   toggleCartDrawer();
   
   // Pre-fill enquiry form message with cart items
@@ -1600,7 +1608,7 @@ function populateOrderSummaryFromCart() {
     if (data.couponDiscount > 0) {
       couponDiscountEl.textContent = `-₹${data.couponDiscount.toLocaleString()}`;
       couponBadgeEl.style.display = 'inline-block';
-      couponBadgeEl.textContent = `[ ${data.couponPercent}% OFF ]`;
+      couponBadgeEl.textContent = `${data.couponPercent}% OFF`;
     } else {
       couponDiscountEl.textContent = '—';
       couponBadgeEl.style.display = 'none';
@@ -1654,6 +1662,20 @@ function populateOrderSummaryFromCart() {
       warningBox.style.display = 'none';
     }
   }
+}
+
+/**
+ * Trigger shake animation on the warning box when user attempts to submit
+ * while grandTotal is below minimum order value.
+ */
+function triggerMinimumOrderShake() {
+  const warningBox = document.getElementById('order-summary-warning');
+  if (!warningBox || warningBox.style.display === 'none') return;
+  
+  warningBox.classList.add('order-summary-shake');
+  setTimeout(() => {
+    warningBox.classList.remove('order-summary-shake');
+  }, 300);
 }
 
 /**
@@ -1806,6 +1828,15 @@ function initEnquiryForm() {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     console.log('[Enquiry] Form submitted.');
+    
+    // Check if grandTotal is below minimum - trigger shake animation and block submission
+    const enquirySubmitBtn = document.getElementById('enquiry-submit-btn');
+    if (enquirySubmitBtn && enquirySubmitBtn.disabled) {
+      console.log('[Enquiry] Submit blocked: grandTotal below minimum');
+      triggerMinimumOrderShake();
+      showToast('Please add more crackers to reach the minimum order of ₹2,000!', 'error');
+      return;
+    }
     
     const name = document.getElementById('enquiry-name')?.value.trim();
     const phone = document.getElementById('enquiry-phone')?.value.trim();

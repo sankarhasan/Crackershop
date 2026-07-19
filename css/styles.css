@@ -2140,6 +2140,60 @@ select.form-control {
   padding-right: 40px;
 }
 
+/* Order Summary Warning Box - shown when grandTotal < ₹2000 after coupons (ALL SCREEN SIZES) */
+.order-summary-warning {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background-color: #FDF2F2;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius-md);
+}
+
+.order-summary-warning.active {
+  display: flex;
+}
+
+.order-summary-warning.order-summary-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.warning-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.warning-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #9B1C1C;
+  line-height: 1.4;
+}
+
+/* Disabled state for submit button (ALL SCREEN SIZES) */
+.btn-disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background-color: var(--text-muted) !important;
+  border-color: var(--text-muted) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-disabled:hover {
+  background-color: var(--text-muted) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* --- Order Summary Card (Quick Enquiry) --- */
 .order-summary-card {
   background-color: #f8f9fa;
@@ -2268,8 +2322,20 @@ select.form-control {
 
 .discount-badge {
   display: inline-block;
-  background-color: #fef3c7;
-  color: #d97706;
+  background-color: #DEF7EC;
+  color: #03543F;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.coupon-badge {
+  display: inline-block;
+  background-color: #DEF7EC;
+  color: #03543F;
   font-size: 0.7rem;
   font-weight: 700;
   padding: 2px 8px;
@@ -4068,66 +4134,6 @@ select.form-control {
 .btn-lg {
   padding: 14px 24px;
   font-size: 0.95rem;
-}
-
-/* Order Summary Warning Box - shown when grandTotal < ₹2000 after coupons */
-.order-summary-warning {
-  display: none;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  background-color: rgba(255, 193, 7, 0.15);
-  border: 1px solid rgba(255, 193, 7, 0.4);
-  border-radius: var(--radius-md);
-  animation: warningPulse 2s infinite;
-}
-
-.order-summary-warning.active {
-  display: flex;
-}
-
-@keyframes warningPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
-  }
-}
-
-.warning-icon {
-  font-size: 1.2rem;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.warning-text {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-dark);
-  line-height: 1.4;
-}
-
-.warning-text strong {
-  color: var(--festive-red);
-  font-weight: 700;
-}
-
-/* Disabled state for submit button */
-.btn-disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-  background-color: var(--text-muted) !important;
-  border-color: var(--text-muted) !important;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-.btn-disabled:hover {
-  background-color: var(--text-muted) !important;
-  transform: none !important;
-  box-shadow: none !important;
 }
 
   /* --- Contact: equal-height cards with dynamic font sizing --- */
