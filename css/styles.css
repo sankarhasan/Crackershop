@@ -472,16 +472,17 @@ html, body, div, section, textarea, table {
   gap: 10px;
 }
 
-.logo-icon {
-  font-size: 2.2rem;
-  line-height: 1;
-  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
-  animation: logoSparkle 3s infinite alternate;
+.logo-image {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.3));
 }
 
-@keyframes logoSparkle {
-  0% { transform: scale(1) rotate(0deg); }
-  100% { transform: scale(1.1) rotate(15deg); }
+.footer-logo-image {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
 }
 
 .logo-text {

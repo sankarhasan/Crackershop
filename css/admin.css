@@ -80,11 +80,12 @@ ul {
   margin-bottom: 30px;
 }
 
-.login-logo-icon {
-  font-size: 3rem;
-  display: block;
+.admin-logo-image {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(10, 92, 54, 0.3));
   margin-bottom: 12px;
-  filter: drop-shadow(0 0 10px rgba(10, 92, 54, 0.5));
 }
 
 .login-header h2 {
