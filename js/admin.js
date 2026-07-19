@@ -1037,9 +1037,9 @@ function populateOrderDetailsModal(enq) {
   const spinWheelDiscount = fb.spinWheelDiscount || 0;
   const couponDiscount = fb.couponDiscount || 0;
   
-  // Calculate Grand Total dynamically using the correct formula:
-  // Grand Total = (Original Total - Savings) + Non-Discounted Items Total - Spin Wheel Discount - Coupon Discount
-  const grandTotal = totalOriginal - totalSavings + nonDiscountedTotal - spinWheelDiscount - couponDiscount;
+   // Calculate Grand Total dynamically using the correct formula:
+   // Grand Total = Original Total - You Saved - Coupon Applied - Spin Wheel Reward
+   const grandTotal = totalOriginal - totalSavings - spinWheelDiscount - couponDiscount;
   
   // Original Total
   const totalEl = document.getElementById('order-summary-total');
