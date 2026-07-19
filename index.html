@@ -365,11 +365,16 @@
               </div>
             </div>
             
-            <button type="submit" class="btn btn-primary btn-block btn-lg">Submit Quick Enquiry</button>
-          </form>
-        </div>
-      </div>
-    </section>
+             <!-- Minimum Order Warning Box (shown when grandTotal < ₹2000 after coupons) -->
+             <div id="order-summary-warning" class="order-summary-warning" style="display: none;">
+               <span class="warning-icon">⚠️</span>
+               <span class="warning-text">Oops! Your final total dropped to ₹<span id="warning-grand-total">0</span> after the coupon discount. Please add ₹<span id="warning-short-amount">0</span> more worth of crackers to complete your order!</span>
+             </div>
+             <button type="submit" id="enquiry-submit-btn" class="btn btn-primary btn-block btn-lg">Submit Quick Enquiry</button>
+           </form>
+         </div>
+       </div>
+     </section>
 
     <!-- Safety Tips Section -->
     <section id="safety" class="safety-section fade-in-up">

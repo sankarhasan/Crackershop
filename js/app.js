@@ -1613,6 +1613,47 @@ function populateOrderSummaryFromCart() {
 
   // Render the applied coupons list (green checkmark container) for hydration
   renderAppliedCouponsList();
+
+  // === DYNAMIC SUBMIT BUTTON STATE (POST-COUPON VALUE) ===
+  // Evaluate submit button state based on FINAL grandTotal after coupons
+  const submitBtn = document.getElementById('enquiry-submit-btn');
+  const warningBox = document.getElementById('order-summary-warning');
+
+  if (data.grandTotal < MINIMUM_ORDER_VALUE) {
+    // Disable submit button and show warning box
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('btn-disabled');
+    }
+    
+    // Calculate short amount dynamically
+    const shortAmount = MINIMUM_ORDER_VALUE - data.grandTotal;
+    
+    // Update warning box text with dynamic values
+    const warningGrandTotal = document.getElementById('warning-grand-total');
+    const warningShortAmount = document.getElementById('warning-short-amount');
+    
+    if (warningGrandTotal) {
+      warningGrandTotal.textContent = data.grandTotal.toLocaleString();
+    }
+    if (warningShortAmount) {
+      warningShortAmount.textContent = shortAmount.toLocaleString();
+    }
+    
+    // Show warning box
+    if (warningBox) {
+      warningBox.style.display = 'flex';
+    }
+  } else {
+    // Enable submit button and hide warning box
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('btn-disabled');
+    }
+    if (warningBox) {
+      warningBox.style.display = 'none';
+    }
+  }
 }
 
 /**

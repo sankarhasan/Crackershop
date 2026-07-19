@@ -4046,29 +4046,89 @@ select.form-control {
     padding: 10px 5px;
   }
 
-  /* --- Enquiry Form --- */
-  .enquiry-section {
-    padding: 40px 0;
-  }
+/* --- Enquiry Form --- */
+.enquiry-section {
+  padding: 40px 0;
+}
 
-  .enquiry-card {
-    padding: 30px 20px;
-  }
+.enquiry-card {
+  padding: 30px 20px;
+}
 
-  .form-row-2 {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
+.form-row-2 {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
 
-  .form-control {
-    padding: 10px 14px;
-    font-size: 0.9rem;
-  }
+.form-control {
+  padding: 10px 14px;
+  font-size: 0.9rem;
+}
 
-  .btn-lg {
-    padding: 14px 24px;
-    font-size: 0.95rem;
+.btn-lg {
+  padding: 14px 24px;
+  font-size: 0.95rem;
+}
+
+/* Order Summary Warning Box - shown when grandTotal < ₹2000 after coupons */
+.order-summary-warning {
+  display: none;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background-color: rgba(255, 193, 7, 0.15);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  border-radius: var(--radius-md);
+  animation: warningPulse 2s infinite;
+}
+
+.order-summary-warning.active {
+  display: flex;
+}
+
+@keyframes warningPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
   }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+  }
+}
+
+.warning-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.warning-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  line-height: 1.4;
+}
+
+.warning-text strong {
+  color: var(--festive-red);
+  font-weight: 700;
+}
+
+/* Disabled state for submit button */
+.btn-disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background-color: var(--text-muted) !important;
+  border-color: var(--text-muted) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-disabled:hover {
+  background-color: var(--text-muted) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
 
   /* --- Contact: equal-height cards with dynamic font sizing --- */
   .contact-grid {
