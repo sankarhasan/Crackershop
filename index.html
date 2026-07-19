@@ -13,6 +13,7 @@
   
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/coupon-stack.css">
 
   <!-- Lottie Web Player (fix loader animation warnings) -->
   <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
@@ -322,16 +323,15 @@
             <div class="order-summary-card">
               <div class="order-summary-header">ORDER SUMMARY</div>
 
-              <!-- Coupon Box -->
-              <div class="coupon-box">
-                <div class="coupon-row">
-                  <input type="text" id="coupon-input" class="coupon-input" placeholder="COUPON CODE" />
-                  <span id="coupon-apply-btn" class="coupon-apply">APPLY</span>
-                </div>
-                <div id="coupon-success-indicator" class="coupon-success-indicator" style="display: none;">
-                  <span class="coupon-success-badge">✓ APPLIED</span>
-                </div>
-              </div>
+<!-- Coupon Box -->
+               <div class="coupon-box">
+                 <div class="coupon-row">
+                   <input type="text" id="coupon-input" class="coupon-input" placeholder="COUPON CODE" />
+                   <span id="coupon-apply-btn" class="coupon-apply">APPLY</span>
+                 </div>
+                 <!-- Stacked Verification Container for Multiple Coupons -->
+                 <div id="coupon-stacked-container" class="coupon-stacked-container"></div>
+               </div>
 
               <!-- Pricing Rows -->
               <div class="summary-row">
@@ -480,11 +480,12 @@ KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu 
 
             <div class="contact-card-info">
               <div class="info-icon">✉️</div>
-              <div class="info-content">
-                <h3>Official Email Address</h3>
-<p><a href="mailto:info@kprcrackers.com">info@kprcrackers.com</a></p>
-<p><a href="mailto:sales@kprcrackers.com">sales@kprcrackers.com</a></p>
-              </div>
+<span class="info-content"><a href="mailto:info@kprcrackers.com">info@kprcrackers.com</a></span>
+            </div>
+
+            <div class="contact-card-info">
+              <div class="info-icon">🕒</div>
+              <span class="contact-details">Open Everyday: 8:00 AM - 10:00 PM</span>
             </div>
           </div>
           
@@ -494,7 +495,7 @@ KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu 
               <div class="map-glow-radar"></div>
               <span class="map-icon">📍</span>
 <h4>KPR Crackers Depot</h4>
-<p>Sivakasi Bypass Road, Tamil Nadu</p>
+<h4>Sivakasi Bypass Road, Tamil Nadu</h4>
               <div class="coordinates-overlay">Lat: 9.4533° N, Lon: 77.8024° E</div>
             </div>
           </div>
@@ -517,7 +518,7 @@ KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu 
         <span class="empty-cart-icon">🛒</span>
         <p>Your cart is empty!</p>
         <p class="sub-text">Add at least ₹2,000 worth of firecrackers to place an enquiry.</p>
-        <a href="#products" class="btn btn-primary" onclick="toggleCartDrawer()">Continue Shopping</a>
+        <button class="btn btn-primary" onclick="toggleCartDrawer()">Continue Shopping</button>
       </div>
     </div>
     
@@ -727,5 +728,6 @@ KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu 
   <!-- Confetti (lightweight) -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/coupon-stack.js"></script>
 </body>
 </html>

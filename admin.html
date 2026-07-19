@@ -453,21 +453,22 @@
             </div>
           </div>
           
-          <div class="form-row-admin-3">
-            <div class="form-group">
-              <label for="product-modal-orig-price">Original Price (₹) <span class="required">*</span></label>
-              <input type="number" id="product-modal-orig-price" class="form-control-admin" min="0" required>
+<div class="form-row-admin-3">
+              <div class="form-group">
+                <label for="product-modal-orig-price">Original Price (₹) <span class="required">*</span></label>
+                <input type="number" id="product-modal-orig-price" class="form-control-admin" min="0" required>
+              </div>
+              <div class="form-group">
+                <label for="product-modal-discount">Discount Label <span class="field-optional">(optional)</span></label>
+                <input type="text" id="product-modal-discount" class="form-control-admin" placeholder="e.g. 40% OFF">
+                <small class="field-hint">Leave blank for no discount. Sale Price will match Original Price.</small>
+              </div>
+              <div class="form-group">
+                <label for="product-modal-price">Sale Price (₹) <span class="required">*</span></label>
+                <input type="number" id="product-modal-price" class="form-control-admin" min="0" readonly required>
+                <small class="field-hint">Auto-calculated from original price and discount. If no discount, matches Original Price.</small>
+              </div>
             </div>
-            <div class="form-group">
-              <label for="product-modal-discount">Discount Label <span class="required">*</span></label>
-              <input type="text" id="product-modal-discount" class="form-control-admin" placeholder="e.g. 40% OFF" required>
-            </div>
-            <div class="form-group">
-              <label for="product-modal-price">Sale Price (₹) <span class="required">*</span></label>
-              <input type="number" id="product-modal-price" class="form-control-admin" min="0" readonly required>
-              <small class="field-hint">Auto-calculated from original price and discount</small>
-            </div>
-          </div>
 
           <div class="form-group">
             <label>Product Image Source</label>

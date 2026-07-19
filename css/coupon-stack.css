@@ -1,0 +1,71 @@
+/* ==========================================================================
+   Multiple Coupon Stacking System Styles
+   ========================================================================== */
+
+/* Stacked Verification Container for Multiple Coupons */
+.coupon-stacked-container {
+  margin-top: 8px;
+  padding: 12px;
+  background-color: rgba(10, 92, 54, 0.08);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--deep-green);
+}
+
+.coupon-stack-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background-color: var(--white);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--deep-green);
+}
+
+.coupon-stack-item:last-child {
+  margin-bottom: 0;
+}
+
+.coupon-stack-item .coupon-code-name {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--deep-green);
+}
+
+.coupon-stack-item .coupon-checkmark {
+  font-size: 1.1rem;
+  color: var(--deep-green);
+  font-weight: 700;
+}
+
+/* Dynamic Effective Discount Percentage Badge */
+.coupon-badge-dynamic {
+  background-color: var(--deep-green);
+  color: var(--white);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Coupon Applied Row styling */
+.summary-row .coupon-discount-badge {
+  margin-left: 8px;
+}
+
+/* Coupon Input Reset on Valid Entry */
+.coupon-input.validated {
+  border-color: var(--deep-green);
+  background-color: rgba(10, 92, 54, 0.02);
+}
+
+/* Empty state for coupon container */
+.coupon-stacked-container:empty {
+  display: none;
+}

@@ -57,6 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initPreloader();
   initNoticeModal();
   setupNoticeTrigger();
+  
+  // Initialize coupon UI hydration on page load (for page refresh persistence)
+  // This ensures the green checkmark container syncs from localStorage
+  renderAppliedCouponsList();
 
   // Hydrate products from Firestore (async) then re-render catalog
   loadProductsFromFirestore().then(products => {
@@ -1219,6 +1223,10 @@ function updateCartUI() {
       </div>
     `;
     
+    // AUTO-RESET COUPONS when cart is emptied: clear applied coupons from localStorage
+    clearCouponStack();
+    renderAppliedCouponsList();
+    
     if (minOrderAlert) minOrderAlert.classList.remove('active');
     if (checkoutBtn) checkoutBtn.disabled = true;
     return;
@@ -1335,8 +1343,9 @@ function calculateOrderSummaryData() {
     totalOriginal += itemOriginalTotal;
     totalDiscounted += itemDiscountedTotal;
 
-    // Check if this product has an active discount badge
-    const hasDiscount = prod.discount && prod.discount.trim() !== '' && prod.discount !== 'Special';
+// Check if this product has an active discount badge
+    // Empty string or 'Special' means no discount
+    const hasDiscount = prod.discount && String(prod.discount).trim() !== '' && prod.discount !== 'Special';
 
     if (hasDiscount) {
       // Calculate savings for this item
@@ -1365,22 +1374,10 @@ function calculateOrderSummaryData() {
   // Spin wheel placeholder (injectable later)
   let spinWheelDiscount = 0;
 
-  // Coupon discount calculation - get applied coupon from localStorage
-  const appliedCouponCode = localStorage.getItem('applied_coupon_code');
-  let couponDiscount = 0;
-  let couponPercent = 0;
-  
-  if (appliedCouponCode) {
-    const coupons = getCoupons ? getCoupons() : [];
-    const coupon = coupons.find(c => c.code === appliedCouponCode && c.active === true);
-    
-    if (coupon && totalOriginal > 0) {
-      // Calculate coupon discount on the grand total before coupon
-      const subtotalBeforeCoupon = totalOriginal - totalSavings;
-      couponDiscount = Math.round(subtotalBeforeCoupon * (coupon.discountPercent / 100));
-      couponPercent = coupon.discountPercent;
-    }
-  }
+  // Coupon discount calculation - use multi-coupon system from coupon-stack.js
+  const couponData = calculateCouponDiscounts ? calculateCouponDiscounts(totalOriginal, totalSavings) : { totalCouponCashDiscount: 0, effectiveCouponPercent: 0, appliedCoupons: [] };
+  const couponDiscount = couponData.totalCouponCashDiscount;
+  const couponPercent = couponData.effectiveCouponPercent;
 
   // Grand Total = Total - Total Savings - Spin Wheel Discount - Coupon Discount
   const grandTotal = totalOriginal - totalSavings - spinWheelDiscount - couponDiscount;
@@ -1392,9 +1389,10 @@ function calculateOrderSummaryData() {
     overallPercent,          // Weighted average discount % (integer)
     nonDiscountedTotal,      // Sum of non-discounted items (final price × qty)
     spinWheelDiscount,       // Placeholder (0)
-    couponDiscount,          // Coupon discount amount
-    couponPercent,           // Coupon discount percentage
-    grandTotal               // Final payable amount
+    couponDiscount,          // Coupon discount amount (multi-coupon support)
+    couponPercent,           // Coupon discount percentage (effective)
+    grandTotal,               // Final payable amount
+    appliedCoupons: couponData.appliedCoupons || [] // For UI rendering
   };
 }
 
@@ -1404,20 +1402,26 @@ function calculateOrderSummaryData() {
    ========================================================================== */
 
 /**
- * Apply coupon code to the current cart.
- * Validates against Firestore and shows success/error feedback.
- * Includes guard rails: empty cart check and minimum order amount validation.
- */
+  * Apply coupon code to the current cart.
+  * Validates against Firestore and shows success/error feedback.
+  * Includes guard rails: empty cart check, minimum order amount validation, and duplicate prevention.
+  */
 function applyCoupon() {
   const couponInput = document.getElementById('coupon-input');
   const couponApplyBtn = document.getElementById('coupon-apply-btn');
-  const couponSuccessIndicator = document.getElementById('coupon-success-indicator');
   
   if (!couponInput) return;
   
   const code = couponInput.value.trim().toUpperCase();
   if (!code) {
     showToast('Please enter a coupon code.', 'error');
+    return;
+  }
+
+  // === VALIDATION CHECK 0: Prevent Duplicate Coupon Stacking ===
+  const appliedCouponsList = getAppliedCouponsList ? getAppliedCouponsList() : [];
+  if (appliedCouponsList.find(c => c.code === code)) {
+    showToast('This coupon code is already applied to this order summary!', 'error');
     return;
   }
 
@@ -1481,14 +1485,24 @@ function applyCoupon() {
       }
     }
     
-    // Valid coupon - apply and show success
+// Valid coupon - apply to stack and show success
+    // Use applyCouponToStack to add to the multi-coupon stack
+    applyCouponToStack(code, coupon.discountPercent);
+    
+    // Also set legacy key for backward compatibility with calculateOrderSummaryData
     localStorage.setItem('applied_coupon_code', code);
+    
+    // Render the stacked coupons container (green checkmark UI)
+    renderAppliedCouponsList();
+    
     populateOrderSummaryFromCart();
     
-    // Show success indicator with green background
-    couponSuccessIndicator.style.display = 'block';
-    couponInput.disabled = true;
+    // Re-enable coupon input for the next coupon code (duplicate check prevents same code)
+    couponInput.disabled = false;
     couponInput.classList.add('coupon-applied');
+    
+    // Clear the input value after successful application
+    couponInput.value = '';
     
     showToast(`Coupon ${code} applied successfully! ${coupon.discountPercent}% discount activated.`, 'success');
   }).catch(err => {
@@ -1596,6 +1610,44 @@ function populateOrderSummaryFromCart() {
   if (grandTotalEl) {
     grandTotalEl.textContent = `₹${data.grandTotal.toLocaleString()}`;
   }
+
+  // Render the applied coupons list (green checkmark container) for hydration
+  renderAppliedCouponsList();
+}
+
+/**
+ * Render the applied coupons list (green checkmark container) from localStorage.
+ * This ensures the UI syncs correctly on page refresh (hydration fix).
+ */
+function renderAppliedCouponsList() {
+  const container = document.getElementById('coupon-stacked-container');
+  if (!container) return;
+  
+  // Get applied coupons from localStorage
+  const appliedCoupons = getAppliedCouponsList ? getAppliedCouponsList() : [];
+  
+  // Clear container
+  container.innerHTML = '';
+  
+  // If no coupons, hide container
+  if (appliedCoupons.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  
+  // Show container
+  container.style.display = 'block';
+  
+  // Render each applied coupon as a green checkmark item
+  appliedCoupons.forEach(coupon => {
+    const item = document.createElement('div');
+    item.className = 'coupon-stack-item';
+    item.innerHTML = `
+      <span class="coupon-code-name">${escapeHtml(coupon.code)}</span>
+      <span class="coupon-checkmark">✓</span>
+    `;
+    container.appendChild(item);
+  });
 }
 
 /**
@@ -1603,8 +1655,8 @@ function populateOrderSummaryFromCart() {
  * Called after successful enquiry submission to clear the coupon display.
  */
 function resetCouponState() {
-  // Remove applied coupon from localStorage
-  localStorage.removeItem('applied_coupon_code');
+  // Remove applied coupons from localStorage
+  clearCouponStack();
   
   // Reset coupon input field
   const couponInput = document.getElementById('coupon-input');
@@ -1614,10 +1666,11 @@ function resetCouponState() {
     couponInput.classList.remove('coupon-applied');
   }
   
-  // Hide the success indicator (green ✓ APPLIED box)
-  const couponSuccessIndicator = document.getElementById('coupon-success-indicator');
-  if (couponSuccessIndicator) {
-    couponSuccessIndicator.style.display = 'none';
+  // Hide the stacked container
+  const stackedContainer = document.getElementById('coupon-stacked-container');
+  if (stackedContainer) {
+    stackedContainer.innerHTML = '';
+    stackedContainer.style.display = 'none';
   }
   
   // Reset coupon discount row to default state

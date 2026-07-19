@@ -510,7 +510,15 @@ function updateSalePriceFromDiscount() {
   if (!origPriceInput || !discountInput || !salePriceInput) return;
 
   const originalPrice = parseFloat(origPriceInput.value) || 0;
-  const discountPercent = parseDiscountPercent(discountInput.value);
+  const discountRaw = discountInput.value.trim();
+  
+  // If discount is empty, no discount - sale price equals original price
+  if (discountRaw === '') {
+    salePriceInput.value = originalPrice > 0 ? originalPrice : '';
+    return;
+  }
+  
+  const discountPercent = parseDiscountPercent(discountRaw);
   const salePrice = calculateSalePrice(originalPrice, discountPercent);
 
   salePriceInput.value = salePrice > 0 ? salePrice : '';
@@ -667,10 +675,20 @@ function saveProductData() {
   const categoryId = parseInt(document.getElementById('product-modal-cat').value);
   const qty = document.getElementById('product-modal-qty').value;
   const originalPrice = parseInt(document.getElementById('product-modal-orig-price').value);
-  const discountRaw = document.getElementById('product-modal-discount').value;
-  const discountPct = parseDiscountPercent(discountRaw);
-  const discount = discountPct > 0 ? `${Math.round(discountPct)}% OFF` : discountRaw.trim();
-  const price = calculateSalePrice(originalPrice, discountPct);
+  const discountRaw = document.getElementById('product-modal-discount').value.trim();
+  
+  // If discount is empty, no discount - sale price equals original price and discount field is empty string
+  let price, discount;
+  if (discountRaw === '') {
+    // No discount - sale price equals original price
+    price = originalPrice;
+    discount = '';
+  } else {
+    // Has discount - calculate sale price
+    const discountPct = parseDiscountPercent(discountRaw);
+    price = calculateSalePrice(originalPrice, discountPct);
+    discount = discountPct > 0 ? `${Math.round(discountPct)}% OFF` : '';
+  }
   const description = document.getElementById('product-modal-desc').value;
   const inStock = document.getElementById('product-modal-stock').checked;
   
