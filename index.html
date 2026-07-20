@@ -51,22 +51,22 @@
     <div class="ticker-wrap">
       <div class="ticker-content">
         <!-- Set 1 -->
-        <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹2,000</span></span>
+<span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
         <span class="ticker-spacer"></span>
         <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
         <span class="ticker-spacer"></span>
         <!-- Set 2 -->
-        <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹2,000</span></span>
+<span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
         <span class="ticker-spacer"></span>
         <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
         <span class="ticker-spacer"></span>
         <!-- Set 3 (duplicate half for seamless loop) -->
-        <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹2,000</span></span>
+        <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
         <span class="ticker-spacer"></span>
         <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
         <span class="ticker-spacer"></span>
         <!-- Set 4 (duplicate half for seamless loop) -->
-        <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹2,000</span></span>
+        <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
         <span class="ticker-spacer"></span>
         <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
         <span class="ticker-spacer"></span>
@@ -318,6 +318,18 @@
                 </select>
               </div>
             </div>
+            
+<!-- State Selection Row -->
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="enquiry-state">📍 SELECT YOUR STATE <span class="required">*</span></label>
+                <select id="enquiry-state" name="state" class="form-control" onchange="onStateChange(this.value)" required>
+                  <option value="Tamil Nadu" selected>Tamil Nadu (Min. ₹3,000)</option>
+                  <option value="Kerala">Kerala (Min. ₹5,000)</option>
+                  <option value="Telangana">Telangana (Min. ₹4,000)</option>
+                </select>
+              </div>
+            </div>
 
             <!-- ORDER SUMMARY CARD -->
             <div class="order-summary-card">
@@ -528,18 +540,18 @@
       <button class="close-drawer-btn" onclick="toggleCartDrawer()">✕</button>
     </div>
     
-    <div class="cart-drawer-body" id="cart-items-container">
-      <!-- Dynamically Rendered by JS -->
-      <div class="empty-cart-message">
-        <span class="empty-cart-icon">🛒</span>
-        <p>Your cart is empty!</p>
-        <p class="sub-text">Add at least ₹2,000 worth of firecrackers to place an enquiry.</p>
-        <button class="btn btn-primary" onclick="toggleCartDrawer()">Continue Shopping</button>
+      <div class="cart-drawer-body" id="cart-items-container">
+        <!-- Dynamically Rendered by JS -->
+        <div class="empty-cart-message">
+          <span class="empty-cart-icon">🛒</span>
+          <p>Your cart is empty!</p>
+          <p class="sub-text">Add items to your cart to place an enquiry.</p>
+          <button class="btn btn-primary" onclick="toggleCartDrawer()">Continue Shopping</button>
+        </div>
       </div>
-    </div>
-    
-     <div class="cart-drawer-footer">
-       <div class="minimum-order-warning error-text" id="min-order-alert">
+      
+       <div class="cart-drawer-footer">
+        <div class="minimum-order-warning error-text" id="min-order-alert">
          ⚠️ Minimum order required: <strong>₹2,000</strong>. Add <strong id="min-order-remaining">₹2,000</strong> more.
        </div>
        <div class="cart-subtotal-row">

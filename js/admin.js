@@ -386,11 +386,13 @@ function showDashboardSection(sectionName) {
     renderBannersTable();
   } else if (sectionName === 'offers') {
     loadOfferForm();
-  } else if (sectionName === 'coupons') {
+    } else if (sectionName === 'coupons') {
     loadCouponsFromFirestore().then(coupons => {
       adminCoupons = coupons;
       renderCouponsTable();
     });
+  } else if (sectionName === 'state-rules') {
+    loadStateRules();
   }
 }
 
@@ -1252,6 +1254,26 @@ function executePendingDelete() {
           showAdminToast('Failed to delete coupon: ' + (err.message || 'Unknown'), 'error');
         });
     }
+  } else if (deleteTargetType === 'state-rule') {
+    // Delete state rule from localStorage
+    adminStateRules = adminStateRules.filter(r => r.state !== deleteTargetId);
+    localStorage.setItem('kpr_state_rules', JSON.stringify(adminStateRules));
+    
+    // Delete from Firestore (async)
+    if (!window.db) {
+      console.error('[Firestore] window.db is NULL — cannot delete state rule from Firestore.');
+    } else {
+      deleteStateRuleFromFirestore(deleteTargetId)
+        .then(() => {
+          console.log('[Admin] ✓ State rule deleted from Firestore:', deleteTargetId);
+        })
+        .catch(err => {
+          console.error('[Admin] State rule delete failed:', err);
+          showAdminToast('Failed to delete state rule: ' + (err.message || 'Unknown'), 'error');
+        });
+    }
+    showAdminToast('State rule deleted successfully.', 'success');
+    renderStateRulesTable();
   }
   
   closeDeleteModal();
@@ -2031,7 +2053,185 @@ function confirmDelete(type, id) {
     label.innerText = 'This will permanently delete the selected homepage banner.';
   } else if (type === 'coupon') {
     label.innerText = 'This will permanently delete the selected coupon code.';
+  } else if (type === 'state-rule') {
+    label.innerText = 'This will permanently delete the selected state minimum rule.';
   }
 
   document.getElementById('delete-modal').style.display = 'flex';
 }
+
+/* ==========================================================================
+   STATE MINIMUM RULES - Admin Management Module
+   ========================================================================== */
+
+let adminStateRules = []; // Cache for state rules
+
+/**
+ * Render the state rules table in the admin panel.
+ */
+function renderStateRulesTable() {
+  const tbody = document.getElementById('state-rules-table-body');
+  if (!tbody) return;
+
+  const rules = adminStateRules;
+  tbody.innerHTML = '';
+
+  if (rules.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No state rules configured yet.</td></tr>';
+    return;
+  }
+
+  rules.forEach(rule => {
+    tbody.innerHTML += `
+      <tr>
+        <td><strong>${escapeHtml(rule.state)}</strong></td>
+        <td>₹${rule.minimumOrder.toLocaleString('en-IN')}</td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-action edit" onclick="openStateRuleEditModal('${escapeHtml(rule.state)}')" title="Edit Rule">✏️</button>
+            <button class="btn-action delete" onclick="confirmDelete('state-rule', '${escapeHtml(rule.state)}')" title="Delete Rule">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/**
+ * Open the Add State Rule modal.
+ */
+function openStateRuleAddModal() {
+  document.getElementById('state-rule-modal-title').innerText = 'Add State Rule';
+  document.getElementById('state-rule-form').reset();
+  document.getElementById('state-rule-modal-id').value = '';
+  document.getElementById('state-rule-modal').style.display = 'flex';
+}
+
+/**
+ * Open the Edit State Rule modal.
+ */
+function openStateRuleEditModal(state) {
+  const rule = adminStateRules.find(r => r.state === state);
+  if (!rule) return;
+
+  document.getElementById('state-rule-modal-title').innerText = 'Edit State Rule';
+  document.getElementById('state-rule-modal-id').value = rule.state;
+  document.getElementById('state-rule-name').value = rule.state;
+  document.getElementById('state-rule-minimum').value = rule.minimumOrder;
+
+  document.getElementById('state-rule-modal').style.display = 'flex';
+}
+
+/**
+ * Close the State Rule modal.
+ */
+function closeStateRuleModal() {
+  document.getElementById('state-rule-modal').style.display = 'none';
+}
+
+/**
+ * Save state rule data to Firestore.
+ */
+function saveStateRuleData() {
+  const stateName = document.getElementById('state-rule-name').value.trim();
+  const minimumOrder = parseInt(document.getElementById('state-rule-minimum').value) || 0;
+  const existingState = document.getElementById('state-rule-modal-id').value;
+
+  if (!stateName) {
+    showAdminToast('State name is required.', 'error');
+    return;
+  }
+
+  if (minimumOrder < 1) {
+    showAdminToast('Minimum order must be at least 1.', 'error');
+    return;
+  }
+
+  // Check for duplicate state (when adding new)
+  if (!existingState && adminStateRules.some(r => r.state.toLowerCase() === stateName.toLowerCase())) {
+    showAdminToast('State already exists. Please edit the existing rule instead.', 'error');
+    return;
+  }
+
+  // If editing and state name changed, update the existing rule
+  let rules = [...adminStateRules];
+  if (existingState) {
+    // Editing existing - remove old entry
+    rules = rules.filter(r => r.state !== existingState);
+  }
+
+  const ruleData = {
+    state: stateName,
+    minimumOrder: minimumOrder
+  };
+
+  rules.push(ruleData);
+
+  showAdminToast('Saving state rule...', 'info');
+
+  if (!window.db) {
+    console.error('[Firestore] window.db is NULL — cannot sync state rules.');
+    showAdminToast('Firestore not connected. State rule saved locally only.', 'error');
+    closeStateRuleModal();
+    adminStateRules = rules;
+    renderStateRulesTable();
+    return;
+  }
+
+  // Check if admin is authenticated
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) {
+      console.error('[Admin] No authenticated admin user for state rule save.');
+      showAdminToast('Admin authentication required. Please log in again.', 'error');
+      closeStateRuleModal();
+      return;
+    }
+  }
+
+  // Save to Firestore
+  const firestoreRules = rules.map(r => ({ state: r.state, minimumOrder: r.minimumOrder }));
+  saveStateRulesToFirestore(firestoreRules)
+    .then(() => {
+      console.log('[Admin] ✓ State rules saved to Firestore.');
+      showAdminToast('State rule saved to cloud successfully!', 'success');
+    })
+    .catch(err => {
+      console.error('[Admin] State rules save failed:', err);
+      showAdminToast('Cloud sync failed: ' + (err.message || 'Unknown'), 'error');
+    });
+
+  closeStateRuleModal();
+  adminStateRules = rules;
+  renderStateRulesTable();
+}
+
+/**
+ * Load state rules from Firestore on page load.
+ */
+function loadStateRules() {
+  loadStateMinimumRulesFromFirestore()
+    .then(rules => {
+      adminStateRules = rules || [];
+      renderStateRulesTable();
+      console.log('[Admin] State rules loaded:', adminStateRules.length);
+    })
+    .catch(err => {
+      console.error('[Admin] Failed to load state rules:', err);
+      adminStateRules = getStateMinimumRules() || [];
+      renderStateRulesTable();
+    });
+}
+
+/**
+ * Initialize state rules form event listener.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  const stateRuleForm = document.getElementById('state-rule-form');
+  if (stateRuleForm) {
+    stateRuleForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      saveStateRuleData();
+    });
+  }
+});

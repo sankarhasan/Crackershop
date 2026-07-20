@@ -32,5 +32,10 @@ service cloud.firestore {
     match /coupons/{couponId} {
       allow read, write: if true;
     }
+
+    // State Rules collection: public read for frontend, write for admin
+    match /stateRules/{stateRuleId} {
+      allow read, write: if true;
+    }
   }
 }

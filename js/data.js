@@ -894,3 +894,170 @@ function seedFirestoreCoupons(sourceCoupons) {
     console.log('[Firestore] Seeded', couponsToSeed.length, 'coupons.');
   });
 }
+
+/* ==========================================================================
+   STATE MINIMUM ORDER RULES - Firestore Sync Layer
+   - getStateMinimumRules(): fetches state rules from Firestore, caches to localStorage
+   - saveStateMinimumRules(rules): upserts all state rules to Firestore
+   - saveStateRuleToFirestore(rule): upserts a single state rule
+   - deleteStateRuleFromFirestore(stateName): removes a state rule by name
+   All functions are async and return Promises.
+   ========================================================================== */
+
+const DEFAULT_STATE_RULES = [
+  { state: 'Tamil Nadu', minimumOrder: 3000 },
+  { state: 'Kerala', minimumOrder: 5000 },
+  { state: 'Telangana', minimumOrder: 4000 }
+];
+
+/**
+ * Get state minimum rules from localStorage, falling back to defaults.
+ */
+function getStateMinimumRules() {
+  const stored = localStorage.getItem('kpr_state_rules');
+  if (!stored) {
+    console.warn('[getStateMinimumRules] localStorage empty. Returning DEFAULT_STATE_RULES.');
+    return DEFAULT_STATE_RULES;
+  }
+  try {
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) {
+      console.error('[getStateMinimumRules] Parsed data is not an array. Returning DEFAULT_STATE_RULES.');
+      return DEFAULT_STATE_RULES;
+    }
+    return parsed;
+  } catch (e) {
+    console.error('[getStateMinimumRules] JSON.parse failed. Returning DEFAULT_STATE_RULES.', e);
+    return DEFAULT_STATE_RULES;
+  }
+}
+
+/**
+ * Get the minimum order value for a specific state.
+ * @param {string} stateName - The state name to look up
+ * @returns {number} - The minimum order value, or 3000 as default
+ */
+function getStateMinimumOrder(stateName) {
+  if (!stateName) return 3000;
+  const rules = getStateMinimumRules();
+  const rule = rules.find(r => r.state.toLowerCase() === stateName.toLowerCase());
+  return rule ? rule.minimumOrder : 3000; // Default to 3000 if state not found
+}
+
+/**
+ * Fetch all state minimum rules from Firestore (LIVE SERVER).
+ * Caches to localStorage under 'kpr_state_rules' for instant subsequent reads.
+ */
+function loadStateMinimumRulesFromFirestore() {
+  console.log('[data.js] loadStateMinimumRulesFromFirestore() called. window.db:', window.db ? 'CONNECTED' : 'NULL');
+
+  if (!window.db) {
+    console.warn('[data.js] window.db is NULL. Returning localStorage state rules.');
+    return Promise.resolve(getStateMinimumRules());
+  }
+
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Firestore state rules fetch timeout (10s)')), 10000);
+  });
+
+  const fetchPromise = window.db.collection('stateRules')
+    .orderBy('state', 'asc')
+    .get({ source: 'server' })
+    .then(snapshot => {
+      console.log('[data.js] Firestore state rules snapshot received. Empty?', snapshot.empty);
+
+      if (snapshot.empty) {
+        console.log('[data.js] State rules collection empty on server. Seeding DEFAULT_STATE_RULES.');
+        return seedFirestoreStateRules(DEFAULT_STATE_RULES).then(() => DEFAULT_STATE_RULES);
+      }
+
+      const rules = [];
+      snapshot.forEach(doc => {
+        rules.push(doc.data());
+      });
+
+      console.log('[data.js] ✓ Loaded', rules.length, 'state rules from Firestore server.');
+      localStorage.setItem('kpr_state_rules', JSON.stringify(rules));
+      return rules;
+    })
+    .catch(err => {
+      console.error('[data.js] ✗ Firestore state rules fetch FAILED:', err);
+      return getStateMinimumRules();
+    });
+
+  return Promise.race([fetchPromise, timeoutPromise]).catch(timeoutErr => {
+    console.error('[data.js] ✗ Timeout in loadStateMinimumRulesFromFirestore:', timeoutErr);
+    return getStateMinimumRules();
+  });
+}
+
+/**
+ * Save (upsert) all state rules to Firestore.
+ */
+function saveStateRulesToFirestore(rules) {
+  if (!window.db) return Promise.resolve();
+
+  const batch = window.db.batch();
+  rules.forEach(rule => {
+    const ref = window.db.collection('stateRules').doc(String(rule.state));
+    batch.set(ref, {
+      state: rule.state,
+      minimumOrder: rule.minimumOrder
+    });
+  });
+
+  return batch.commit().then(() => {
+    localStorage.setItem('kpr_state_rules', JSON.stringify(rules));
+    console.log('[Firestore] Saved', rules.length, 'state rules.');
+  }).catch(err => {
+    console.error('[Firestore] Failed to save state rules:', err);
+    throw err;
+  });
+}
+
+/**
+ * One-time bulk seed: pushes state rules into Firestore.
+ */
+function seedFirestoreStateRules(sourceRules) {
+  if (!window.db) return Promise.resolve();
+
+  const rulesToSeed = (sourceRules && sourceRules.length > 0)
+    ? sourceRules
+    : DEFAULT_STATE_RULES;
+
+  const batch = window.db.batch();
+  rulesToSeed.forEach(rule => {
+    const ref = window.db.collection('stateRules').doc(String(rule.state));
+    batch.set(ref, {
+      state: rule.state,
+      minimumOrder: rule.minimumOrder
+    });
+  });
+
+  return batch.commit().then(() => {
+    localStorage.setItem('kpr_state_rules', JSON.stringify(rulesToSeed));
+    console.log('[Firestore] Seeded', rulesToSeed.length, 'state rules.');
+  });
+}
+
+/**
+ * Delete a state rule from Firestore by state name.
+ * @param {string} stateName - The state name to delete
+ */
+function deleteStateRuleFromFirestore(stateName) {
+  if (!window.db) return Promise.resolve();
+
+  return window.db.collection('stateRules')
+    .doc(String(stateName))
+    .delete()
+    .then(() => {
+      console.log('[data.js] ✓ State rule deleted from Firestore:', stateName);
+      // Update localStorage cache
+      const cached = getStateMinimumRules().filter(r => r.state !== stateName);
+      localStorage.setItem('kpr_state_rules', JSON.stringify(cached));
+    })
+    .catch(err => {
+      console.error('[data.js] ✗ Firestore state rule delete FAILED:', err);
+      throw err;
+    });
+}
