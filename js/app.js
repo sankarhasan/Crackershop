@@ -1229,6 +1229,11 @@ function updateCartUI() {
     
     if (minOrderAlert) minOrderAlert.classList.remove('active');
     if (checkoutBtn) checkoutBtn.disabled = true;
+    
+    // Sync all product card action buttons to ADD state when cart is emptied
+    const allProducts = getProducts();
+    allProducts.forEach(prod => syncProductAction(prod.id));
+    
     return;
   }
   
@@ -1268,13 +1273,16 @@ let cartImgContent = `<div class="cart-item-img-placeholder p-bg-${bgIndex}">${e
   if (subtotal < MINIMUM_ORDER_VALUE) {
     if (minOrderAlert) {
       minOrderAlert.classList.add('active');
-      minOrderRem.innerText = `₹${(MINIMUM_ORDER_VALUE - subtotal).toLocaleString()}`;
+      if (minOrderRem) minOrderRem.innerText = `₹${(MINIMUM_ORDER_VALUE - subtotal).toLocaleString()}`;
     }
     if (checkoutBtn) checkoutBtn.disabled = true;
   } else {
     if (minOrderAlert) minOrderAlert.classList.remove('active');
     if (checkoutBtn) checkoutBtn.disabled = false;
   }
+  
+  // Sync all product card action buttons to reflect current cart state
+  cart.forEach(item => syncProductAction(item.id));
 }
 
 function adjustDrawerQty(prodId, change) {
@@ -1579,20 +1587,12 @@ function populateOrderSummaryFromCart() {
   if (totalEl) totalEl.textContent = `₹${data.totalOriginal.toLocaleString()}`;
 
   if (discountEl) {
-    if (data.totalSavings > 0) {
-      discountEl.textContent = `-₹${data.totalSavings.toLocaleString()}`;
-    } else {
-      discountEl.textContent = `-₹0`;
-    }
+    discountEl.textContent = data.totalSavings > 0 ? `-₹${data.totalSavings.toLocaleString()}` : '-₹0';
   }
 
   // Update the discount badge with weighted average percentage
   if (discountBadge) {
-    if (data.overallPercent > 0) {
-      discountBadge.textContent = `${data.overallPercent}% OFF`;
-    } else {
-      discountBadge.textContent = `0% OFF`;
-    }
+    discountBadge.textContent = data.overallPercent > 0 ? `${data.overallPercent}% OFF` : '0% OFF';
   }
 
   if (nonDiscountedEl) {
@@ -1604,14 +1604,17 @@ function populateOrderSummaryFromCart() {
   }
 
   // Coupon discount display
-  if (couponDiscountEl && couponBadgeEl) {
+  if (couponDiscountEl) {
     if (data.couponDiscount > 0) {
       couponDiscountEl.textContent = `-₹${data.couponDiscount.toLocaleString()}`;
-      couponBadgeEl.style.display = 'inline-block';
-      couponBadgeEl.textContent = `${data.couponPercent}% OFF`;
     } else {
       couponDiscountEl.textContent = '—';
-      couponBadgeEl.style.display = 'none';
+    }
+  }
+  if (couponBadgeEl) {
+    couponBadgeEl.style.display = data.couponDiscount > 0 ? 'inline-block' : 'none';
+    if (data.couponDiscount > 0) {
+      couponBadgeEl.textContent = `${data.couponPercent}% OFF`;
     }
   }
 
