@@ -1622,47 +1622,73 @@ function populateOrderSummaryFromCart() {
   // Render the applied coupons list (green checkmark container) for hydration
   renderAppliedCouponsList();
 
-  // === DYNAMIC SUBMIT BUTTON STATE (POST-COUPON VALUE) ===
-  // Evaluate submit button state based on FINAL grandTotal after coupons
-  const submitBtn = document.getElementById('enquiry-submit-btn');
-  const warningBox = document.getElementById('order-summary-warning');
-
-  if (data.grandTotal < MINIMUM_ORDER_VALUE) {
-    // Disable submit button and show warning box
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.classList.add('btn-disabled');
-    }
-    
-    // Calculate short amount dynamically
-    const shortAmount = MINIMUM_ORDER_VALUE - data.grandTotal;
-    
-    // Update warning box text with dynamic values
-    const warningGrandTotal = document.getElementById('warning-grand-total');
-    const warningShortAmount = document.getElementById('warning-short-amount');
-    
-    if (warningGrandTotal) {
-      warningGrandTotal.textContent = data.grandTotal.toLocaleString();
-    }
-    if (warningShortAmount) {
-      warningShortAmount.textContent = shortAmount.toLocaleString();
-    }
-    
-    // Show warning box
-    if (warningBox) {
-      warningBox.style.display = 'flex';
-    }
-  } else {
-    // Enable submit button and hide warning box
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.classList.remove('btn-disabled');
-    }
-    if (warningBox) {
-      warningBox.style.display = 'none';
-    }
+   // === DYNAMIC SUBMIT BUTTON STATE (POST-COUPON VALUE) ===
+   // Evaluate submit button state based on FINAL grandTotal after coupons
+   const submitBtn = document.getElementById('enquiry-submit-btn');
+   const warningBox = document.getElementById('order-summary-warning');
+   
+   // Check if coupon is applied (any coupon in the stack)
+   const appliedCoupons = getAppliedCouponsList ? getAppliedCouponsList() : [];
+   const isCouponApplied = appliedCoupons.length > 0;
+   
+   // Calculate short amount dynamically
+   const shortAmount = MINIMUM_ORDER_VALUE - data.grandTotal;
+   
+   // === PRECISE WARNING RENDER CONDITIONS ===
+   // Calculate subtotal for precise warning logic
+   const cartSubtotal = data.totalOriginal - data.totalSavings;
+   
+   // 1. BASE CASE: Cart Subtotal itself is below ₹2000
+   if (cartSubtotal < MINIMUM_ORDER_VALUE) {
+     // Disable submit button
+     if (submitBtn) {
+       submitBtn.disabled = true;
+       submitBtn.classList.add('btn-disabled');
+     }
+     
+     // Render ONLY the standard baseline warning box (Hide the coupon drop message entirely)
+     const warningTextEl = document.querySelector('#order-summary-warning .warning-text');
+     if (warningTextEl) {
+       warningTextEl.innerHTML = `⚠️ Minimum order required: ₹2,000. Add ₹${(MINIMUM_ORDER_VALUE - cartSubtotal).toLocaleString()} more.`;
+     }
+     
+     // Show warning box
+     if (warningBox) {
+       warningBox.style.display = 'flex';
+     }
+   } 
+   // 2. COUPON DROP CASE: Subtotal was valid (>=2000) BUT Coupon applied drops Grand Total below ₹2000
+   else if (cartSubtotal >= MINIMUM_ORDER_VALUE && data.grandTotal < MINIMUM_ORDER_VALUE) {
+     // Disable submit button
+     if (submitBtn) {
+       submitBtn.disabled = true;
+       submitBtn.classList.add('btn-disabled');
+     }
+     
+     // Render ONLY this premium drop message warning box
+     const warningTextEl = document.querySelector('#order-summary-warning .warning-text');
+     if (warningTextEl) {
+       warningTextEl.innerHTML = `⚠️ Oops! Your final total dropped to ₹${data.grandTotal.toLocaleString()} after the coupon discount. Please add ₹${(MINIMUM_ORDER_VALUE - data.grandTotal).toLocaleString()} more worth of crackers to complete your order!`;
+     }
+     
+     // Show warning box
+     if (warningBox) {
+       warningBox.style.display = 'flex';
+     }
+   } else {
+     // Enable submit button and hide warning box
+     if (submitBtn) {
+       submitBtn.disabled = false;
+       submitBtn.classList.remove('btn-disabled');
+     }
+     if (warningBox) {
+       warningBox.style.display = 'none';
+     }
+   }
+   
+    // === SYNC WARNING TO CART DRAWER SIDEBAR ===
+    updateCartDrawerWarning(data.grandTotal, data.couponDiscount, isCouponApplied);
   }
-}
 
 /**
  * Trigger shake animation on the warning box when user attempts to submit
@@ -1744,6 +1770,75 @@ function resetCouponState() {
   }
   if (couponBadgeEl) {
     couponBadgeEl.style.display = 'none';
+  }
+}
+
+/**
+ * Update the cart drawer sidebar with grand total and coupon warning.
+ * This implements conditional rendering based on coupon state.
+ * Uses a single warning box (min-order-alert) positioned above Cart Subtotal.
+ */
+function updateCartDrawerWarning(grandTotal, couponDiscount, isCouponApplied) {
+  const drawerSubtotal = document.getElementById('drawer-subtotal');
+  const drawerCouponRow = document.getElementById('cart-coupon-row');
+  const drawerCouponDiscount = document.getElementById('drawer-coupon-discount');
+  const drawerGrandTotalRow = document.getElementById('cart-grand-total-row');
+  const drawerGrandTotal = document.getElementById('drawer-grand-total');
+  const cartTotal = document.getElementById('cart-total');
+  const minOrderAlert = document.getElementById('min-order-alert');
+  const checkoutBtn = document.getElementById('checkout-btn');
+
+  // Calculate subtotal from cart
+  const subtotal = calculateSubtotal();
+  
+  // Update cart subtotal in header and drawer
+  if (drawerSubtotal) drawerSubtotal.textContent = `₹${subtotal.toLocaleString()}`;
+  
+  // === CONDITIONAL RENDERING ===
+  // State A: No coupon applied - only show Cart Subtotal
+  // State B: Coupon applied - show Coupon Applied row + Grand Total
+  if (couponDiscount && couponDiscount > 0) {
+    // COUPON APPLIED STATE
+    if (drawerCouponRow) drawerCouponRow.style.display = 'flex';
+    if (drawerCouponDiscount) drawerCouponDiscount.textContent = `-₹${couponDiscount.toLocaleString()}`;
+    
+    // Show Grand Total row
+    if (drawerGrandTotalRow) drawerGrandTotalRow.style.display = 'flex';
+    if (drawerGrandTotal) drawerGrandTotal.textContent = `₹${grandTotal.toLocaleString()}`;
+    
+    // Update top navbar cart total to show grand total
+    if (cartTotal) cartTotal.textContent = `₹${grandTotal.toLocaleString()}`;
+  } else {
+    // NO COUPON STATE
+    // Hide Coupon Applied and Grand Total rows
+    if (drawerCouponRow) drawerCouponRow.style.display = 'none';
+    if (drawerGrandTotalRow) drawerGrandTotalRow.style.display = 'none';
+    
+    // Update top navbar cart total to show subtotal
+    if (cartTotal) cartTotal.textContent = `₹${subtotal.toLocaleString()}`;
+  }
+
+  // === SINGLE WARNING BOX LOGIC (using min-order-alert) ===
+  // Ensure ONLY ONE warning box displays at any given time
+  if (minOrderAlert) {
+    // 1. BASE CASE: Cart Subtotal itself is below ₹2000
+    if (subtotal < MINIMUM_ORDER_VALUE) {
+      // Render ONLY the standard baseline warning box
+      minOrderAlert.style.display = 'flex';
+      minOrderAlert.innerHTML = `⚠️ Minimum order required: ₹2,000. Add ₹${(MINIMUM_ORDER_VALUE - subtotal).toLocaleString()} more.`;
+      if (checkoutBtn) checkoutBtn.disabled = true;
+    } 
+    // 2. COUPON DROP CASE: Subtotal was valid (>=2000) BUT Coupon applied drops Grand Total below ₹2000
+    else if (subtotal >= MINIMUM_ORDER_VALUE && grandTotal < MINIMUM_ORDER_VALUE) {
+      // Render ONLY this premium drop message warning box
+      minOrderAlert.style.display = 'flex';
+      minOrderAlert.innerHTML = `⚠️ Oops! Your final total dropped to ₹${grandTotal.toLocaleString()} after the coupon discount. Please add ₹${(MINIMUM_ORDER_VALUE - grandTotal).toLocaleString()} more worth of crackers to complete your order!`;
+      if (checkoutBtn) checkoutBtn.disabled = true;
+    } else {
+      // No warning - hide the box
+      minOrderAlert.style.display = 'none';
+      if (checkoutBtn) checkoutBtn.disabled = false;
+    }
   }
 }
 
