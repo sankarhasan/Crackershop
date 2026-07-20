@@ -377,11 +377,11 @@
               </div>
             </div>
             
-             <!-- Minimum Order Warning Box (shown when grandTotal < ₹2000 after coupons) -->
-             <div id="order-summary-warning" class="order-summary-warning" style="display: none;">
-               <span class="warning-icon">⚠️</span>
-               <span class="warning-text">⚠️ Minimum order required: ₹2,000. Add ₹<span id="warning-short-amount">2,000</span> more.</span>
-             </div>
+              <!-- Minimum Order Warning Box (shown when grandTotal < minimum after coupons) -->
+              <div id="order-summary-warning" class="order-summary-warning" style="display: none;">
+                <span class="warning-icon">⚠️</span>
+                <span class="warning-text">⚠️ Minimum order required: calculating...</span>
+              </div>
              <button type="submit" id="enquiry-submit-btn" class="btn btn-primary btn-block btn-lg" onclick="triggerMinimumOrderShake()">Submit Quick Enquiry</button>
            </form>
          </div>
@@ -552,7 +552,7 @@
       
        <div class="cart-drawer-footer">
         <div class="minimum-order-warning error-text" id="min-order-alert">
-         ⚠️ Minimum order required: <strong>₹2,000</strong>. Add <strong id="min-order-remaining">₹2,000</strong> more.
+         ⚠️ Minimum order required: <strong id="min-order-value">₹3,000</strong>. Add <strong id="min-order-remaining">₹3,000</strong> more.
        </div>
        <div class="cart-subtotal-row">
          <span>Cart Subtotal:</span>

@@ -37,18 +37,30 @@ function onStateChange(state) {
         CURRENT_MIN_LIMIT = getStateMinimumOrder(state);
         MINIMUM_ORDER_VALUE = CURRENT_MIN_LIMIT;
         console.log('[State] Selected state:', state, 'Min limit:', CURRENT_MIN_LIMIT);
+        // Update cart UI and Order Summary AFTER state value is updated
+        updateCartUI();
+        if (typeof populateOrderSummaryFromCart === 'function') {
+          populateOrderSummaryFromCart();
+        }
       })
       .catch(() => {
         CURRENT_MIN_LIMIT = newStateMinValue;
         MINIMUM_ORDER_VALUE = CURRENT_MIN_LIMIT;
+        // Update cart UI and Order Summary AFTER state value is updated
+        updateCartUI();
+        if (typeof populateOrderSummaryFromCart === 'function') {
+          populateOrderSummaryFromCart();
+        }
       });
   } else {
     CURRENT_MIN_LIMIT = newStateMinValue;
     MINIMUM_ORDER_VALUE = CURRENT_MIN_LIMIT;
+    // Update cart UI and Order Summary
+    updateCartUI();
+    if (typeof populateOrderSummaryFromCart === 'function') {
+      populateOrderSummaryFromCart();
+    }
   }
-  
-  // Update cart UI with new validation
-  updateCartUI();
 }
 
 /**
@@ -1281,7 +1293,7 @@ function updateCartUI() {
       <div class="empty-cart-message">
         <span class="empty-cart-icon">🛒</span>
         <p>Your cart is empty!</p>
-        <p class="sub-text">Add at least ₹2,000 worth of firecrackers to place an enquiry.</p>
+        <p class="sub-text">Add at least ₹${MINIMUM_ORDER_VALUE.toLocaleString()} worth of firecrackers to place an enquiry.</p>
         <button class="btn btn-primary" onclick="toggleCartDrawer()">Continue Shopping</button>
       </div>
     `;
@@ -1364,7 +1376,7 @@ function checkoutCart() {
   const checkoutBtn = document.getElementById('checkout-btn');
   if (checkoutBtn && checkoutBtn.disabled) {
     triggerMinimumOrderShake();
-    showToast('Please add more crackers to reach the minimum order of ₹2,000!', 'error');
+    showToast(`Please add more crackers to reach the minimum order of ₹${MINIMUM_ORDER_VALUE.toLocaleString()}!`, 'error');
     return;
   }
   
@@ -1515,12 +1527,12 @@ function applyCoupon() {
     return;
   }
 
-  // === VALIDATION CHECK 2: Minimum Order Purchase Cap (₹2,000) ===
+  // === VALIDATION CHECK 2: Minimum Order Purchase Cap ===
   const orderSummary = calculateOrderSummaryData();
   const eligibleTotal = orderSummary.totalOriginal - orderSummary.totalSavings;
   
-  if (eligibleTotal < 2000) {
-    showToast('Minimum purchase amount required to use this coupon code is ₹2,000.', 'error');
+  if (eligibleTotal < MINIMUM_ORDER_VALUE) {
+    showToast(`Minimum purchase amount required to use this coupon code is ₹${MINIMUM_ORDER_VALUE.toLocaleString()}.`, 'error');
     // Scroll to products section
     const productsSection = document.getElementById('products');
     if (productsSection) {
@@ -1704,7 +1716,7 @@ function populateOrderSummaryFromCart() {
    // Calculate subtotal for precise warning logic
    const cartSubtotal = data.totalOriginal - data.totalSavings;
    
-  // 1. BASE CASE: Cart Subtotal itself is below ₹2000
+  // 1. BASE CASE: Cart Subtotal itself is below minimum
   if (cartSubtotal < MINIMUM_ORDER_VALUE) {
     // Disable submit button
     if (submitBtn) {
@@ -1715,7 +1727,7 @@ function populateOrderSummaryFromCart() {
     // Render ONLY the standard baseline warning box (Hide the coupon drop message entirely)
     const warningTextEl = document.querySelector('#order-summary-warning .warning-text');
     if (warningTextEl) {
-      warningTextEl.innerHTML = `⚠️ Minimum order required: ₹2,000. Add ₹${(MINIMUM_ORDER_VALUE - cartSubtotal).toLocaleString()} more.`;
+      warningTextEl.innerHTML = `⚠️ Minimum order required: ₹${MINIMUM_ORDER_VALUE.toLocaleString()}. Add ₹${(MINIMUM_ORDER_VALUE - cartSubtotal).toLocaleString()} more.`;
     }
     
     // Show warning box
@@ -1723,7 +1735,7 @@ function populateOrderSummaryFromCart() {
       warningBox.style.display = 'flex';
     }
   } 
-  // 2. COUPON DROP CASE: Subtotal was valid (>=2000) BUT Coupon applied drops Grand Total below ₹2000
+  // 2. COUPON DROP CASE: Subtotal was valid (>=minimum) BUT Coupon applied drops Grand Total below minimum
   else if (cartSubtotal >= MINIMUM_ORDER_VALUE && data.grandTotal < MINIMUM_ORDER_VALUE) {
     // Disable submit button
     if (submitBtn) {
@@ -1990,14 +2002,14 @@ function initEnquiryForm() {
     e.preventDefault();
     console.log('[Enquiry] Form submitted.');
     
-    // Check if grandTotal is below minimum - trigger shake animation and block submission
-    const enquirySubmitBtn = document.getElementById('enquiry-submit-btn');
-    if (enquirySubmitBtn && enquirySubmitBtn.disabled) {
-      console.log('[Enquiry] Submit blocked: grandTotal below minimum');
-      triggerMinimumOrderShake();
-      showToast('Please add more crackers to reach the minimum order of ₹2,000!', 'error');
-      return;
-    }
+  // Check if grandTotal is below minimum - trigger shake animation and block submission
+  const enquirySubmitBtn = document.getElementById('enquiry-submit-btn');
+  if (enquirySubmitBtn && enquirySubmitBtn.disabled) {
+    console.log('[Enquiry] Submit blocked: grandTotal below minimum');
+    triggerMinimumOrderShake();
+    showToast(`Please add more crackers to reach the minimum order of ₹${MINIMUM_ORDER_VALUE.toLocaleString()}!`, 'error');
+    return;
+  }
     
     const name = document.getElementById('enquiry-name')?.value.trim();
     const phone = document.getElementById('enquiry-phone')?.value.trim();
