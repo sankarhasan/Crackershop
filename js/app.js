@@ -2071,14 +2071,14 @@ function initEnquiryForm() {
     return;
   }
     
-    const name = document.getElementById('enquiry-name')?.value.trim();
-    const phone = document.getElementById('enquiry-phone')?.value.trim();
-    const deliveryAddress = document.getElementById('enquiry-delivery-address')?.value.trim();
-    const category = document.getElementById('enquiry-category')?.value;
-    // Note: "enquiry-message" field was removed from HTML, so we safely default to empty string
-    const message = document.getElementById('enquiry-message')?.value.trim() || "";
-    
-    console.log('[Enquiry] Data:', { name, phone, deliveryAddress, category, message });
+     const name = document.getElementById('enquiry-name')?.value.trim();
+     const phone = document.getElementById('enquiry-phone')?.value.trim();
+     const address = document.getElementById('enquiry-delivery-address')?.value.trim();
+     const pincode = document.getElementById('enquiry-pincode')?.value.trim();
+     // Optional enquiry message field
+     const enquiryMessage = document.getElementById('enquiry-message')?.value.trim() || "";
+     
+     console.log('[Enquiry] Data:', { name, phone, address, pincode, enquiryMessage });
     
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn ? submitBtn.innerText : '';
@@ -2141,8 +2141,8 @@ function initEnquiryForm() {
         customer: {
           name,
           phone,
-          deliveryAddress,
-          categoryInterest: category
+          address,
+          pincode
         },
         // Cart Items Array
         cartItems: cartItemsPayload,
@@ -2159,8 +2159,8 @@ function initEnquiryForm() {
           couponPercent: orderSummary.couponPercent || 0,
           grandTotal: orderSummary.grandTotal || 0
         },
-        // Raw message (empty string fallback since enquiry-message field was removed from HTML)
-        message: message || "",
+        // Enquiry Message (optional)
+        enquiryMessage: enquiryMessage || "",
         // Status & Timestamp
         status: 'new',
         timestamp: firebase.firestore.FieldValue.serverTimestamp()

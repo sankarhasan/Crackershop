@@ -235,28 +235,30 @@ function onAdminAuthenticated() {
         console.log('[Admin] ✓ Direct fetch enquiries complete. Docs:', snapshot.docs.length);
         if (firestoreEnquiries.length === 0 && snapshot.docs.length > 0) {
           // Only update if onSnapshot hasn't already populated the data
-          firestoreEnquiries = snapshot.docs.map((doc) => {
-            const d = doc.data() || {};
-            let dateStr;
-            if (d.timestamp && typeof d.timestamp.toDate === 'function') {
-              dateStr = d.timestamp.toDate().toISOString();
-            } else {
-              dateStr = d.date || new Date().toISOString();
-            }
-            const customer = d.customer || {};
-            return {
-              docId: doc.id,
-              name: customer.name || d.name || '',
-              phone: customer.phone || d.phone || '',
-              deliveryAddress: customer.deliveryAddress || d.deliveryAddress || '',
-              category: customer.categoryInterest || d.category || '',
-              message: d.message || '',
-              status: d.status || 'new',
-              date: dateStr,
-              cartItems: d.cartItems || null,
-              financialBreakdown: d.financialBreakdown || null
-            };
-          });
+  firestoreEnquiries = snapshot.docs.map((doc) => {
+        const d = doc.data() || {};
+        let dateStr;
+        if (d.timestamp && typeof d.timestamp.toDate === 'function') {
+          dateStr = d.timestamp.toDate().toISOString();
+        } else {
+          dateStr = d.date || new Date().toISOString();
+        }
+        const customer = d.customer || {};
+        return {
+          docId: doc.id,
+          name: customer.name || d.name || '',
+          phone: customer.phone || d.phone || '',
+          deliveryAddress: customer.deliveryAddress || d.deliveryAddress || customer.address || '',
+          pincode: customer.pincode || d.pincode || '',
+          category: customer.categoryInterest || d.category || '',
+          message: d.message || d.enquiryMessage || '',
+          enquiryMessage: d.enquiryMessage || d.message || '',
+          status: d.status || 'new',
+          date: dateStr,
+          cartItems: d.cartItems || null,
+          financialBreakdown: d.financialBreakdown || null
+        };
+      });
           updateDashboardStats();
           renderEnquiriesTable();
           console.log('[Admin] ✓ Fallback enquiries data applied. Count:', firestoreEnquiries.length);
@@ -313,9 +315,11 @@ function listenToEnquiries() {
           docId: doc.id,
           name: customer.name || d.name || '',
           phone: customer.phone || d.phone || '',
-          deliveryAddress: customer.deliveryAddress || d.deliveryAddress || '',
+          deliveryAddress: customer.deliveryAddress || d.deliveryAddress || customer.address || '',
+          pincode: customer.pincode || d.pincode || '',
           category: customer.categoryInterest || d.category || '',
-          message: d.message || '',
+          message: d.message || d.enquiryMessage || '',
+          enquiryMessage: d.enquiryMessage || d.message || '',
           status: d.status || 'new',
           date: dateStr,
           // New structured data (if present)
@@ -939,57 +943,54 @@ function renderEnquiriesTable() {
     return;
   }
   
-  filtered.forEach(enq => {
-    const formattedDate = new Date(enq.date).toLocaleString('en-IN', {
-      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-    
-    let catName = 'N/A';
-    if (enq.category === 'all') {
-      catName = 'Complete Combo Box';
-    } else {
-      const match = categories.find(c => c.slug === enq.category);
-      catName = match ? match.name : enq.category;
-    }
-    
-    // Shorten preview text
-    const messagePreview = enq.message.length > 80 ? enq.message.substring(0, 80) + '...' : enq.message;
-    
-    // Calculate grand total for display
-    let grandTotalDisplay = '—';
-    if (enq.financialBreakdown && enq.financialBreakdown.grandTotal) {
-      grandTotalDisplay = `₹${enq.financialBreakdown.grandTotal.toLocaleString('en-IN')}`;
-    } else if (enq.cartItems && enq.cartItems.length > 0) {
-      const totalFromItems = enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
-      grandTotalDisplay = `₹${totalFromItems.toLocaleString('en-IN')}`;
-    }
+     filtered.forEach(enq => {
+     const formattedDate = new Date(enq.date).toLocaleString('en-IN', {
+       day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+     });
+     
+     // Get pincode - check both customer.pincode and direct pincode field
+     const pincodeDisplay = enq.pincode || (enq.customer && enq.customer.pincode) || 'N/A';
+     
+     // Get enquiry message - check both enquiryMessage and message fields
+     const enquiryMsg = enq.enquiryMessage || enq.message || '';
+     const messagePreview = enquiryMsg.length > 80 ? enquiryMsg.substring(0, 80) + '...' : enquiryMsg || '—';
+     
+     // Calculate grand total for display
+     let grandTotalDisplay = '—';
+     if (enq.financialBreakdown && enq.financialBreakdown.grandTotal) {
+       grandTotalDisplay = `₹${enq.financialBreakdown.grandTotal.toLocaleString('en-IN')}`;
+     } else if (enq.cartItems && enq.cartItems.length > 0) {
+       const totalFromItems = enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+       grandTotalDisplay = `₹${totalFromItems.toLocaleString('en-IN')}`;
+     }
 
-    tbody.innerHTML += `
-      <tr>
-        <td>#${(enq.docId || '').substring(0, 6)}</td>
-        <td>${formattedDate}</td>
-        <td>
-          <strong>${escapeHtml(enq.name)}</strong><br>
-          <a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">📞 ${escapeHtml(enq.phone)}</a><br>
-        <span style="font-size:0.75rem;color:var(--admin-text-muted)">${escapeHtml(enq.deliveryAddress || 'No delivery address')}</span>
+     tbody.innerHTML += `
+       <tr>
+         <td>#${(enq.docId || '').substring(0, 6)}</td>
+         <td>${formattedDate}</td>
+         <td>
+           <strong>${escapeHtml(enq.name)}</strong><br>
+           <a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">📞 ${escapeHtml(enq.phone)}</a><br>
+         <span style="font-size:0.75rem;color:var(--admin-text-muted)">${escapeHtml(enq.deliveryAddress || 'No delivery address')}</span>
 
-        </td>
-        <td><span class="badge-cat-label">${catName}</span></td>
-        <td>
-          <a href="#" class="grand-total-badge" onclick="openEnquiryModal('${enq.docId}');return false;" title="View Order Details">
-            ${grandTotalDisplay}
-          </a>
-        </td>
-        <td><span class="status-badge ${enq.status}">${enq.status}</span></td>
-        <td>
-          <div class="table-actions">
-            <button class="btn-action view" onclick="openEnquiryModal('${enq.docId}')" title="View Details">🔍</button>
-            <button class="btn-action delete" onclick="confirmDelete('enquiry', '${enq.docId}')" title="Delete Enquiry">🗑️</button>
-          </div>
-        </td>
-      </tr>
-    `;
-  });
+         </td>
+         <td>${escapeHtml(pincodeDisplay)}</td>
+         <td>${escapeHtml(messagePreview)}</td>
+         <td>
+           <a href="#" class="grand-total-badge" onclick="openEnquiryModal('${enq.docId}');return false;" title="View Order Details">
+             ${grandTotalDisplay}
+           </a>
+         </td>
+         <td><span class="status-badge ${enq.status}">${enq.status}</span></td>
+         <td>
+           <div class="table-actions">
+             <button class="btn-action view" onclick="openEnquiryModal('${enq.docId}')" title="View Details">🔍</button>
+             <button class="btn-action delete" onclick="confirmDelete('enquiry', '${enq.docId}')" title="Delete Enquiry">🗑️</button>
+           </div>
+         </td>
+       </tr>
+     `;
+   });
 }
 
 function openEnquiryModal(id) {
@@ -1009,9 +1010,10 @@ function openEnquiryModal(id) {
   document.getElementById('enquiry-modal-name').innerText = enq.name;
   document.getElementById('enquiry-modal-phone').innerHTML = `<a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">${enq.phone} 🚀 (Send WA Message)</a>`;
   document.getElementById('enquiry-modal-email').innerText = enq.deliveryAddress || 'N/A';
+  document.getElementById('enquiry-modal-pincode').innerText = enq.pincode || (enq.customer && enq.customer.pincode) || 'N/A';
   document.getElementById('enquiry-modal-cat').innerText = catName;
   document.getElementById('enquiry-modal-date').innerText = new Date(enq.date).toLocaleString('en-IN');
-  document.getElementById('enquiry-modal-message').innerText = enq.message;
+  document.getElementById('enquiry-modal-message').innerText = enq.enquiryMessage || enq.message || '—';
   document.getElementById('enquiry-modal-status').value = enq.status;
   
   // Populate Order Details Modal with cart items and financial breakdown

@@ -281,20 +281,21 @@
 
         <div class="table-responsive">
           <table class="table-admin">
-               <thead>
-                 <tr>
-                   <th>ID</th>
-                   <th>Date</th>
-                   <th>Customer Details</th>
-                   <th>Category Interest</th>
-                   <th>ORDER TOTAL</th>
-                   <th>Status</th>
-                   <th>Actions</th>
-                 </tr>
-               </thead>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Customer Details</th>
+                    <th>Pincode</th>
+                    <th>Enquiry Message</th>
+                    <th>ORDER TOTAL</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
             <tbody id="enquiries-table-body">
               <tr>
-                <td colspan="7" class="text-center">Loading customer enquiries...</td>
+                <td colspan="8" class="text-center">Loading customer enquiries...</td>
               </tr>
             </tbody>
           </table>
@@ -627,6 +628,10 @@
         <div class="enquiry-detail-row">
           <strong>Delivery Address:</strong>
           <span id="enquiry-modal-email">Loading...</span>
+        </div>
+        <div class="enquiry-detail-row">
+          <strong>Pincode:</strong>
+          <span id="enquiry-modal-pincode">Loading...</span>
         </div>
         <div class="enquiry-detail-row">
           <strong>Category of Interest:</strong>

@@ -298,38 +298,36 @@
               </div>
             </div>
             
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="enquiry-delivery-address">DELIVERY ADDRESS</label>
-                <textarea id="enquiry-delivery-address" name="deliveryAddress" class="form-control" placeholder="Enter your full delivery address" rows="3" required></textarea>
-
-              </div>
-              <div class="form-group">
-                <label for="enquiry-category">Product Category Interest <span class="required">*</span></label>
-                <select id="enquiry-category" name="category" class="form-control" required>
-                  <option value="" disabled selected>Select category...</option>
-                  <option value="all">Complete Diwali Combo / All Categories</option>
-                  <option value="ground-chakkars">Ground Chakkars</option>
-                  <option value="flower-pots">Flower Pots</option>
-                  <option value="fancy-fountains">Fancy Fountains</option>
-                  <option value="sparklers">Sparklers / Pencils</option>
-                  <option value="bombs-rockets">Atom Bombs & Rockets</option>
-                  <option value="combos">Custom Discount Packs</option>
-                </select>
-              </div>
-            </div>
-            
- <!-- State Selection Row -->
-            <div class="form-row-2">
-              <div class="form-group">
+              <div class="form-row-2">
+               <div class="form-group">
+                 <label for="enquiry-delivery-address">DELIVERY ADDRESS <span class="required">*</span></label>
+                 <textarea id="enquiry-delivery-address" name="address" class="form-control" placeholder="Enter your full delivery address" rows="3" required></textarea>
+               </div>
+               <div class="form-group">
+                 <label for="enquiry-pincode">PINCODE / POSTAL CODE <span class="required">*</span></label>
+                 <input type="text" id="enquiry-pincode" name="pincode" class="form-control" placeholder="e.g. 626123" pattern="[0-9]{6}" maxlength="6" required>
+               </div>
+             </div>
+             
+  <!-- State Selection Row -->
+             <div class="form-row-2">
+               <div class="form-group">
 <label for="enquiry-state"><span class="label-text">SELECT YOUR STATE <span class="required">*</span></span> <span class="state-label-subtext">(Minimum Order amount)</span></label>
-                <select id="enquiry-state" name="state" class="form-control" onchange="onStateChange(this.value)" required>
-                  <option value="" disabled>Loading states...</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- ORDER SUMMARY CARD -->
+                 <select id="enquiry-state" name="state" class="form-control" onchange="onStateChange(this.value)" required>
+                   <option value="" disabled>Loading states...</option>
+                 </select>
+               </div>
+             </div>
+             
+  <!-- Enquiry Message Row -->
+             <div class="form-row-2">
+               <div class="form-group">
+                 <label for="enquiry-message">ENQUIRY MESSAGE (Optional)</label>
+                 <textarea id="enquiry-message" name="enquiryMessage" class="form-control" placeholder="e.g. Any special requests or questions about products..." rows="3"></textarea>
+               </div>
+             </div>
+             
+             <!-- ORDER SUMMARY CARD -->
             <div class="order-summary-card">
               <div class="order-summary-header">ORDER SUMMARY</div>
 
