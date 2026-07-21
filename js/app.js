@@ -1738,7 +1738,7 @@ function populateOrderSummaryFromCart() {
   // Coupon discount display
   if (couponDiscountEl) {
     if (data.couponDiscount > 0) {
-      couponDiscountEl.textContent = `-₹${data.couponDiscount.toLocaleString()}`;
+      couponDiscountEl.innerHTML = `<span style="color: #dc2626 !important; font-weight: 600;">-₹${data.couponDiscount.toLocaleString()}</span>`;
     } else {
       couponDiscountEl.textContent = '—';
     }
@@ -1846,13 +1846,13 @@ function updateCartDrawerWarning(grandTotal, couponDiscount, isCouponApplied) {
   // Update cart subtotal in header and drawer
   if (drawerSubtotal) drawerSubtotal.textContent = `₹${subtotal.toLocaleString()}`;
   
-  // === CONDITIONAL RENDERING ===
-  // State A: No coupon applied - only show Cart Subtotal
-  // State B: Coupon applied - show Coupon Applied row + Grand Total
-  if (couponDiscount && couponDiscount > 0) {
-    // COUPON APPLIED STATE
-    if (drawerCouponRow) drawerCouponRow.style.display = 'flex';
-    if (drawerCouponDiscount) drawerCouponDiscount.textContent = `-₹${couponDiscount.toLocaleString()}`;
+   // === CONDITIONAL RENDERING ===
+   // State A: No coupon applied - only show Cart Subtotal
+   // State B: Coupon applied - show Coupon Applied row + Grand Total
+   if (couponDiscount && couponDiscount > 0) {
+     // COUPON APPLIED STATE
+     if (drawerCouponRow) drawerCouponRow.style.display = 'flex';
+     if (drawerCouponDiscount) drawerCouponDiscount.innerHTML = `<span style="color: #dc2626 !important; font-weight: 600;">-₹${couponDiscount.toLocaleString()}</span>`;
     
     // Show Grand Total row
     if (drawerGrandTotalRow) drawerGrandTotalRow.style.display = 'flex';

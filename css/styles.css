@@ -2799,43 +2799,52 @@ select.form-control {
 .cart-subtotal-row {
   display: flex;
   justify-content: space-between;
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 0.9375rem;
+  font-weight: 500;
   color: var(--text-dark);
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .cart-subtotal-row strong {
-  font-size: 1.25rem;
+  font-size: 1rem;
   color: var(--deep-green);
+  font-weight: 600;
 }
 
 .cart-grand-total-row {
   display: flex;
   justify-content: space-between;
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 0.9375rem;
+  font-weight: 500;
   color: var(--text-dark);
   margin-bottom: 12px;
 }
 
 .cart-grand-total-row strong {
-  font-size: 1.25rem;
+  font-size: 1rem;
   color: var(--deep-green);
+  font-weight: 600;
 }
 
 .cart-coupon-row {
   display: none;
   justify-content: space-between;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 500;
   color: var(--text-dark);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .cart-coupon-row strong {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--deep-green);
+  font-weight: 600;
+}
+
+.cart-coupon-row .drawer-coupon-discount {
+  font-size: 1rem;
+  color: #dc2626;
+  font-weight: 600;
 }
 
 /* Cart Coupon Warning - shown when coupon causes grand total to drop below minimum */
