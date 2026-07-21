@@ -319,14 +319,12 @@
               </div>
             </div>
             
-<!-- State Selection Row -->
+ <!-- State Selection Row -->
             <div class="form-row-2">
               <div class="form-group">
-                <label for="enquiry-state">📍 SELECT YOUR STATE <span class="required">*</span></label>
+<label for="enquiry-state"><span class="label-text">SELECT YOUR STATE <span class="required">*</span></span> <span class="state-label-subtext">(Minimum Order amount)</span></label>
                 <select id="enquiry-state" name="state" class="form-control" onchange="onStateChange(this.value)" required>
-                  <option value="Tamil Nadu" selected>Tamil Nadu (Min. ₹3,000)</option>
-                  <option value="Kerala">Kerala (Min. ₹5,000)</option>
-                  <option value="Telangana">Telangana (Min. ₹4,000)</option>
+                  <option value="" disabled>Loading states...</option>
                 </select>
               </div>
             </div>

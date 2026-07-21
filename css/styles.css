@@ -2107,6 +2107,21 @@ section {
   color: var(--festive-red);
 }
 
+/* State dropdown label with inline subtext */
+.label-text {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.state-label-subtext {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: none;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
 .form-control {
   width: 100%;
   max-width: 100%;

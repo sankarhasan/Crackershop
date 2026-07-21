@@ -64,18 +64,72 @@ function onStateChange(state) {
 }
 
 /**
+ * Populate the state dropdown from Firestore data.
+ * Clears existing options and dynamically adds states from the database.
+ * Tamil Nadu is ALWAYS sorted to the top (index 0) regardless of alphabetical order.
+ */
+function populateStateDropdown() {
+  const stateDropdown = document.getElementById('enquiry-state');
+  if (!stateDropdown) {
+    console.warn('[State] #enquiry-state dropdown not found in DOM.');
+    return;
+  }
+
+  // Clear static placeholders
+  stateDropdown.innerHTML = '';
+
+  // First, populate with default Tamil Nadu while we fetch from Firestore
+  const rules = getStateMinimumRules();
+  // Sort: Tamil Nadu first, then alphabetically by state name
+  const sortedRules = [...rules].sort((a, b) => {
+    if (a.state === 'Tamil Nadu') return -1;
+    if (b.state === 'Tamil Nadu') return 1;
+    return a.state.localeCompare(b.state);
+  });
+  sortedRules.forEach(rule => {
+    const option = document.createElement('option');
+    option.value = rule.state;
+    option.textContent = `${rule.state} (Min. ₹${Number(rule.minimumOrder).toLocaleString('en-IN')})`;
+    stateDropdown.appendChild(option);
+  });
+
+  // Then try to fetch from Firestore and update
+  if (typeof loadStateMinimumRulesFromFirestore === 'function') {
+    loadStateMinimumRulesFromFirestore()
+      .then(firestoreRules => {
+        if (firestoreRules && firestoreRules.length > 0) {
+          // Clear and repopulate with live Firestore data
+          stateDropdown.innerHTML = '';
+          // Sort: Tamil Nadu first, then alphabetically by state name
+          const sortedFirestoreRules = [...firestoreRules].sort((a, b) => {
+            if (a.state === 'Tamil Nadu') return -1;
+            if (b.state === 'Tamil Nadu') return 1;
+            return a.state.localeCompare(b.state);
+          });
+          sortedFirestoreRules.forEach(rule => {
+            const option = document.createElement('option');
+            option.value = rule.state;
+            option.textContent = `${rule.state} (Min. ₹${Number(rule.minimumOrder).toLocaleString('en-IN')})`;
+            stateDropdown.appendChild(option);
+          });
+          console.log('[State] Dropdown populated with', firestoreRules.length, 'states from Firestore.');
+          
+          // Set Tamil Nadu as default selected if it exists
+          const tamilOption = Array.from(stateDropdown.options).find(opt => opt.value === 'Tamil Nadu');
+          if (tamilOption) tamilOption.selected = true;
+        }
+      })
+      .catch(err => {
+        console.warn('[State] Could not fetch from Firestore, using cached/default rules:', err);
+      });
+  }
+}
+
+/**
  * Initialize state rules on page load.
  */
 function initStateRules() {
-  if (typeof loadStateMinimumRulesFromFirestore === 'function') {
-    loadStateMinimumRulesFromFirestore()
-      .then(() => {
-        console.log('[State] Default state rules loaded.');
-      })
-      .catch(err => {
-        console.warn('[State] Failed to load state rules, using defaults:', err);
-      });
-  }
+  populateStateDropdown();
 }
 
 // CRITICAL: Render categories IMMEDIATELY when script loads (before DOMContentLoaded)
@@ -128,6 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initPreloader();
   initNoticeModal();
   setupNoticeTrigger();
+  
+  // Initialize state dropdown from Firestore on page load
+  initStateRules();
   
   // Initialize default state as Tamil Nadu on page load
   // This ensures MINIMUM_ORDER_VALUE is set correctly from the start
