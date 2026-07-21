@@ -244,12 +244,13 @@ function onAdminAuthenticated() {
           dateStr = d.date || new Date().toISOString();
         }
         const customer = d.customer || {};
-        return {
+return {
           docId: doc.id,
           name: customer.name || d.name || '',
           phone: customer.phone || d.phone || '',
           deliveryAddress: customer.deliveryAddress || d.deliveryAddress || customer.address || '',
           pincode: customer.pincode || d.pincode || '',
+          state: customer.state || d.state || '',
           category: customer.categoryInterest || d.category || '',
           message: d.message || d.enquiryMessage || '',
           enquiryMessage: d.enquiryMessage || d.message || '',
@@ -310,13 +311,14 @@ function listenToEnquiries() {
           dateStr = d.date || new Date().toISOString();
         }
         // Support BOTH old flat format and new structured format
-        const customer = d.customer || {};
+const customer = d.customer || {};
         return {
           docId: doc.id,
           name: customer.name || d.name || '',
           phone: customer.phone || d.phone || '',
           deliveryAddress: customer.deliveryAddress || d.deliveryAddress || customer.address || '',
           pincode: customer.pincode || d.pincode || '',
+          state: customer.state || d.state || '',
           category: customer.categoryInterest || d.category || '',
           message: d.message || d.enquiryMessage || '',
           enquiryMessage: d.enquiryMessage || d.message || '',
@@ -1011,7 +1013,7 @@ function openEnquiryModal(id) {
   document.getElementById('enquiry-modal-phone').innerHTML = `<a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">${enq.phone} 🚀 (Send WA Message)</a>`;
   document.getElementById('enquiry-modal-email').innerText = enq.deliveryAddress || 'N/A';
   document.getElementById('enquiry-modal-pincode').innerText = enq.pincode || (enq.customer && enq.customer.pincode) || 'N/A';
-  document.getElementById('enquiry-modal-cat').innerText = catName;
+document.getElementById('enquiry-modal-state').innerText = (enq.customer && enq.customer.state) || enq.state || 'N/A';
   document.getElementById('enquiry-modal-date').innerText = new Date(enq.date).toLocaleString('en-IN');
   document.getElementById('enquiry-modal-message').innerText = enq.enquiryMessage || enq.message || '—';
   document.getElementById('enquiry-modal-status').value = enq.status;

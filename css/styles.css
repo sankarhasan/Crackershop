@@ -2122,6 +2122,30 @@ section {
   vertical-align: middle;
 }
 
+/* Enquiry message label subtext (Optional) - same styling as state-label-subtext */
+.message-label-subtext {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: none;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* Form Grid Container for 2-column layout in enquiry form */
+.form-grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-grid-left,
+.form-grid-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .form-control {
   width: 100%;
   max-width: 100%;
@@ -5246,7 +5270,6 @@ body.notice-modal-active {
 html.notice-modal-active {
   overflow: hidden !important;
 }
-
 /* Responsive tweaks */
 @media (max-width: 480px) {
   .notice-modal-card {
@@ -5288,6 +5311,18 @@ html.notice-modal-active {
   .notice-understand-btn {
     padding: 8px 14px;
     font-size: 0.8rem;
+  }
+}
+
+/* Mobile responsive for enquiry form grid */
+@media (max-width: 768px) {
+  .form-grid-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-grid-left,
+  .form-grid-right {
+    gap: 16px;
   }
 }
 

@@ -2071,14 +2071,24 @@ function initEnquiryForm() {
     return;
   }
     
-     const name = document.getElementById('enquiry-name')?.value.trim();
-     const phone = document.getElementById('enquiry-phone')?.value.trim();
-     const address = document.getElementById('enquiry-delivery-address')?.value.trim();
-     const pincode = document.getElementById('enquiry-pincode')?.value.trim();
-     // Optional enquiry message field
-     const enquiryMessage = document.getElementById('enquiry-message')?.value.trim() || "";
-     
-     console.log('[Enquiry] Data:', { name, phone, address, pincode, enquiryMessage });
+      const name = document.getElementById('enquiry-name')?.value.trim();
+      const phone = document.getElementById('enquiry-phone')?.value.trim();
+      const address = document.getElementById('enquiry-delivery-address')?.value.trim();
+      const pincode = document.getElementById('enquiry-pincode')?.value.trim();
+      // Capture the selected state name from the dropdown
+      const stateSelect = document.getElementById('enquiry-state');
+      let selectedStateName = "";
+      if (stateSelect && stateSelect.value) {
+        // Extract state name from option text (remove " (Min. ₹...)" suffix if present)
+        const selectedOption = stateSelect.options[stateSelect.selectedIndex];
+        selectedStateName = selectedOption.text.split('(')[0].trim() || stateSelect.value;
+      }
+      // Default fallback to "Tamil Nadu" if state is empty/undefined
+      const state = selectedStateName || "Tamil Nadu";
+      // Optional enquiry message field
+      const enquiryMessage = document.getElementById('enquiry-message')?.value.trim() || "";
+      
+      console.log('[Enquiry] Data:', { name, phone, address, pincode, state, enquiryMessage });
     
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn ? submitBtn.innerText : '';
@@ -2142,7 +2152,8 @@ function initEnquiryForm() {
           name,
           phone,
           address,
-          pincode
+          pincode,
+          state
         },
         // Cart Items Array
         cartItems: cartItemsPayload,
