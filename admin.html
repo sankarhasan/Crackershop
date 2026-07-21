@@ -35,7 +35,7 @@
           <input type="password" id="login-password" class="form-control-admin" placeholder="Enter password" required autocomplete="current-password">
         </div>
         
-        <div class="login-error" id="login-error-msg">⚠️ Invalid email or password!</div>
+        <div class="login-error" id="login-error-msg"><img src="./assets/img/icons/warning.png" alt="Warning" class="warning-icon-img"> Invalid email or password!</div>
         
         <button type="submit" class="btn-admin btn-admin-primary btn-block-admin">Verify & Log In</button>
       </form>
@@ -714,9 +714,9 @@
   <!-- DELETE CONFIRMATION DIALOG MODAL -->
   <div class="modal-overlay" id="delete-modal" style="display: none;">
     <div class="modal-card modal-confirm">
-      <div class="modal-body-content text-center">
-        <span class="warning-icon">⚠️</span>
-        <h3>Are you sure you want to delete?</h3>
+        <div class="modal-body-content text-center">
+          <img src="./assets/img/icons/warning.png" alt="Warning" class="warning-icon-img">
+          <h3>Are you sure you want to delete?</h3>
         <p id="delete-modal-text">This action cannot be undone. All linked items will be affected.</p>
         
         <div class="modal-footer justify-center">

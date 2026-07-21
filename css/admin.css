@@ -1178,6 +1178,14 @@ textarea.form-control-admin {
   scrollbar-width: none !important;
 }
 
+/* Warning Icon Image */
+.warning-icon-img {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
 /* Delete confirmation additions */
 .modal-confirm {
   max-width: 440px;
@@ -1188,6 +1196,14 @@ textarea.form-control-admin {
   margin-bottom: 12px;
   color: var(--admin-warning);
 }
+
+/* Override warning-icon to use image when present */
+.modal-body-content.text-center .warning-icon-img {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 12px;
+}
+
 .modal-confirm p {
   font-size: 0.85rem;
   color: var(--admin-text-muted);

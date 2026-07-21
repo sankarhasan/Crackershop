@@ -2158,8 +2158,10 @@ select.form-control {
 /* Order Summary Warning Box - shown when grandTotal < ₹2000 after coupons (ALL SCREEN SIZES) */
 .order-summary-warning {
   display: none;
+  flex-direction: row;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 12px;
   padding: 14px 16px;
   margin-bottom: 16px;
   background-color: #FDF2F2;
@@ -2181,6 +2183,12 @@ select.form-control {
   75% { transform: translateX(5px); }
 }
 
+.warning-icon-img {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 .warning-icon {
   font-size: 1.2rem;
   flex-shrink: 0;
@@ -2191,6 +2199,7 @@ select.form-control {
   font-weight: 500;
   color: #9B1C1C;
   line-height: 1.4;
+  text-align: left;
 }
 
 /* Disabled state for submit button (ALL SCREEN SIZES) */
@@ -2735,17 +2744,28 @@ select.form-control {
 }
 
 .minimum-order-warning {
-  font-size: 0.8rem;
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   margin-bottom: 16px;
   background-color: rgba(212, 33, 61, 0.08);
   border: 1px solid rgba(212, 33, 61, 0.15);
-  display: none;
 }
 
 .minimum-order-warning.active {
-  display: block;
+  display: flex;
+}
+
+.minimum-order-warning span {
+  font-size: 0.8rem;
+  color: var(--festive-red);
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
 }
 
 .error-text {
@@ -2797,17 +2817,23 @@ select.form-control {
 /* Cart Coupon Warning - shown when coupon causes grand total to drop below minimum */
 .cart-coupon-warning {
   display: none;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 12px;
   padding: 10px 12px;
   margin-bottom: 12px;
   background-color: #FDF2F2;
   border: 1px solid #FECACA;
   border-radius: var(--radius-sm);
+}
+
+.cart-coupon-warning span {
   font-size: 0.8rem;
   color: #9B1C1C;
   font-weight: 500;
   line-height: 1.4;
+  text-align: left;
 }
 
 /* --- Footer --- */

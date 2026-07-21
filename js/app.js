@@ -1781,11 +1781,11 @@ function populateOrderSummaryFromCart() {
       submitBtn.classList.add('btn-disabled');
     }
     
-    // Render ONLY the standard baseline warning box (Hide the coupon drop message entirely)
-    const warningTextEl = document.querySelector('#order-summary-warning .warning-text');
-    if (warningTextEl) {
-      warningTextEl.innerHTML = `⚠️ Minimum order required: ₹${MINIMUM_ORDER_VALUE.toLocaleString()}. Add ₹${(MINIMUM_ORDER_VALUE - cartSubtotal).toLocaleString()} more.`;
-    }
+     // Render ONLY the standard baseline warning box (Hide the coupon drop message entirely)
+     const warningTextEl = document.querySelector('#order-summary-warning .warning-text');
+     if (warningTextEl) {
+       warningTextEl.textContent = `Minimum order required: ₹${MINIMUM_ORDER_VALUE.toLocaleString()}. Add ₹${(MINIMUM_ORDER_VALUE - cartSubtotal).toLocaleString()} more.`;
+     }
     
     // Show warning box
     if (warningBox) {
@@ -1803,7 +1803,7 @@ function populateOrderSummaryFromCart() {
     // Render ONLY this premium drop message warning box
     const warningTextEl = document.querySelector('#order-summary-warning .warning-text');
     if (warningTextEl) {
-      warningTextEl.innerHTML = `⚠️ Oops! Your final total dropped to ₹${data.grandTotal.toLocaleString()} after the coupon discount. Please add ₹${(MINIMUM_ORDER_VALUE - data.grandTotal).toLocaleString()} more worth of crackers to complete your order!`;
+      warningTextEl.textContent = `Oops! Your final total dropped to ₹${data.grandTotal.toLocaleString()} after the coupon discount. Please add ₹${(MINIMUM_ORDER_VALUE - data.grandTotal).toLocaleString()} more worth of crackers to complete your order!`;
     }
     
     // Show warning box
@@ -1873,18 +1873,21 @@ function updateCartDrawerWarning(grandTotal, couponDiscount, isCouponApplied) {
   // === SINGLE WARNING BOX LOGIC (using min-order-alert) ===
   // Ensure ONLY ONE warning box displays at any given time
   if (minOrderAlert) {
+    // Use a wrapper span for the icon + text to avoid duplicate emoji
+    const buildWarningHTML = (text) => `<img src="./assets/img/icons/warning.png" alt="Warning" class="warning-icon-img"><span>${text}</span>`;
+    
     // 1. BASE CASE: Cart Subtotal itself is below minLimit
     if (subtotal < minLimit) {
       // Render ONLY the standard baseline warning box
       minOrderAlert.style.display = 'flex';
-      minOrderAlert.innerHTML = `⚠️ Minimum order required: ₹${minLimit.toLocaleString()}. Add ₹${(minLimit - subtotal).toLocaleString()} more.`;
+      minOrderAlert.innerHTML = buildWarningHTML(`Minimum order required: ₹${minLimit.toLocaleString()}. Add ₹${(minLimit - subtotal).toLocaleString()} more.`);
       if (checkoutBtn) checkoutBtn.disabled = true;
     } 
     // 2. COUPON DROP CASE: Subtotal was valid (>= minLimit) BUT Coupon applied drops Grand Total below minLimit
     else if (subtotal >= minLimit && grandTotal < minLimit) {
       // Render ONLY this premium drop message warning box
       minOrderAlert.style.display = 'flex';
-      minOrderAlert.innerHTML = `⚠️ Oops! Your final total dropped to ₹${grandTotal.toLocaleString()} after the coupon discount. Please add ₹${(minLimit - grandTotal).toLocaleString()} more worth of crackers to complete your order!`;
+      minOrderAlert.innerHTML = buildWarningHTML(`Oops! Your final total dropped to ₹${grandTotal.toLocaleString()} after the coupon discount. Please add ₹${(minLimit - grandTotal).toLocaleString()} more worth of crackers to complete your order!`);
       if (checkoutBtn) checkoutBtn.disabled = true;
     } else {
       // No warning - hide the box
