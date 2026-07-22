@@ -560,26 +560,12 @@ function renderProductsTable() {
     return;
   }
   
-  // Pre-calculate product indices for each category
-  const productIndicesByCategory = {};
-  categories.forEach((cat, catIndex) => {
-    const catProducts = products.filter(p => Number(p.categoryId) === Number(cat.id))
-      .sort((a, b) => Number(a.id) - Number(b.id));
-    catProducts.forEach((p, idx) => {
-      productIndicesByCategory[p.id] = { index: idx + 1, catIndex: catIndex };
-    });
-  });
-  
   filtered.forEach(p => {
     const cat = categories.find(c => Number(c.id) === Number(p.categoryId));
     const catName = cat ? cat.name : 'Unknown';
     const bgIndex = (p.categoryId % 9) + 1;
     const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁' };
     const emoji = emojiMap[p.categoryId] || '🎆';
-    
-    // Get alphanumeric product code
-    const prodIndex = productIndicesByCategory[p.id];
-    const productCode = prodIndex ? `#${getProductCode(p.categoryId, prodIndex.index)}` : `#${p.id}`;
     
     let imageCellContent = `<div class="prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
     if (p.image) {
@@ -588,7 +574,7 @@ function renderProductsTable() {
 
     tbody.innerHTML += `
       <tr>
-        <td>${productCode}</td>
+        <td>#${p.id}</td>
         <td>
           ${imageCellContent}
         </td>
@@ -773,13 +759,12 @@ function renderCategoriesTable() {
   tbody.innerHTML = '';
   
   if (categories.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No categories present.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No categories present.</td></tr>';
     return;
   }
   
-  categories.forEach((cat, index) => {
+  categories.forEach(cat => {
     const imgVal = (cat.categoryImageUrl ?? cat.image ?? '').toString();
-    const categoryCode = getCategoryCode(index);
 
     let imageCell = `
       <div class="cat-no-image">
@@ -798,9 +783,9 @@ function renderCategoriesTable() {
       `;
     }
 
-  tbody.innerHTML += `
+    tbody.innerHTML += `
       <tr>
-        <td>${categoryCode}</td>
+        <td>#${cat.id}</td>
         <td>
           ${imageCell}
         </td>

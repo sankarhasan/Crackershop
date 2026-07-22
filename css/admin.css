@@ -662,20 +662,6 @@ textarea.form-control-admin {
 .stock-status.in { color: var(--admin-success); }
 .stock-status.out { color: var(--admin-danger); }
 
-/* Category Code Badge */
-.category-code-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  background-color: rgba(35, 134, 54, 0.15);
-  color: var(--admin-success);
-  border: 1px solid rgba(35, 134, 54, 0.3);
-  border-radius: var(--radius-sm);
-  margin-left: 6px;
-  vertical-align: middle;
-}
-
 /* --- Action Header Panels --- */
 .actions-panel {
   display: flex;

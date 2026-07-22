@@ -152,62 +152,6 @@ function generateId(items) {
   return ids.length > 0 ? Math.max(...ids) + 1 : 1;
 }
 
-/**
- * Get the alphabetical code for a category based on its display order index.
- * Categories are 0-indexed, so we add 1 to get the position.
- * @param {number} categoryIndex - The index of the category (0-based)
- * @returns {string} - The alphabetical code (A, B, C, etc.)
- */
-function getCategoryCode(categoryIndex) {
-  if (typeof categoryIndex !== 'number' || categoryIndex < 0) return '?';
-  const code = String.fromCharCode(65 + categoryIndex); // 65 = 'A'
-  return code;
-}
-
-/**
- * Get the alphanumeric product code based on category and product position.
- * Products are indexed sequentially within each category.
- * @param {number} categoryId - The numeric category ID
- * @param {number} productIndexWithinCategory - The 1-based index of the product within its category
- * @returns {string} - The alphanumeric code (e.g., A1, B2, C3)
- */
-function getProductCode(categoryId, productIndexWithinCategory) {
-  const categories = getCategories();
-  const catIndex = categories.findIndex(c => Number(c.id) === Number(categoryId));
-  if (catIndex === -1) return `#?${productIndexWithinCategory || ''}`;
-  
-  const categoryLetter = getCategoryCode(catIndex);
-  return `${categoryLetter}${productIndexWithinCategory || ''}`;
-}
-
-/**
- * Get products sorted by category and calculate their display index within each category.
- * Returns the product index (1-based) for a given product ID within its category.
- * @param {number} productId - The numeric product ID
- * @returns {object} - { index: number, categoryId: number, categoryIndex: number, categoryLetter: string }
- */
-function getProductDisplayIndex(productId) {
-  const products = getProducts();
-  const categories = getCategories();
-  const prod = products.find(p => Number(p.id) === Number(productId));
-  if (!prod) return { index: 0, categoryId: 0, categoryIndex: -1, categoryLetter: '?' };
-  
-  const catIndex = categories.findIndex(c => Number(c.id) === Number(prod.categoryId));
-  if (catIndex === -1) return { index: 0, categoryId: prod.categoryId, categoryIndex: -1, categoryLetter: '?' };
-  
-  // Get all products in the same category, sorted by their numeric ID
-  const catProducts = products.filter(p => Number(p.categoryId) === Number(prod.categoryId))
-    .sort((a, b) => Number(a.id) - Number(b.id));
-  
-  const productIndex = catProducts.findIndex(p => Number(p.id) === Number(productId)) + 1;
-  return {
-    index: productIndex,
-    categoryId: prod.categoryId,
-    categoryIndex: catIndex,
-    categoryLetter: getCategoryCode(catIndex)
-  };
-}
-
 // Execute initial seeding
 initData();
 
