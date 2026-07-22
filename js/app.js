@@ -776,7 +776,7 @@ function renderProductsCatalog() {
          ${buildActionContainer(prod, cartQty)}
        </div>
      `;
-     grid.appendChild(card);
+    grid.appendChild(card);
   });
 }
 
