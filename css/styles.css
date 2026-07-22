@@ -1584,7 +1584,21 @@ section {
   font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
+}
+
+/* Product Code Badge */
+.product-code-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background-color: rgba(10, 92, 54, 0.1);
+  color: var(--deep-green);
+  border: 1px solid rgba(10, 92, 54, 0.3);
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
 }
 
 .product-card-desc {
@@ -3872,6 +3886,13 @@ select.form-control {
   .product-card-qty {
     font-size: 0.7rem;
     margin-bottom: 2px;
+  }
+
+  /* Product Code Badge - Mobile */
+  .product-code-badge {
+    padding: 1px 4px;
+    font-size: 0.55rem;
+    margin-left: 4px;
   }
 
   .product-card-desc {
