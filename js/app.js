@@ -538,7 +538,9 @@ function renderCategoriesGrid() {
         'combo-packs': '🎁'
       };
       const emoji = emojiMap[cat.slug] || '🎆';
-      const bgClass = `cat-g-${(cat.id % 9) + 1}`;
+      // Calculate bgClass using category letter position (A=1, B=2, etc.)
+      const catLetter = String(cat.id).toUpperCase();
+      const bgClass = `cat-g-${(catLetter.charCodeAt(0) - 64) % 9 + 1}`;
 
       // Validate image URL: must be a real URL (http/https/data:/blob:) or a path with file extension
       const rawUrl = (cat.categoryImageUrl ?? cat.image ?? '').toString().trim();
@@ -712,13 +714,13 @@ function renderProductsCatalog() {
   const normalizedCategory = selectedCategory.toLowerCase();
   const isAll = !normalizedCategory || normalizedCategory === 'all' || normalizedCategory === 'all-items';
 
-  // Filter products
+  // Filter products - use string matching for categoryId
   let filtered = products;
 
   if (!isAll) {
     const cat = categories.find(c => c.slug === normalizedCategory);
     if (cat) {
-      filtered = products.filter(p => Number(p.categoryId) === Number(cat.id));
+      filtered = products.filter(p => String(p.categoryId).toUpperCase() === String(cat.id).toUpperCase());
     }
   }
 
@@ -743,13 +745,14 @@ function renderProductsCatalog() {
     const card = document.createElement('div');
     card.className = `product-card ${!prod.inStock ? 'out-of-stock' : ''}`;
     
-    // Category mapping for colorful placeholder background
-    const bgIndex = (prod.categoryId % 9) + 1;
-    const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁' };
-    const emoji = emojiMap[prod.categoryId] || '🎆';
+    // Category mapping for colorful placeholder background - use string letter position
+    const catLetter = String(prod.categoryId).toUpperCase();
+    const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1; // A=1, B=2, etc.
+    const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁', 10: '🌀', 11: '🌋', 12: '⛲' };
+    const emoji = emojiMap[bgIndex] || '🎆';
     
     // Check quantity in cart
-    const cartItem = cart.find(item => item.id === prod.id);
+    const cartItem = cart.find(item => String(item.id) === String(prod.id));
     const cartQty = cartItem ? cartItem.quantity : 0;
     
     let cardImgContent = `<div class="card-placeholder-bg p-bg-${bgIndex}">${emoji}</div>`;
@@ -758,9 +761,9 @@ function renderProductsCatalog() {
     }
 
    // Conditionally render discount badge only if discount exists and is not empty
-   const hasValidDiscount = prod.discount && String(prod.discount).trim() !== '' && prod.discount !== 'Special';
-   
-   card.innerHTML = `
+    const hasValidDiscount = prod.discount && String(prod.discount).trim() !== '' && prod.discount !== 'Special';
+    
+    card.innerHTML = `
       <div class="card-img-container">
         ${cardImgContent}
         ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
@@ -769,13 +772,13 @@ function renderProductsCatalog() {
         <h3 class="product-card-title">${prod.name}</h3>
          <span class="product-card-qty">${prod.qty}</span>
          <p class="product-card-desc">${prod.description}</p>
-         <div class="product-card-price-row">
-           <span class="current-price">₹${prod.price}</span>
-           ${hasValidDiscount ? `<span class="original-price">₹${prod.originalPrice}</span>` : ''}
-         </div>
-         ${buildActionContainer(prod, cartQty)}
-       </div>
-     `;
+        <div class="product-card-price-row">
+          <span class="current-price">₹${prod.price}</span>
+          ${hasValidDiscount ? `<span class="original-price">₹${prod.originalPrice}</span>` : ''}
+        </div>
+        ${buildActionContainer(prod, cartQty)}
+      </div>
+    `;
     grid.appendChild(card);
   });
 }
@@ -814,7 +817,7 @@ function renderMobileSlider() {
 
   // Category slides
   categories.forEach(cat => {
-    let catProducts = products.filter(p => Number(p.categoryId) === Number(cat.id));
+    let catProducts = products.filter(p => String(p.categoryId).toUpperCase() === String(cat.id).toUpperCase());
     if (searchQuery.trim() !== '') {
       catProducts = catProducts.filter(p =>
         (p.name || '').toLowerCase().includes(searchQuery) ||
@@ -912,9 +915,11 @@ function createMobileProductCard(prod, cartQty) {
   const card = document.createElement('div');
   card.className = `product-card ${!prod.inStock ? 'out-of-stock' : ''}`;
 
-  const bgIndex = (prod.categoryId % 9) + 1;
-  const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁' };
-  const emoji = emojiMap[prod.categoryId] || '🎆';
+  // Use string letter position for bgIndex (A=1, B=2, etc.)
+  const catLetter = String(prod.categoryId).toUpperCase();
+  const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1;
+  const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁', 10: '🌀', 11: '🌋', 12: '⛲' };
+  const emoji = emojiMap[bgIndex] || '🎆';
 
   let cardImgContent = `<div class="card-placeholder-bg p-bg-${bgIndex}">${emoji}</div>`;
   if (prod.image) {
@@ -1020,29 +1025,32 @@ function getCartQty(prodId) {
 
 // Inner HTML for a single card's action area based on current quantity.
 function buildProductActionInner(prodId, qty, inStock) {
+  // Escape prodId for safe HTML attribute use
+  const escapedId = String(prodId).replace(/"/g, '"');
   if (!inStock) {
     return `<button class="jcs-add-btn" disabled>SOLD OUT</button>`;
   }
   if (qty > 0) {
     return `
       <div class="jcs-stepper-wrap">
-        <button class="jcs-step-btn" onclick="catalogStepQty(${prodId}, -1)" aria-label="Decrease quantity">−</button>
+        <button class="jcs-step-btn" onclick="catalogStepQty('${escapedId}', -1)" aria-label="Decrease quantity">−</button>
         <span class="jcs-step-count">${qty}</span>
-        <button class="jcs-step-btn" onclick="catalogStepQty(${prodId}, 1)" aria-label="Increase quantity">+</button>
+        <button class="jcs-step-btn" onclick="catalogStepQty('${escapedId}', 1)" aria-label="Increase quantity">+</button>
       </div>
     `;
   }
-  return `<button class="jcs-add-btn" onclick="catalogAddQty(${prodId})">ADD</button>`;
+  return `<button class="jcs-add-btn" onclick="catalogAddQty('${escapedId}')">ADD</button>`;
 }
 
 // Full pinned container (used by both the desktop grid and the mobile slider).
 function buildActionContainer(prod, qty) {
+  const escapedId = String(prod.id).replace(/"/g, '"');
   return `<div class="action-container-right" data-action-for="${prod.id}">${buildProductActionInner(prod.id, qty, prod.inStock)}</div>`;
 }
 
 // Re-render EVERY on-screen action control for this product (global sync).
 function syncProductAction(prodId) {
-  const prod = getProducts().find(p => p.id === prodId);
+  const prod = getProducts().find(p => String(p.id) === String(prodId));
   const inStock = prod ? prod.inStock : true;
   const qty = getCartQty(prodId);
   document.querySelectorAll(`.action-container-right[data-action-for="${prodId}"]`).forEach(container => {
@@ -1052,7 +1060,7 @@ function syncProductAction(prodId) {
 
 // ADD button clicked → puts the first unit in the cart and toggles to stepper.
 function catalogAddQty(prodId) {
-  const prod = getProducts().find(p => p.id === prodId);
+  const prod = getProducts().find(p => String(p.id) === String(prodId));
   if (!prod || !prod.inStock) return;
   updateCartItemQuantity(prodId, getCartQty(prodId) + 1);
   syncProductAction(prodId);
@@ -2179,11 +2187,12 @@ function initEnquiryForm() {
       
       console.log('[Enquiry] Payload:', JSON.stringify(enquiryPayload, null, 2));
       
-      // Save the enquiry into the Firestore "enquiries" collection.
-      window.db.collection('enquiries').add(enquiryPayload)
-        .then((docRef) => {
+      // Save the enquiry into the Firestore "enquiries" collection via the
+      // shared data-layer helper (attaches a server timestamp + default status).
+      saveEnquiryToFirestore(enquiryPayload)
+        .then((docId) => {
           clearTimeout(safetyTimeout);
-          console.log('[Enquiry] ✓ Successfully written to Firestore. Doc ID:', docRef.id);
+          console.log('[Enquiry] ✓ Successfully written to Firestore. Doc ID:', docId);
           
           // Exit loading state IMMEDIATELY on success (before modal/confetti)
           if (submitBtn) {
@@ -2274,7 +2283,39 @@ function initWhatsAppWidget() {
     const phone = document.getElementById('wa-phone').value;
     const msg = document.getElementById('wa-msg').value;
     
-    // Save as local enquiry too
+    // Build a structured payload matching the admin panel's enquiry schema
+    // (customer object + message). This lets WhatsApp Quick Widget enquiries
+    // appear in the admin dashboard exactly like full checkout enquiries.
+    const enquiryPayload = {
+      customer: {
+        name,
+        phone,
+        address: '',
+        pincode: '',
+        state: ''
+      },
+      category: 'whatsapp',
+      message: `[Submitted via WhatsApp Quick Widget]:\n${msg}`,
+      enquiryMessage: msg,
+      cartItems: [],
+      financialBreakdown: null,
+      status: 'new'
+    };
+
+    // PRIMARY persistence: write directly to the Firestore "enquiries" collection.
+    if (typeof saveEnquiryToFirestore === 'function' && window.db) {
+      saveEnquiryToFirestore(enquiryPayload)
+        .then((docId) => {
+          console.log('[WhatsApp Enquiry] ✓ Saved to Firestore. Doc ID:', docId);
+        })
+        .catch((err) => {
+          console.error('[WhatsApp Enquiry] ✗ Firestore save failed, kept local cache only:', err);
+        });
+    } else {
+      console.warn('[WhatsApp Enquiry] Firestore unavailable — saving to local cache only.');
+    }
+
+    // OFFLINE CACHE fallback so the enquiry is never lost if Firestore is unreachable.
     const enquiries = getEnquiries();
     const newId = generateId(enquiries);
     const newEnquiry = {

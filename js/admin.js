@@ -1,5 +1,24 @@
 // KPR Crackers - Admin Control Panel Logic (admin.js)
 
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Escape HTML special characters to prevent XSS and rendering issues.
+ * @param {string} str - The string to escape
+ * @returns {string} - The escaped string
+ */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
+    .replace(/'/g, '&#039;');
+}
+
 // Local state for delete confirmations
 let deleteTargetType = null; // 'product' | 'category' | 'enquiry' | 'banner'
 let deleteTargetId = null;
@@ -59,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (confirmDelBtn) {
     confirmDelBtn.addEventListener('click', executePendingDelete);
   }
-
+  
   // Image URL input changes to update preview
   const imgUrlInput = document.getElementById('product-modal-image-url');
   if (imgUrlInput) {
@@ -68,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateImagePreview(url);
     });
   }
-
+  
   // Image file input changes to update preview
   const imgFileInput = document.getElementById('product-modal-image-file');
   if (imgFileInput) {
@@ -84,10 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-
+  
   // Category image upload -> preview (base64) + dimension reading & validation
   const catFileInput = document.getElementById('categoryImageFile');
-
+  
   if (catFileInput) {
     catFileInput.addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
@@ -96,13 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
         resetCategoryImageDimensionInfo();
         return;
       }
-
+      
       // Read file as data URL for preview
       const reader = new FileReader();
       reader.onload = (event) => {
         const dataUrl = event.target.result;
         setCategoryImagePreview(dataUrl);
-
+        
         // Read image dimensions from the selected file
         readImageDimensions(file, (width, height) => {
           updateCategoryImageDimensionInfo(width, height);
@@ -112,16 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
       reader.readAsDataURL(file);
     });
   }
-
+  
   // If there is already a value in the hidden legacy field (should not happen often), reflect it.
   const legacyCatImg = document.getElementById('categoryImageUrl');
   if (legacyCatImg && legacyCatImg.value) {
     setCategoryImagePreview(legacyCatImg.value);
   }
-
-
-
-
+  
   // Auto-calculate sale price from original price and discount label
   const origPriceInput = document.getElementById('product-modal-orig-price');
   const discountInput = document.getElementById('product-modal-discount');
@@ -138,10 +154,10 @@ function initAdminAuth() {
     showAdminToast('Authentication service unavailable.', 'error');
     return;
   }
-
+  
   const auth = firebase.auth();
   window.adminAuth = auth;
-
+  
   // Login form -> Firebase email/password sign-in
   const loginForm = document.getElementById('admin-login-form');
   if (loginForm) {
@@ -151,11 +167,11 @@ function initAdminAuth() {
       const pass = document.getElementById('login-password').value;
       const errorMsg = document.getElementById('login-error-msg');
       if (errorMsg) errorMsg.style.display = 'none';
-
+      
       const btn = loginForm.querySelector('button[type="submit"]');
       const btnText = btn ? btn.innerText : '';
       if (btn) { btn.disabled = true; btn.innerText = 'Verifying...'; }
-
+      
       auth.signInWithEmailAndPassword(email, pass)
         .then(() => {
           showAdminToast('Welcome back, Admin! 🔓', 'success');
@@ -173,12 +189,12 @@ function initAdminAuth() {
         });
     });
   }
-
+  
   // Observe auth state to toggle the login form vs. dashboard
   auth.onAuthStateChanged((user) => {
     const loginSection = document.getElementById('login-section');
     const dashboard = document.getElementById('admin-dashboard');
-
+    
     if (user) {
       if (loginSection) loginSection.style.display = 'none';
       if (dashboard) dashboard.style.display = 'grid';
@@ -204,27 +220,27 @@ function onAdminAuthenticated() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     dateInfo.innerText = new Date().toLocaleDateString('en-US', options);
   }
-
+  
   // Seed initial admin drop-down select options
   populateCategoryDropdowns();
-
+  
   // Hydrate products from Firestore into localStorage cache, then render
   loadProductsFromFirestore().then(() => {
     renderProductsTable();
   });
-
+  
   // Hydrate banners from Firestore into localStorage cache
   loadBannersFromFirestore();
-
+  
   // Hydrate categories from Firestore into localStorage cache, then refresh dropdowns
   loadCategoriesFromFirestore().then(() => {
     populateCategoryDropdowns();
     renderCategoriesTable();
   });
-
+  
   // Start realtime Firestore enquiries stream (auto-refreshes tables + stats)
   listenToEnquiries();
-
+  
   // ALSO do a one-time direct fetch as fallback (ensures data loads even if onSnapshot is slow)
   if (window.db) {
     console.log('[Admin] Doing direct fetch fallback for enquiries...');
@@ -235,31 +251,31 @@ function onAdminAuthenticated() {
         console.log('[Admin] ✓ Direct fetch enquiries complete. Docs:', snapshot.docs.length);
         if (firestoreEnquiries.length === 0 && snapshot.docs.length > 0) {
           // Only update if onSnapshot hasn't already populated the data
-  firestoreEnquiries = snapshot.docs.map((doc) => {
-        const d = doc.data() || {};
-        let dateStr;
-        if (d.timestamp && typeof d.timestamp.toDate === 'function') {
-          dateStr = d.timestamp.toDate().toISOString();
-        } else {
-          dateStr = d.date || new Date().toISOString();
-        }
-        const customer = d.customer || {};
-return {
-          docId: doc.id,
-          name: customer.name || d.name || '',
-          phone: customer.phone || d.phone || '',
-          deliveryAddress: customer.deliveryAddress || d.deliveryAddress || customer.address || '',
-          pincode: customer.pincode || d.pincode || '',
-          state: customer.state || d.state || '',
-          category: customer.categoryInterest || d.category || '',
-          message: d.message || d.enquiryMessage || '',
-          enquiryMessage: d.enquiryMessage || d.message || '',
-          status: d.status || 'new',
-          date: dateStr,
-          cartItems: d.cartItems || null,
-          financialBreakdown: d.financialBreakdown || null
-        };
-      });
+          firestoreEnquiries = snapshot.docs.map((doc) => {
+            const d = doc.data() || {};
+            let dateStr;
+            if (d.timestamp && typeof d.timestamp.toDate === 'function') {
+              dateStr = d.timestamp.toDate().toISOString();
+            } else {
+              dateStr = d.date || new Date().toISOString();
+            }
+            const customer = d.customer || {};
+            return {
+              docId: doc.id,
+              name: customer.name || d.name || '',
+              phone: customer.phone || d.phone || '',
+              deliveryAddress: customer.deliveryAddress || d.deliveryAddress || customer.address || '',
+              pincode: customer.pincode || d.pincode || '',
+              state: customer.state || d.state || '',
+              category: customer.categoryInterest || d.category || '',
+              message: d.message || d.enquiryMessage || '',
+              enquiryMessage: d.enquiryMessage || d.message || '',
+              status: d.status || 'new',
+              date: dateStr,
+              cartItems: d.cartItems || null,
+              financialBreakdown: d.financialBreakdown || null
+            };
+          });
           updateDashboardStats();
           renderEnquiriesTable();
           console.log('[Admin] ✓ Fallback enquiries data applied. Count:', firestoreEnquiries.length);
@@ -269,7 +285,17 @@ return {
         console.error('[Admin] ✗ Direct fetch enquiries failed:', err);
       });
   }
-
+  
+  // Purge orphaned numeric product documents & sanitize Firestore data on startup
+  purgeOrphanedNumericProductDocuments();
+  
+  // Run Firestore data sanitization to fix field mismatches
+  if (window.db) {
+    sanitizeFirestoreCategories().then(() => {
+      sanitizeFirestoreProducts();
+    });
+  }
+  
   // Refresh stats and show main dashboard
   updateDashboardStats();
   showDashboardSection('dashboard');
@@ -287,6 +313,125 @@ function logoutAdmin() {
 }
 
 /* ==========================================================================
+   CATEGORIES TABLE RENDERING
+   ========================================================================== */
+function renderCategoriesTable() {
+  const tbody = document.getElementById('categories-table-body');
+  if (!tbody) return;
+  
+  const categories = getCategories();
+  
+  tbody.innerHTML = '';
+  
+  if (categories.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No categories found.</td></tr>';
+    return;
+  }
+  
+  // Calculate bgIndex using category letter position
+  const emojiMap = { 'A': '🌀', 'B': '🌋', 'C': '⛲', 'D': '✏️', 'E': '✨', 'F': '💣', 'G': '🚀', 'H': '⚡', 'I': '🎁', 'J': '🌀', 'K': '🌋', 'L': '⛲' };
+  
+  categories.forEach(cat => {
+    const catLetter = String(cat.id).toUpperCase();
+    const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1;
+    const emoji = emojiMap[catLetter] || '🎆';
+    
+    let imageCellContent = `<div class="prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
+    const imageUrl = cat.categoryImageUrl || cat.image;
+    if (imageUrl) {
+      imageCellContent = `<img src="${imageUrl}" class="admin-prod-thumb" alt="${cat.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--admin-border);">`;
+    }
+    
+    tbody.innerHTML += `
+      <tr>
+        <td>#${escapeHtml(cat.id)}</td>
+        <td>${imageCellContent}</td>
+        <td><strong>${escapeHtml(cat.name)}</strong></td>
+        <td><code>${escapeHtml(cat.slug)}</code></td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-action edit" onclick="openCategoryEditModal('${cat.id}')" title="Edit Category">✏️</button>
+            <button class="btn-action delete" onclick="confirmDelete('category', '${cat.id}')" title="Delete Category">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/* ==========================================================================
+   ENQUIRIES TABLE RENDERING
+   ========================================================================== */
+function renderEnquiriesTable() {
+  const tbody = document.getElementById('enquiries-table-body');
+  if (!tbody) return;
+  
+  const enquiries = firestoreEnquiries;
+  const statusFilter = document.getElementById('admin-enquiry-filter-status')?.value || 'all';
+  
+  // Apply status filter if not "all"
+  let filtered = enquiries;
+  if (statusFilter !== 'all') {
+    filtered = enquiries.filter(e => e.status === statusFilter);
+  }
+  
+  tbody.innerHTML = '';
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center">No enquiries found.</td></tr>';
+    return;
+  }
+  
+  const categories = getCategories();
+  
+  filtered.forEach(enq => {
+    // Format date
+    const formattedDate = new Date(enq.date).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+    
+    // Get category name
+    let catName = 'N/A';
+    if (enq.category === 'all') {
+      catName = 'Complete Combo Box';
+    } else {
+      const match = categories.find(c => c.slug === enq.category);
+      catName = match ? match.name : enq.category;
+    }
+    
+    // Get order total from financialBreakdown or calculate from cartItems
+    let orderTotal = '—';
+    if (enq.financialBreakdown && typeof enq.financialBreakdown.grandTotal === 'number') {
+      orderTotal = `₹${enq.financialBreakdown.grandTotal.toLocaleString('en-IN')}`;
+    } else if (enq.cartItems && enq.cartItems.length > 0) {
+      const total = enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+      orderTotal = `₹${total.toLocaleString('en-IN')}`;
+    }
+    
+    tbody.innerHTML += `
+      <tr>
+        <td>#${escapeHtml((enq.docId || '').substring(0, 6))}</td>
+        <td>${formattedDate}</td>
+        <td>
+          <strong>${escapeHtml(enq.name || '')}</strong><br>
+          <small>${escapeHtml(enq.phone || '')}</small>
+        </td>
+        <td>${escapeHtml(enq.pincode || '')}</td>
+        <td>${escapeHtml(enq.enquiryMessage || enq.message || '')}</td>
+        <td>${orderTotal}</td>
+        <td><span class="status-badge ${enq.status}">${escapeHtml(enq.status)}</span></td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-action edit" onclick="openEnquiryViewModal('${enq.docId}')" title="View Details">👁️</button>
+            <button class="btn-action delete" onclick="confirmDelete('enquiry', '${enq.docId}')" title="Delete Enquiry">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/* ==========================================================================
    1b. Realtime Enquiries stream from Firestore
    ========================================================================== */
 function listenToEnquiries() {
@@ -294,9 +439,9 @@ function listenToEnquiries() {
     console.error('[Admin] Firestore not available for enquiries.');
     return;
   }
-
+  
   console.log('[Admin] Starting enquiries real-time listener...');
-
+  
   window.db.collection('enquiries')
     .orderBy('timestamp', 'desc')
     .onSnapshot((snapshot) => {
@@ -311,7 +456,7 @@ function listenToEnquiries() {
           dateStr = d.date || new Date().toISOString();
         }
         // Support BOTH old flat format and new structured format
-const customer = d.customer || {};
+        const customer = d.customer || {};
         return {
           docId: doc.id,
           name: customer.name || d.name || '',
@@ -329,9 +474,9 @@ const customer = d.customer || {};
           financialBreakdown: d.financialBreakdown || null
         };
       });
-
+      
       console.log('[Admin] ✓ firestoreEnquiries updated. Count:', firestoreEnquiries.length);
-
+      
       // Refresh any views that depend on enquiries
       updateDashboardStats();
       renderEnquiriesTable();
@@ -374,7 +519,8 @@ function showDashboardSection(sectionName) {
       'enquiries': 'Customer Enquiries Portal',
       'banners': 'Manage Homepage Banners',
       'offers': 'Manage Festival Offer Banner',
-      'coupons': 'Manage Coupon Codes'
+      'coupons': 'Manage Coupon Codes',
+      'state-rules': 'Manage State Minimum Order Rules'
     };
     title.innerText = titles[sectionName] || 'Administration';
   }
@@ -392,7 +538,7 @@ function showDashboardSection(sectionName) {
     renderBannersTable();
   } else if (sectionName === 'offers') {
     loadOfferForm();
-    } else if (sectionName === 'coupons') {
+  } else if (sectionName === 'coupons') {
     loadCouponsFromFirestore().then(coupons => {
       adminCoupons = coupons;
       renderCouponsTable();
@@ -478,7 +624,7 @@ function renderRecentEnquiriesMiniTable() {
     
     let catName = 'N/A';
     if (enq.category === 'all') {
-      catName = 'Complete Combo';
+      catName = 'Complete Combo Box';
     } else {
       const match = categories.find(c => c.slug === enq.category);
       catName = match ? match.name : enq.category;
@@ -516,7 +662,7 @@ function updateSalePriceFromDiscount() {
   const discountInput = document.getElementById('product-modal-discount');
   const salePriceInput = document.getElementById('product-modal-price');
   if (!origPriceInput || !discountInput || !salePriceInput) return;
-
+  
   const originalPrice = parseFloat(origPriceInput.value) || 0;
   const discountRaw = discountInput.value.trim();
   
@@ -528,7 +674,7 @@ function updateSalePriceFromDiscount() {
   
   const discountPercent = parseDiscountPercent(discountRaw);
   const salePrice = calculateSalePrice(originalPrice, discountPercent);
-
+  
   salePriceInput.value = salePrice > 0 ? salePrice : '';
 }
 
@@ -545,9 +691,9 @@ function renderProductsTable() {
   
   let filtered = products;
   
-  // Category dropdown filter check
+  // Category dropdown filter check - use string matching
   if (filterCat !== 'all') {
-    filtered = filtered.filter(p => Number(p.categoryId) === Number(filterCat));
+    filtered = filtered.filter(p => String(p.categoryId).toUpperCase() === String(filterCat).toUpperCase());
   }
   
   // Search text filter check
@@ -563,29 +709,36 @@ function renderProductsTable() {
   // Pre-calculate product indices for each category
   const productIndicesByCategory = {};
   categories.forEach((cat, catIndex) => {
-    const catProducts = products.filter(p => Number(p.categoryId) === Number(cat.id))
-      .sort((a, b) => Number(a.id) - Number(b.id));
+    const catProducts = products.filter(p => String(p.categoryId).toUpperCase() === String(cat.id).toUpperCase())
+      .sort((a, b) => {
+        const idA = String(a.id).toUpperCase();
+        const idB = String(b.id).toUpperCase();
+        return idA.localeCompare(idB);
+      });
     catProducts.forEach((p, idx) => {
       productIndicesByCategory[p.id] = { index: idx + 1, catIndex: catIndex };
     });
   });
   
   filtered.forEach(p => {
-    const cat = categories.find(c => Number(c.id) === Number(p.categoryId));
+    // Use string matching for category lookup
+    const cat = categories.find(c => String(c.id).toUpperCase() === String(p.categoryId).toUpperCase());
     const catName = cat ? cat.name : 'Unknown';
-    const bgIndex = (p.categoryId % 9) + 1;
-    const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁' };
-    const emoji = emojiMap[p.categoryId] || '🎆';
     
-    // Get alphanumeric product code
-    const prodIndex = productIndicesByCategory[p.id];
-    const productCode = prodIndex ? `#${getProductCode(p.categoryId, prodIndex.index)}` : `#${p.id}`;
+    // Calculate bgIndex using category letter position
+    const catLetter = String(p.categoryId).toUpperCase();
+    const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1; // A=1, B=2, etc.
+    const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁', 10: '🌀', 11: '🌋', 12: '⛲' };
+    const emoji = emojiMap[bgIndex] || '🎆';
+    
+    // Get alphanumeric product code - use product.id directly since it's now "A1", "B2", etc.
+    const productCode = `#${p.id}`;
     
     let imageCellContent = `<div class="prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
     if (p.image) {
       imageCellContent = `<img src="${p.image}" class="admin-prod-thumb" alt="${p.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--admin-border);">`;
     }
-
+    
     tbody.innerHTML += `
       <tr>
         <td>${productCode}</td>
@@ -602,8 +755,8 @@ function renderProductsTable() {
         <td>${p.qty}</td>
         <td>
           <div class="table-actions">
-            <button class="btn-action edit" onclick="openProductEditModal(${p.id})" title="Edit Product">✏️</button>
-            <button class="btn-action delete" onclick="confirmDelete('product', ${p.id})" title="Delete Product">🗑️</button>
+            <button class="btn-action edit" onclick="openProductEditModal('${p.id}')" title="Edit Product">✏️</button>
+            <button class="btn-action delete" onclick="confirmDelete('product', '${p.id}')" title="Delete Product">🗑️</button>
           </div>
         </td>
       </tr>
@@ -647,7 +800,7 @@ function openProductAddModal() {
 
 function openProductEditModal(id) {
   const products = getProducts();
-  const p = products.find(prod => Number(prod.id) === Number(id));
+  const p = products.find(prod => String(prod.id) === String(id));
   if (!p) return;
   
   document.getElementById('product-modal-title').innerText = 'Edit Firecracker Details';
@@ -691,13 +844,16 @@ function closeProductModal() {
 
 function saveProductData() {
   updateSalePriceFromDiscount();
-
+  
   const idVal = document.getElementById('product-modal-id').value;
   const name = document.getElementById('product-modal-name').value;
-  const categoryId = parseInt(document.getElementById('product-modal-cat').value);
+  const categoryIdInput = document.getElementById('product-modal-cat').value;
   const qty = document.getElementById('product-modal-qty').value;
   const originalPrice = parseInt(document.getElementById('product-modal-orig-price').value);
   const discountRaw = document.getElementById('product-modal-discount').value.trim();
+  
+  // Convert categoryId to letter string for consistency
+  const categoryId = getCategoryLetterFromId(categoryIdInput);
   
   // If discount is empty, no discount - sale price equals original price and discount field is empty string
   let price, discount;
@@ -720,103 +876,229 @@ function saveProductData() {
   
   const products = getProducts();
   
+  // Track original category for change detection (EDIT MODE fix)
+  let originalCategoryId = null;
+  let originalProductId = null;
+  
   if (idVal === '') {
-    // Add Mode
-    const newId = generateId(products);
+    // Add Mode - Generate alphanumeric ID based on category and position
+    const catIndex = getCategoryIndex(categoryId);
+    const catProducts = products.filter(p => String(p.categoryId).toUpperCase() === String(categoryId).toUpperCase());
+    const newIndexWithinCategory = catProducts.length + 1;
+    const newId = getProductCode(categoryId, newIndexWithinCategory);
+    
     const newProduct = {
-      id: newId, name, categoryId, price, originalPrice, discount, qty, description, inStock, image
+      id: newId,
+      name,
+      categoryId, // Already a letter string like "A", "B"
+      price,
+      originalPrice,
+      discount,
+      qty,
+      description,
+      inStock,
+      image
     };
     products.push(newProduct);
   } else {
-    // Edit Mode
-    const pIndex = products.findIndex(prod => Number(prod.id) === Number(idVal));
+    // Edit Mode - capture original values BEFORE update
+    const existingProduct = products.find(p => String(p.id) === String(idVal));
+    if (existingProduct) {
+      originalCategoryId = existingProduct.categoryId;
+      originalProductId = existingProduct.id;
+    }
+    
+    const pIndex = products.findIndex(prod => String(prod.id) === String(idVal));
     if (pIndex !== -1) {
       products[pIndex] = {
-        id: Number(idVal), name, categoryId, price, originalPrice, discount, qty, description, inStock, image
+        id: idVal,
+        name,
+        categoryId, // Already a letter string like "A", "B"
+        price,
+        originalPrice,
+        discount,
+        qty,
+        description,
+        inStock,
+        image
       };
     }
   }
-
+  
   // Show a single clean success toast
   showAdminToast('Product saved successfully!', 'success');
   
   saveProducts(products);
+  
   // Sync to Firestore (async) with visible error feedback
-  const productToSync = idVal === '' ? products[products.length - 1] : products.find(p => Number(p.id) === Number(idVal));
+  const productToSync = idVal === '' ? products[products.length - 1] : products.find(p => String(p.id) === String(idVal));
+  
   if (!window.db) {
     console.error('[Firestore] window.db is NULL — Firebase not initialized. Check that firebase-config.js loaded correctly.');
     showAdminToast('Firestore not connected. Data saved locally only.', 'error');
   } else if (productToSync) {
-    saveProductToFirestore(productToSync)
-      .then(() => {
-        console.log('[Firestore] Product synced successfully:', productToSync.name);
-      })
-      .catch(err => {
-        const code = err.code || 'unknown';
-        const msg = err.message || 'Unknown error';
-        console.error('[Firestore] Product sync FAILED. Code:', code, 'Message:', msg, err);
-        showAdminToast('Firestore error [' + code + ']: ' + msg, 'error');
-      });
+    // CRITICAL FIX: Check if category has changed during edit
+    const categoryChanged = originalCategoryId !== null && String(originalCategoryId).toUpperCase() !== String(categoryId).toUpperCase();
+    
+    if (categoryChanged) {
+      // Category CHANGED: Need to DELETE old document and CREATE new one
+      console.log('[Firestore] Category changed. Moving product from cat', originalCategoryId, 'to cat', categoryId);
+      
+      handleCategoryChangeFirestore(originalProductId, productToSync)
+        .then(() => {
+          console.log('[Firestore] Product moved to new category successfully.');
+          // Re-render products table after Firestore sync
+          loadProductsFromFirestore().then(() => {
+            renderProductsTable();
+          });
+        })
+        .catch(err => {
+          const code = err.code || 'unknown';
+          const msg = err.message || 'Unknown error';
+          console.error('[Firestore] Category change/move FAILED. Code:', code, 'Message:', msg, err);
+          showAdminToast('Firestore move failed [' + code + ']: ' + msg, 'error');
+          // Still re-render to show local state
+          renderProductsTable();
+        });
+    } else {
+      // Category UNCHANGED: Simple update
+      saveProductToFirestore(productToSync)
+        .then(() => {
+          console.log('[Firestore] Product synced successfully:', productToSync.name);
+        })
+        .catch(err => {
+          const code = err.code || 'unknown';
+          const msg = err.message || 'Unknown error';
+          console.error('[Firestore] Product sync FAILED. Code:', code, 'Message:', msg, err);
+          showAdminToast('Firestore error [' + code + ']: ' + msg, 'error');
+        });
+    }
   }
+  
   closeProductModal();
   renderProductsTable();
 }
 
-/* ==========================================================================
-   5. Category Settings CRUD Manager
-   ========================================================================= */
-function renderCategoriesTable() {
-  const tbody = document.getElementById('categories-table-body');
-  if (!tbody) return;
+/**
+ * Handle moving a product to a new category in Firestore.
+ * Deletes the old document at the original category's ID location and creates a new one.
+ * @param {string|number} oldProductId - The original product ID
+ * @param {Object} updatedProduct - The product with updated data
+ */
+async function handleCategoryChangeFirestore(oldProductId, updatedProduct) {
+  if (!window.db) {
+    throw new Error('Firestore not connected');
+  }
   
-  const categories = getCategories();
-  tbody.innerHTML = '';
+  const oldDocId = String(oldProductId);
   
-  if (categories.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No categories present.</td></tr>';
+  // Fetch current Firestore products to determine the new index
+  const snapshot = await window.db.collection('products').get();
+  const firestoreProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  
+  // Find products in the NEW category to calculate the correct index
+  // Support both numeric and string categoryIds
+  const productsInNewCategory = firestoreProducts.filter(p => 
+    String(p.categoryId).toUpperCase() === String(updatedProduct.categoryId).toUpperCase()
+  );
+  const sortedNewCatProducts = productsInNewCategory
+    .filter(p => p.id !== oldDocId) // Exclude the old product if it's already there
+    .sort((a, b) => {
+      // Sort by alphanumeric ID
+      const idA = String(a.id).toUpperCase();
+      const idB = String(b.id).toUpperCase();
+      return idA.localeCompare(idB);
+    });
+  
+  // Calculate the new product index within the category
+  const newIndexWithinCategory = sortedNewCatProducts.length + 1;
+  
+  // Generate the alphanumeric code for the new category
+  const newId = getProductCode(updatedProduct.categoryId, newIndexWithinCategory);
+  
+  // Update product object with correct IDs
+  updatedProduct.id = newId;
+  
+  // Delete the old document
+  await window.db.collection('products').doc(oldDocId).delete();
+  console.log('[Firestore] Old product document deleted:', oldDocId);
+  
+  // Save the new document
+  await window.db.collection('products').doc(String(newId)).set(updatedProduct);
+  console.log('[Firestore] New product document created:', String(newId));
+  
+  // Update localStorage cache
+  const cached = getProducts();
+  const filtered = cached.filter(p => String(p.id) !== String(oldProductId));
+  filtered.push(updatedProduct);
+  localStorage.setItem('jcs_products', JSON.stringify(filtered));
+}
+
+/**
+ * Purge orphaned numeric document entries from Firestore products collection.
+ * These are legacy documents with numeric IDs that need to be converted.
+ */
+async function purgeOrphanedNumericProductDocuments() {
+  if (!window.db) {
+    console.warn('[Admin] Firestore not connected. Skipping orphan purge.');
     return;
   }
   
-  categories.forEach((cat, index) => {
-    const imgVal = (cat.categoryImageUrl ?? cat.image ?? '').toString();
-    const categoryCode = getCategoryCode(index);
-
-    let imageCell = `
-      <div class="cat-no-image">
-        <span class="cat-no-image-icon">🖼️</span>
-        <span class="cat-no-image-text">No Image</span>
-      </div>
-    `;
-
-    if (imgVal && imgVal.trim() !== '') {
-      imageCell = `
-        <img
-          src="${imgVal}"
-          class="cat-thumb"
-          alt="${escapeHtml(cat.name)}"
-        >
-      `;
+  try {
+    const snapshot = await window.db.collection('products').get();
+    const categories = getCategories();
+    const validCategoryLetters = categories.map(c => String(c.id).toUpperCase());
+    const migratedProducts = [];
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const docId = doc.id;
+      
+      // Check if document ID is numeric (legacy format like "101", "301", etc.)
+      if (/^\d+$/.test(docId)) {
+        // Convert numeric ID to alphanumeric format
+        const numId = parseInt(docId, 10);
+        const catIndex = Math.floor(numId / 100) - 1; // 101 -> 0 (Ground Chakkars/A)
+        if (catIndex >= 0 && catIndex < validCategoryLetters.length) {
+          const catLetter = validCategoryLetters[catIndex];
+          const prodIndex = (numId % 100) || 1; // 101 % 100 = 1, use 1 if 0
+          
+          // Prepare updated product with correct IDs
+          migratedProducts.push({
+            ref: doc.ref,
+            updates: {
+              id: `${catLetter}${prodIndex}`,
+              categoryId: catLetter
+            }
+          });
+          console.log('[Admin] Found legacy product doc to migrate:', docId, '->', `${catLetter}${prodIndex}`);
+        }
+      }
+    });
+    
+    // Update migrated documents
+    if (migratedProducts.length > 0) {
+      const batch = window.db.batch();
+      migratedProducts.forEach(({ ref, updates }) => {
+        batch.update(ref, updates);
+      });
+      await batch.commit();
+      console.log('[Admin] Migrated', migratedProducts.length, 'product documents to new ID format.');
+      showAdminToast(`Migrated ${migratedProducts.length} product document(s) to new ID format.`, 'info');
+      
+      // Refresh the product list
+      await loadProductsFromFirestore();
     }
-
-  tbody.innerHTML += `
-      <tr>
-        <td>${categoryCode}</td>
-        <td>
-          ${imageCell}
-        </td>
-        <td><strong>${escapeHtml(cat.name)}</strong></td>
-        <td><code>${escapeHtml(cat.slug)}</code></td>
-        <td>
-          <div class="table-actions">
-            <button class="btn-action edit" onclick="openCategoryEditModal(${cat.id})" title="Edit CategoryName">✏️</button>
-            <button class="btn-action delete" onclick="confirmDelete('category', ${cat.id})" title="Delete Category">🗑️</button>
-          </div>
-        </td>
-      </tr>
-    `;
-  });
+  } catch (err) {
+    console.error('[Admin] Failed to migrate legacy documents:', err);
+  }
 }
 
+/* ==========================================================================
+   5. Categories CRUD Manager (modals + save)
+   NOTE: Category IDs are letter strings ("A", "B", ...). All lookups use
+   String comparison to stay compatible with the alphanumeric ID scheme.
+   ========================================================================== */
 function openCategoryAddModal() {
   document.getElementById('category-modal-title').innerText = 'Add Category';
   document.getElementById('category-form').reset();
@@ -829,7 +1111,7 @@ function openCategoryAddModal() {
 
 function openCategoryEditModal(id) {
   const categories = getCategories();
-  const cat = categories.find(c => Number(c.id) === Number(id));
+  const cat = categories.find(c => String(c.id) === String(id));
   if (!cat) return;
 
   document.getElementById('category-modal-title').innerText = 'Edit Category Name';
@@ -837,18 +1119,15 @@ function openCategoryEditModal(id) {
   document.getElementById('category-modal-name').value = cat.name;
   document.getElementById('category-modal-slug').value = cat.slug;
 
-  // Backward compatible read:
-  // - new field: categoryImageUrl
-  // - old field: image
+  // Backward compatible read: new field categoryImageUrl, old field image
   const imgVal = (cat.categoryImageUrl ?? cat.image ?? '').toString();
 
-  // For edit: show existing image preview and prefill hidden legacy field.
   const hiddenInput = document.getElementById('categoryImageUrl');
   if (hiddenInput) hiddenInput.value = imgVal;
 
   setCategoryImagePreview(imgVal);
 
-  // Also reset file input so that choosing a new file is required to update.
+  // Reset file input so choosing a new file is required to update.
   const fileInput = document.getElementById('categoryImageFile');
   if (fileInput) fileInput.value = '';
 
@@ -865,47 +1144,42 @@ function saveCategoryData() {
   const name = document.getElementById('category-modal-name').value;
   const slug = document.getElementById('category-modal-slug').value;
 
-  // The hidden field will be updated when a new file is selected.
-  // If no file selected during edit, keep existing image.
+  // Hidden field is updated when a new file is selected; preserved on edit.
   let selectedImg = document.getElementById('categoryImageUrl')?.value?.trim() || '';
 
   const categories = getCategories();
 
   if (idVal === '') {
-    // Add Mode
-    const newId = generateId(categories);
+    // Add Mode - generate the next letter code (A, B, C, ...) for consistency
+    const newId = getCategoryCode(categories.length);
     const newCat = {
       id: newId,
       name,
       slug,
       categoryImageUrl: selectedImg,
-      // legacy field
-      image: selectedImg
+      image: selectedImg // legacy field
     };
     categories.push(newCat);
   } else {
     // Edit Mode
-    const index = categories.findIndex(c => Number(c.id) === Number(idVal));
+    const index = categories.findIndex(c => String(c.id) === String(idVal));
     if (index !== -1) {
-      // If no new upload happened, selectedImg may still be the existing value
-      // (we prefill it in openCategoryEditModal), so it will be preserved.
-      // If admin clears preview, it will save empty string.
       categories[index].name = name;
       categories[index].slug = slug;
       categories[index].categoryImageUrl = selectedImg;
-      // legacy field
-      categories[index].image = selectedImg;
+      categories[index].image = selectedImg; // legacy field
     }
   }
 
   saveCategories(categories);
   console.log('[Category Save] localStorage updated. Categories count:', categories.length);
 
-  // Show a single clean success toast immediately
   showAdminToast('Category saved successfully!', 'success');
 
   // Async Firestore sync (fire-and-forget, error only shown if sync fails)
-  const categoryToSync = idVal === '' ? categories[categories.length - 1] : categories.find(c => Number(c.id) === Number(idVal));
+  const categoryToSync = idVal === ''
+    ? categories[categories.length - 1]
+    : categories.find(c => String(c.id) === String(idVal));
 
   if (window.db && categoryToSync) {
     console.log('[Category Save] Attempting Firestore write for category ID:', categoryToSync.id);
@@ -933,87 +1207,13 @@ function saveCategoryData() {
   renderCategoriesTable();
 }
 
-
 /* ==========================================================================
    6. Enquiries Viewer & Status Manager
    ========================================================================== */
-function renderEnquiriesTable() {
-  const tbody = document.getElementById('enquiries-table-body');
-  if (!tbody) return;
-  
-  const enquiries = firestoreEnquiries;
-  const categories = getCategories();
-  const statusFilter = document.getElementById('admin-enquiry-filter-status')?.value || 'all';
-  
-  tbody.innerHTML = '';
-  
-  let filtered = enquiries;
-  if (statusFilter !== 'all') {
-    filtered = enquiries.filter(e => e.status === statusFilter);
-  }
-  
-  // Sort descending by date
-  filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No customer enquiries found matching filter.</td></tr>';
-    return;
-  }
-  
-     filtered.forEach(enq => {
-     const formattedDate = new Date(enq.date).toLocaleString('en-IN', {
-       day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-     });
-     
-     // Get pincode - check both customer.pincode and direct pincode field
-     const pincodeDisplay = enq.pincode || (enq.customer && enq.customer.pincode) || 'N/A';
-     
-     // Get enquiry message - check both enquiryMessage and message fields
-     const enquiryMsg = enq.enquiryMessage || enq.message || '';
-     const messagePreview = enquiryMsg.length > 80 ? enquiryMsg.substring(0, 80) + '...' : enquiryMsg || '—';
-     
-     // Calculate grand total for display
-     let grandTotalDisplay = '—';
-     if (enq.financialBreakdown && enq.financialBreakdown.grandTotal) {
-       grandTotalDisplay = `₹${enq.financialBreakdown.grandTotal.toLocaleString('en-IN')}`;
-     } else if (enq.cartItems && enq.cartItems.length > 0) {
-       const totalFromItems = enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
-       grandTotalDisplay = `₹${totalFromItems.toLocaleString('en-IN')}`;
-     }
-
-     tbody.innerHTML += `
-       <tr>
-         <td>#${(enq.docId || '').substring(0, 6)}</td>
-         <td>${formattedDate}</td>
-         <td>
-           <strong>${escapeHtml(enq.name)}</strong><br>
-           <a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">📞 ${escapeHtml(enq.phone)}</a><br>
-         <span style="font-size:0.75rem;color:var(--admin-text-muted)">${escapeHtml(enq.deliveryAddress || 'No delivery address')}</span>
-
-         </td>
-         <td>${escapeHtml(pincodeDisplay)}</td>
-         <td>${escapeHtml(messagePreview)}</td>
-         <td>
-           <a href="#" class="grand-total-badge" onclick="openEnquiryModal('${enq.docId}');return false;" title="View Order Details">
-             ${grandTotalDisplay}
-           </a>
-         </td>
-         <td><span class="status-badge ${enq.status}">${enq.status}</span></td>
-         <td>
-           <div class="table-actions">
-             <button class="btn-action view" onclick="openEnquiryModal('${enq.docId}')" title="View Details">🔍</button>
-             <button class="btn-action delete" onclick="confirmDelete('enquiry', '${enq.docId}')" title="Delete Enquiry">🗑️</button>
-           </div>
-         </td>
-       </tr>
-     `;
-   });
-}
-
 function openEnquiryModal(id) {
   const enq = firestoreEnquiries.find(e => e.docId === id);
   if (!enq) return;
-  
+
   const categories = getCategories();
   let catName = 'N/A';
   if (enq.category === 'all') {
@@ -1022,20 +1222,20 @@ function openEnquiryModal(id) {
     const match = categories.find(c => c.slug === enq.category);
     catName = match ? match.name : enq.category;
   }
-  
+
   document.getElementById('enquiry-modal-id').value = enq.docId;
   document.getElementById('enquiry-modal-name').innerText = enq.name;
   document.getElementById('enquiry-modal-phone').innerHTML = `<a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">${enq.phone} 🚀 (Send WA Message)</a>`;
   document.getElementById('enquiry-modal-email').innerText = enq.deliveryAddress || 'N/A';
   document.getElementById('enquiry-modal-pincode').innerText = enq.pincode || (enq.customer && enq.customer.pincode) || 'N/A';
-document.getElementById('enquiry-modal-state').innerText = (enq.customer && enq.customer.state) || enq.state || 'N/A';
+  document.getElementById('enquiry-modal-state').innerText = (enq.customer && enq.customer.state) || enq.state || 'N/A';
   document.getElementById('enquiry-modal-date').innerText = new Date(enq.date).toLocaleString('en-IN');
   document.getElementById('enquiry-modal-message').innerText = enq.enquiryMessage || enq.message || '—';
   document.getElementById('enquiry-modal-status').value = enq.status;
-  
+
   // Populate Order Details Modal with cart items and financial breakdown
   populateOrderDetailsModal(enq);
-  
+
   document.getElementById('enquiry-modal').style.display = 'flex';
 }
 
@@ -1048,7 +1248,6 @@ function closeEnquiryModal() {
  * @param {Object} enq - The enquiry object with cartItems and financialBreakdown.
  */
 function populateOrderDetailsModal(enq) {
-  // Populate purchased items list
   const itemsListEl = document.getElementById('order-details-items-list');
   if (itemsListEl) {
     if (enq.cartItems && enq.cartItems.length > 0) {
@@ -1070,59 +1269,49 @@ function populateOrderDetailsModal(enq) {
       itemsListEl.innerHTML = '<div class="order-detail-empty">No items in this order.</div>';
     }
   }
-  
-  // Populate financial summary block
+
   const fb = enq.financialBreakdown || {};
-  
-  // Extract values for dynamic calculation (matching Firebase payload keys)
+
   const totalOriginal = fb.totalOriginal || 0;
   const totalSavings = fb.totalSavings || 0;
   const overallDiscountPercent = fb.overallDiscountPercent || 0;
   const nonDiscountedTotal = fb.nonDiscountedTotal || 0;
   const spinWheelDiscount = fb.spinWheelDiscount || 0;
   const couponDiscount = fb.couponDiscount || 0;
-  
-   // Calculate Grand Total dynamically using the correct formula:
-   // Grand Total = Original Total - You Saved - Coupon Applied - Spin Wheel Reward
-   const grandTotal = totalOriginal - totalSavings - spinWheelDiscount - couponDiscount;
-  
-  // Original Total
+
+  // Grand Total = Original Total - You Saved - Coupon Applied - Spin Wheel Reward
+  const grandTotal = totalOriginal - totalSavings - spinWheelDiscount - couponDiscount;
+
   const totalEl = document.getElementById('order-summary-total');
   if (totalEl) {
     totalEl.textContent = '₹' + totalOriginal.toLocaleString('en-IN');
   }
-  
-  // Discount Percentage Badge - FIXED: Use correct selector for class-based element
+
   const discountBadgeEl = document.querySelector('.order-summary-badge');
   if (discountBadgeEl) {
     discountBadgeEl.textContent = overallDiscountPercent > 0 ? overallDiscountPercent + '% OFF' : '0% OFF';
   }
-  
-  // You Saved Amount display
+
   const savedAmountEl = document.getElementById('order-summary-saved-amount');
   if (savedAmountEl) {
     savedAmountEl.textContent = totalSavings > 0 ? '-₹' + totalSavings.toLocaleString('en-IN') : '—';
   }
-  
-  // Non-Discounted Items Total
+
   const nonDiscountedEl = document.getElementById('order-summary-non-discounted');
   if (nonDiscountedEl) {
     nonDiscountedEl.textContent = '₹' + nonDiscountedTotal.toLocaleString('en-IN');
   }
-  
-  // Spin Wheel Discount
+
   const spinWheelEl = document.getElementById('order-summary-spin-wheel');
   if (spinWheelEl) {
     spinWheelEl.textContent = spinWheelDiscount > 0 ? '-₹' + spinWheelDiscount.toLocaleString('en-IN') : '—';
   }
-  
-  // Grand Total - FIXED: Use dynamic calculation based on formula
+
   const grandTotalEl = document.getElementById('order-summary-grand-total');
   if (grandTotalEl) {
     grandTotalEl.textContent = '₹' + grandTotal.toLocaleString('en-IN');
   }
-  
-  // Coupon applied
+
   const couponEl = document.getElementById('order-summary-coupon');
   if (couponEl) {
     couponEl.textContent = couponDiscount > 0 ? '-₹' + couponDiscount.toLocaleString('en-IN') : '—';
@@ -1132,12 +1321,12 @@ function populateOrderDetailsModal(enq) {
 function saveEnquiryStatus() {
   const docId = document.getElementById('enquiry-modal-id').value;
   const status = document.getElementById('enquiry-modal-status').value;
-  
+
   if (!docId || !window.db) {
     showAdminToast('Could not update enquiry status.', 'error');
     return;
   }
-  
+
   window.db.collection('enquiries').doc(docId).update({ status })
     .then(() => {
       showAdminToast(`Enquiry status modified to ${status.toUpperCase()}.`, 'success');
@@ -1146,26 +1335,26 @@ function saveEnquiryStatus() {
       console.error('[Admin] Failed to update enquiry status:', err);
       showAdminToast('Could not update enquiry status.', 'error');
     });
-  
-  // Firestore onSnapshot listener will refresh the tables + stats automatically.
+
+  // Firestore onSnapshot listener refreshes the tables + stats automatically.
   closeEnquiryModal();
 }
-
 /* ==========================================================================
    7. Item Deletions Confirmation Popups
+   Handles product | category | enquiry | banner | coupon | state-rule.
    ========================================================================== */
 function confirmDelete(type, id) {
   deleteTargetType = type;
   deleteTargetId = id;
-  
+
   const label = document.getElementById('delete-modal-text');
-  
+
   if (type === 'product') {
     label.innerText = 'This will permanently remove this firecracker product from your storefront catalogs.';
   } else if (type === 'category') {
-    // Check if category is currently linked to products
+    // Prevent deleting a category still linked to products (string comparison).
     const products = getProducts();
-    const isLinked = products.some(p => Number(p.categoryId) === Number(id));
+    const isLinked = products.some(p => String(p.categoryId).toUpperCase() === String(id).toUpperCase());
     if (isLinked) {
       showAdminToast('Cannot delete category linked to existing products!', 'error');
       return;
@@ -1175,11 +1364,14 @@ function confirmDelete(type, id) {
     label.innerText = 'This will permanently delete the selected customer enquiry record.';
   } else if (type === 'banner') {
     label.innerText = 'This will permanently delete the selected homepage banner.';
+  } else if (type === 'coupon') {
+    label.innerText = 'This will permanently delete the selected coupon code.';
+  } else if (type === 'state-rule') {
+    label.innerText = 'This will permanently delete the selected state minimum rule.';
   }
-  
+
   document.getElementById('delete-modal').style.display = 'flex';
 }
-
 
 function closeDeleteModal() {
   document.getElementById('delete-modal').style.display = 'none';
@@ -1190,9 +1382,8 @@ function closeDeleteModal() {
 function executePendingDelete() {
   if (deleteTargetType === 'product') {
     let products = getProducts();
-    products = products.filter(p => Number(p.id) !== Number(deleteTargetId));
+    products = products.filter(p => String(p.id) !== String(deleteTargetId));
     saveProducts(products);
-    // Delete from Firestore (async) with visible error feedback
     if (!window.db) {
       console.error('[Firestore] window.db is NULL — cannot delete from Firestore.');
     } else {
@@ -1207,9 +1398,8 @@ function executePendingDelete() {
     renderProductsTable();
   } else if (deleteTargetType === 'category') {
     let categories = getCategories();
-    categories = categories.filter(c => Number(c.id) !== Number(deleteTargetId));
+    categories = categories.filter(c => String(c.id) !== String(deleteTargetId));
     saveCategories(categories);
-    // Delete from Firestore (async) with visible error feedback
     if (!window.db) {
       console.error('[Firestore] window.db is NULL — cannot delete category from Firestore.');
     } else {
@@ -1274,11 +1464,9 @@ function executePendingDelete() {
         });
     }
   } else if (deleteTargetType === 'state-rule') {
-    // Delete state rule from localStorage
     adminStateRules = adminStateRules.filter(r => r.state !== deleteTargetId);
     localStorage.setItem('kpr_state_rules', JSON.stringify(adminStateRules));
-    
-    // Delete from Firestore (async)
+
     if (!window.db) {
       console.error('[Firestore] window.db is NULL — cannot delete state rule from Firestore.');
     } else {
@@ -1294,11 +1482,10 @@ function executePendingDelete() {
     showAdminToast('State rule deleted successfully.', 'success');
     renderStateRulesTable();
   }
-  
+
   closeDeleteModal();
   updateDashboardStats();
 }
-
 
 /* ==========================================================================
    8. Utility helpers
@@ -1312,32 +1499,20 @@ function slugify(text) {
     .replace(/-+$/, '');            // Trim - from end of text
 }
 
-function escapeHtml(text) {
-  if (!text) return '';
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  };
-  return text.replace(/[&<>"']/g, m => map[m]);
-}
-
 function showAdminToast(message, type = 'success') {
   const container = document.getElementById('admin-toast-container');
   if (!container) return;
-  
+
   const toast = document.createElement('div');
   toast.className = `toast-admin ${type}`;
-  
+
   toast.innerHTML = `
     <span>${message}</span>
     <button class="toast-admin-close" onclick="this.parentElement.remove()">✕</button>
   `;
-  
+
   container.appendChild(toast);
-  
+
   setTimeout(() => {
     toast.remove();
   }, 4000);
@@ -1359,7 +1534,6 @@ function setCategoryImagePreview(dataUrl) {
   if (hiddenInput) hiddenInput.value = (dataUrl || '').toString();
 
   if (dataUrl && String(dataUrl).trim() !== '') {
-    // Image selected: show img + remove btn, hide placeholder
     if (previewImg) {
       previewImg.src = dataUrl;
       previewImg.style.display = 'block';
@@ -1368,7 +1542,6 @@ function setCategoryImagePreview(dataUrl) {
     if (removeBtn) removeBtn.style.display = 'flex';
     if (previewBox) previewBox.style.borderColor = 'var(--admin-success)';
   } else {
-    // No image: hide img + remove btn, show placeholder
     if (previewImg) {
       previewImg.src = '';
       previewImg.style.display = 'none';
@@ -1379,9 +1552,6 @@ function setCategoryImagePreview(dataUrl) {
   }
 }
 
-/**
- * Removes the selected category image and resets the preview to placeholder state.
- */
 window.removeCategoryImage = function removeCategoryImage() {
   const fileInput = document.getElementById('categoryImageFile');
   if (fileInput) fileInput.value = '';
@@ -1390,24 +1560,21 @@ window.removeCategoryImage = function removeCategoryImage() {
   resetCategoryImageDimensionInfo();
 };
 
-
-// Toggle between URL and File input groups
+// Toggle between URL and File input groups (product modal)
 window.toggleImageSourceInput = function(source) {
   const urlGroup = document.getElementById('image-url-group');
   const fileGroup = document.getElementById('image-file-group');
-  
+
   if (source === 'url') {
     urlGroup.style.display = 'block';
     fileGroup.style.display = 'none';
-    
-    // Update preview with URL value
+
     const url = document.getElementById('product-modal-image-url').value.trim();
     updateImagePreview(url);
   } else {
     urlGroup.style.display = 'none';
     fileGroup.style.display = 'block';
-    
-    // Reset file preview or show file preview
+
     const fileInput = document.getElementById('product-modal-image-file');
     if (fileInput.files && fileInput.files[0]) {
       const reader = new FileReader();
@@ -1424,7 +1591,7 @@ window.toggleImageSourceInput = function(source) {
 function updateImagePreview(src) {
   const preview = document.getElementById('product-modal-image-preview');
   const placeholder = document.getElementById('product-modal-image-placeholder');
-  
+
   if (src && src.trim() !== '') {
     preview.src = src;
     preview.style.display = 'block';
@@ -1439,16 +1606,9 @@ function updateImagePreview(src) {
 /* ==========================================================================
    8b. Category Image Dimension Helpers & Validation
    ========================================================================== */
-
-// Recommended dimensions for category images (4:3 aspect ratio matching front-end cards)
 const CATEGORY_IMAGE_RECOMMENDED_WIDTH = 400;
 const CATEGORY_IMAGE_RECOMMENDED_HEIGHT = 300;
 
-/**
- * Reads an image file's natural dimensions asynchronously.
- * @param {File} file - The image file selected by the user.
- * @param {function} callback - Called with (width, height) once loaded.
- */
 function readImageDimensions(file, callback) {
   if (!file || !callback) return;
 
@@ -1469,11 +1629,6 @@ function readImageDimensions(file, callback) {
   img.src = objectUrl;
 }
 
-/**
- * Updates the dimension info text in the category modal.
- * @param {number} width - Image width in pixels.
- * @param {number} height - Image height in pixels.
- */
 function updateCategoryImageDimensionInfo(width, height) {
   const infoEl = document.getElementById('category-image-dimension-values');
   if (!infoEl) return;
@@ -1485,45 +1640,32 @@ function updateCategoryImageDimensionInfo(width, height) {
   }
 }
 
-/**
- * Resets the dimension display to the default placeholder.
- */
 function resetCategoryImageDimensionInfo() {
   const infoEl = document.getElementById('category-image-dimension-values');
   if (infoEl) {
     infoEl.textContent = '-- × -- px';
   }
 
-  // Also reset any color styling from validation
   const dimInfo = document.getElementById('category-image-dimension-info');
   if (dimInfo) {
     dimInfo.style.color = '';
   }
 }
 
-/**
- * Validates the uploaded image dimensions against the recommended size.
- * Shows a warning toast/popup if dimensions exceed recommended values.
- * @param {number} width - Image width in pixels.
- * @param {number} height - Image height in pixels.
- */
 function validateCategoryImageDimensions(width, height) {
   const dimInfo = document.getElementById('category-image-dimension-info');
   if (!dimInfo) return;
 
-  // If dimensions couldn't be read, skip validation
   if (!width || !height) return;
 
   const widthOk = width <= CATEGORY_IMAGE_RECOMMENDED_WIDTH;
   const heightOk = height <= CATEGORY_IMAGE_RECOMMENDED_HEIGHT;
 
   if (widthOk && heightOk) {
-    // Within recommended range — show green indicator
     dimInfo.style.color = 'var(--admin-success, #22c55e)';
     return;
   }
 
-  // Exceeds recommended size — show warning toast
   dimInfo.style.color = 'var(--admin-danger, #ef4444)';
 
   showAdminToast(
@@ -1531,16 +1673,14 @@ function validateCategoryImageDimensions(width, height) {
     'warning'
   );
 }
-
 /* ==========================================================================
-   9. Banners (fixed 3-banner edit-only)
+   9. Banners (edit + add, base64 images)
    ========================================================================== */
-
 function getBannersData() {
   const key = 'bannersData';
   const raw = localStorage.getItem(key);
 
-  // First-run defaults: seed 3 banners so UI isn't empty, but do NOT enforce fixed length.
+  // First-run defaults: seed 3 banners so UI isn't empty.
   if (!raw) {
     const defaults = [
       { tagline: 'FESTIVAL OF LIGHTS', headingTitle: 'KPR Crackers', description: 'Explore premium Sivakasi firecrackers with safe delivery and unbeatable offers!', imageBase64: '' },
@@ -1555,7 +1695,6 @@ function getBannersData() {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) throw new Error('not array');
 
-    // Normalize structure but keep ALL items.
     const normalized = parsed.map(item => ({
       tagline: (item?.tagline ?? '').toString(),
       headingTitle: (item?.headingTitle ?? '').toString(),
@@ -1582,7 +1721,6 @@ function saveBannersData(banners) {
   }));
   localStorage.setItem(key, JSON.stringify(normalized));
 }
-
 
 function renderBannersTable() {
   const tbody = document.getElementById('banners-table-body');
@@ -1628,7 +1766,6 @@ function openBannerAddModal() {
   document.getElementById('banner-modal-description').value = '';
   document.getElementById('banner-modal-image-data').value = '';
 
-  // reset preview
   const previewImg = document.getElementById('banner-image-preview');
   const placeholder = document.getElementById('banner-image-placeholder');
   previewImg.src = '';
@@ -1654,7 +1791,6 @@ function openBannerEditModal(index) {
   document.getElementById('banner-modal-description').value = banner.description || '';
   document.getElementById('banner-modal-image-data').value = banner.imageBase64 || '';
 
-  // preview
   const previewImg = document.getElementById('banner-image-preview');
   const placeholder = document.getElementById('banner-image-placeholder');
   const data = banner.imageBase64 || '';
@@ -1668,13 +1804,11 @@ function openBannerEditModal(index) {
     placeholder.style.display = 'flex';
   }
 
-  // For edit: reset file input so selecting a new file replaces image.
   const fileInput = document.getElementById('banner-image-file');
   if (fileInput) fileInput.value = '';
 
   document.getElementById('banner-modal').style.display = 'flex';
 }
-
 
 function closeBannerModal() {
   document.getElementById('banner-modal').style.display = 'none';
@@ -1689,7 +1823,6 @@ function saveBannerEdit() {
   const description = document.getElementById('banner-modal-description').value;
   const imageBase64 = document.getElementById('banner-modal-image-data').value;
 
-  // Image is strictly required (HTML required + extra guard)
   if (!imageBase64 || String(imageBase64).trim() === '') {
     showAdminToast('Banner image is required.', 'error');
     return;
@@ -1746,12 +1879,10 @@ function saveBannerEdit() {
   showAdminToast('Banner updated successfully.', 'success');
 }
 
-
 // Image file -> base64 conversion for banner modal
 (function wireBannerModalUploadOnce() {
-document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('banner-image-file');
-    const imageDataInput = document.getElementById('banner-modal-image-data');
 
     if (!fileInput) return;
 
@@ -1785,12 +1916,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ==========================================================================
    OFFER BANNER — Admin Form Logic
-   Loads offer data into the form, handles save to Firestore.
    ========================================================================== */
-
-/**
- * Load offer data from Firestore into the admin form.
- */
 function loadOfferForm() {
   console.log('[Admin] Loading offer form...');
   loadOfferFromFirestore()
@@ -1804,7 +1930,6 @@ function loadOfferForm() {
       document.getElementById('offer-button-link').value = offer.buttonLink || '#';
       document.getElementById('offer-active').checked = offer.active !== false;
 
-      // Convert ISO date to datetime-local format (YYYY-MM-DDTHH:MM)
       if (offer.targetDate) {
         const dt = new Date(offer.targetDate);
         const local = dt.getFullYear() + '-' +
@@ -1861,23 +1986,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('[Admin] Offer save failed:', err);
             showAdminToast('Offer saved locally but cloud sync failed: ' + (err.message || 'Unknown'), 'error');
           });
-       } catch (syncError) {
-         console.error('[Admin] Exception during offer save:', syncError);
-         showAdminToast('Exception: ' + (syncError.message || 'Unknown'), 'error');
-       }
-     });
-   }
+      } catch (syncError) {
+        console.error('[Admin] Exception during offer save:', syncError);
+        showAdminToast('Exception: ' + (syncError.message || 'Unknown'), 'error');
+      }
+    });
+  }
 });
-
 /* ==========================================================================
-   COUPON CODES - Admin Management Module
+   COUPON CODES — Admin Management Module
    ========================================================================== */
-
 let adminCoupons = []; // Cache for coupon codes
 
-/**
- * Render the coupons table in the admin panel.
- */
 function renderCouponsTable() {
   const tbody = document.getElementById('coupons-table-body');
   if (!tbody) return;
@@ -1895,8 +2015,8 @@ function renderCouponsTable() {
       day: 'numeric', month: 'short', year: 'numeric'
     }) : '—';
 
-    const statusBadge = coupon.active ? 
-      '<span class="status-badge resolved">Active</span>' : 
+    const statusBadge = coupon.active ?
+      '<span class="status-badge resolved">Active</span>' :
       '<span class="status-badge out">Inactive</span>';
 
     tbody.innerHTML += `
@@ -1916,26 +2036,20 @@ function renderCouponsTable() {
   });
 }
 
-/**
- * Open the Add Coupon modal.
- */
 function openCouponAddModal() {
   document.getElementById('coupon-modal-title').innerText = 'Create Coupon';
   document.getElementById('coupon-form').reset();
   document.getElementById('coupon-modal-id').value = '';
-  
+
   // Set default datetime to 1 month from now
   const defaultDate = new Date();
   defaultDate.setMonth(defaultDate.getMonth() + 1);
   const defaultDateTime = defaultDate.toISOString().slice(0, 16);
   document.getElementById('coupon-modal-valid-until').value = defaultDateTime;
-  
+
   document.getElementById('coupon-modal').style.display = 'flex';
 }
 
-/**
- * Open the Edit Coupon modal.
- */
 function openCouponEditModal(code) {
   const coupon = adminCoupons.find(c => c.code === code);
   if (!coupon) return;
@@ -1944,8 +2058,7 @@ function openCouponEditModal(code) {
   document.getElementById('coupon-modal-id').value = coupon.code;
   document.getElementById('coupon-modal-code').value = coupon.code;
   document.getElementById('coupon-modal-discount').value = coupon.discountPercent;
-  
-  // Format validUntil for datetime-local input
+
   if (coupon.validUntil) {
     const dt = new Date(coupon.validUntil);
     const local = dt.getFullYear() + '-' +
@@ -1955,22 +2068,16 @@ function openCouponEditModal(code) {
       String(dt.getMinutes()).padStart(2, '0');
     document.getElementById('coupon-modal-valid-until').value = local;
   }
-  
+
   document.getElementById('coupon-modal-active').checked = coupon.active !== false;
-  
+
   document.getElementById('coupon-modal').style.display = 'flex';
 }
 
-/**
- * Close the Coupon modal.
- */
 function closeCouponModal() {
   document.getElementById('coupon-modal').style.display = 'none';
 }
 
-/**
- * Save coupon data to Firestore.
- */
 function saveCouponData() {
   const idVal = document.getElementById('coupon-modal-id').value;
   const code = document.getElementById('coupon-modal-code').value.trim().toUpperCase();
@@ -2004,7 +2111,6 @@ function saveCouponData() {
     return;
   }
 
-  // Check if admin is authenticated
   if (typeof firebase !== 'undefined' && firebase.auth) {
     const currentUser = firebase.auth().currentUser;
     if (!currentUser) {
@@ -2022,9 +2128,9 @@ function saveCouponData() {
     })
     .catch(err => {
       console.error('[Admin] Coupon save failed:', err);
-      const code = err.code || 'unknown';
+      const errCode = err.code || 'unknown';
       const msg = err.message || 'Unknown error';
-      showAdminToast('Cloud sync failed [' + code + ']: ' + msg, 'error');
+      showAdminToast('Cloud sync failed [' + errCode + ']: ' + msg, 'error');
     });
 
   closeCouponModal();
@@ -2034,9 +2140,6 @@ function saveCouponData() {
   });
 }
 
-/**
- * Handle coupon form submission.
- */
 document.addEventListener('DOMContentLoaded', () => {
   const couponForm = document.getElementById('coupon-form');
   if (couponForm) {
@@ -2047,47 +2150,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-/**
- * Add coupon to delete confirmation types.
- */
-function confirmDelete(type, id) {
-  deleteTargetType = type;
-  deleteTargetId = id;
-
-  const label = document.getElementById('delete-modal-text');
-
-  if (type === 'product') {
-    label.innerText = 'This will permanently remove this firecracker product from your storefront catalogs.';
-  } else if (type === 'category') {
-    const products = getProducts();
-    const isLinked = products.some(p => Number(p.categoryId) === Number(id));
-    if (isLinked) {
-      showAdminToast('Cannot delete category linked to existing products!', 'error');
-      return;
-    }
-    label.innerText = 'This will permanently delete this category link from system.';
-  } else if (type === 'enquiry') {
-    label.innerText = 'This will permanently delete the selected customer enquiry record.';
-  } else if (type === 'banner') {
-    label.innerText = 'This will permanently delete the selected homepage banner.';
-  } else if (type === 'coupon') {
-    label.innerText = 'This will permanently delete the selected coupon code.';
-  } else if (type === 'state-rule') {
-    label.innerText = 'This will permanently delete the selected state minimum rule.';
-  }
-
-  document.getElementById('delete-modal').style.display = 'flex';
-}
-
 /* ==========================================================================
-   STATE MINIMUM RULES - Admin Management Module
+   STATE MINIMUM RULES — Admin Management Module
    ========================================================================== */
-
 let adminStateRules = []; // Cache for state rules
 
-/**
- * Render the state rules table in the admin panel.
- */
 function renderStateRulesTable() {
   const tbody = document.getElementById('state-rules-table-body');
   if (!tbody) return;
@@ -2116,9 +2183,6 @@ function renderStateRulesTable() {
   });
 }
 
-/**
- * Open the Add State Rule modal.
- */
 function openStateRuleAddModal() {
   document.getElementById('state-rule-modal-title').innerText = 'Add State Rule';
   document.getElementById('state-rule-form').reset();
@@ -2126,9 +2190,6 @@ function openStateRuleAddModal() {
   document.getElementById('state-rule-modal').style.display = 'flex';
 }
 
-/**
- * Open the Edit State Rule modal.
- */
 function openStateRuleEditModal(state) {
   const rule = adminStateRules.find(r => r.state === state);
   if (!rule) return;
@@ -2141,16 +2202,10 @@ function openStateRuleEditModal(state) {
   document.getElementById('state-rule-modal').style.display = 'flex';
 }
 
-/**
- * Close the State Rule modal.
- */
 function closeStateRuleModal() {
   document.getElementById('state-rule-modal').style.display = 'none';
 }
 
-/**
- * Save state rule data to Firestore.
- */
 function saveStateRuleData() {
   const stateName = document.getElementById('state-rule-name').value.trim();
   const minimumOrder = parseInt(document.getElementById('state-rule-minimum').value) || 0;
@@ -2166,16 +2221,13 @@ function saveStateRuleData() {
     return;
   }
 
-  // Check for duplicate state (when adding new)
   if (!existingState && adminStateRules.some(r => r.state.toLowerCase() === stateName.toLowerCase())) {
     showAdminToast('State already exists. Please edit the existing rule instead.', 'error');
     return;
   }
 
-  // If editing and state name changed, update the existing rule
   let rules = [...adminStateRules];
   if (existingState) {
-    // Editing existing - remove old entry
     rules = rules.filter(r => r.state !== existingState);
   }
 
@@ -2193,11 +2245,11 @@ function saveStateRuleData() {
     showAdminToast('Firestore not connected. State rule saved locally only.', 'error');
     closeStateRuleModal();
     adminStateRules = rules;
+    localStorage.setItem('kpr_state_rules', JSON.stringify(adminStateRules));
     renderStateRulesTable();
     return;
   }
 
-  // Check if admin is authenticated
   if (typeof firebase !== 'undefined' && firebase.auth) {
     const currentUser = firebase.auth().currentUser;
     if (!currentUser) {
@@ -2208,7 +2260,6 @@ function saveStateRuleData() {
     }
   }
 
-  // Save to Firestore
   const firestoreRules = rules.map(r => ({ state: r.state, minimumOrder: r.minimumOrder }));
   saveStateRulesToFirestore(firestoreRules)
     .then(() => {
@@ -2225,9 +2276,6 @@ function saveStateRuleData() {
   renderStateRulesTable();
 }
 
-/**
- * Load state rules from Firestore on page load.
- */
 function loadStateRules() {
   loadStateMinimumRulesFromFirestore()
     .then(rules => {
@@ -2242,9 +2290,6 @@ function loadStateRules() {
     });
 }
 
-/**
- * Initialize state rules form event listener.
- */
 document.addEventListener('DOMContentLoaded', () => {
   const stateRuleForm = document.getElementById('state-rule-form');
   if (stateRuleForm) {
@@ -2254,3 +2299,68 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+/* ==========================================================================
+   GLOBAL HANDLER ATTACHMENTS
+   Inline HTML onclick attributes call these by bare name. admin.js is a
+   classic script so top-level declarations are already global, but we also
+   attach them to window explicitly for robustness and provide the
+   edit/delete aliases used across the admin UI.
+   ========================================================================== */
+// Products
+window.openProductAddModal = openProductAddModal;
+window.openProductEditModal = openProductEditModal;
+window.closeProductModal = closeProductModal;
+window.saveProductData = saveProductData;
+window.editProduct = openProductEditModal;
+window.deleteProduct = (id) => confirmDelete('product', id);
+
+// Categories
+window.openCategoryAddModal = openCategoryAddModal;
+window.openCategoryEditModal = openCategoryEditModal;
+window.closeCategoryModal = closeCategoryModal;
+window.saveCategoryData = saveCategoryData;
+window.editCategory = openCategoryEditModal;
+window.deleteCategory = (id) => confirmDelete('category', id);
+
+// Enquiries
+window.openEnquiryModal = openEnquiryModal;
+window.openEnquiryViewModal = openEnquiryModal; // alias used by enquiries table
+window.closeEnquiryModal = closeEnquiryModal;
+window.saveEnquiryStatus = saveEnquiryStatus;
+
+// Banners
+window.renderBannersTable = renderBannersTable;
+window.openBannerAddModal = openBannerAddModal;
+window.openBannerEditModal = openBannerEditModal;
+window.closeBannerModal = closeBannerModal;
+window.saveBannerEdit = saveBannerEdit;
+
+// Offers
+window.loadOfferForm = loadOfferForm;
+
+// Coupons
+window.renderCouponsTable = renderCouponsTable;
+window.openCouponAddModal = openCouponAddModal;
+window.openCouponEditModal = openCouponEditModal;
+window.closeCouponModal = closeCouponModal;
+window.saveCouponData = saveCouponData;
+window.editCoupon = openCouponEditModal;
+window.deleteCoupon = (code) => confirmDelete('coupon', code);
+
+// State rules
+window.renderStateRulesTable = renderStateRulesTable;
+window.loadStateRules = loadStateRules;
+window.openStateRuleAddModal = openStateRuleAddModal;
+window.openStateRuleEditModal = openStateRuleEditModal;
+window.closeStateRuleModal = closeStateRuleModal;
+window.saveStateRuleData = saveStateRuleData;
+window.editStateRule = openStateRuleEditModal;
+window.deleteStateRule = (state) => confirmDelete('state-rule', state);
+
+// Deletion + misc shared handlers
+window.confirmDelete = confirmDelete;
+window.closeDeleteModal = closeDeleteModal;
+window.executePendingDelete = executePendingDelete;
+window.logoutAdmin = logoutAdmin;
+window.showDashboardSection = showDashboardSection;

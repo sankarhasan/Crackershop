@@ -1,56 +1,56 @@
 // JCS Crackers - Common Data & localStorage API
 
 const DEFAULT_CATEGORIES = [
-  { id: 1, name: 'Ground Chakkars', slug: 'ground-chakkars', image: '', categoryImageUrl: '' },
-  { id: 2, name: 'Flower Pots', slug: 'flower-pots', image: '', categoryImageUrl: '' },
-  { id: 3, name: 'Fancy Fountains', slug: 'fancy-fountains', image: '', categoryImageUrl: '' },
-  { id: 4, name: 'Pencils', slug: 'pencils', image: '', categoryImageUrl: '' },
-  { id: 5, name: 'Sparklers', slug: 'sparklers', image: '', categoryImageUrl: '' },
-  { id: 6, name: 'Atom Bombs', slug: 'atom-bombs', image: '', categoryImageUrl: '' },
-  { id: 7, name: 'Rockets', slug: 'rockets', image: '', categoryImageUrl: '' },
-  { id: 8, name: 'Bijili Crackers', slug: 'bijili-crackers', image: '', categoryImageUrl: '' },
-  { id: 9, name: 'Combo Packs', slug: 'combo-packs', image: '', categoryImageUrl: '' }
+  { id: "A", name: 'Ground Chakkars', slug: 'ground-chakkars', image: '', categoryImageUrl: '' },
+  { id: "B", name: 'Flower Pots', slug: 'flower-pots', image: '', categoryImageUrl: '' },
+  { id: "C", name: 'Fancy Fountains', slug: 'fancy-fountains', image: '', categoryImageUrl: '' },
+  { id: "D", name: 'Pencils', slug: 'pencils', image: '', categoryImageUrl: '' },
+  { id: "E", name: 'Sparklers', slug: 'sparklers', image: '', categoryImageUrl: '' },
+  { id: "F", name: 'Atom Bombs', slug: 'atom-bombs', categoryImageUrl: '' },
+  { id: "G", name: 'Rockets', slug: 'rockets', image: '', categoryImageUrl: '' },
+  { id: "H", name: 'Bijili Crackers', slug: 'bijili-crackers', image: '', categoryImageUrl: '' },
+  { id: "I", name: 'Combo Packs', slug: 'combo-packs', image: '', categoryImageUrl: '' }
 ];
 
 const DEFAULT_PRODUCTS = [
-  // Ground Chakkars
-  { id: 101, name: 'Chakkar Ash (Big)', categoryId: 1, price: 180, originalPrice: 300, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Traditional spinning wheel wheel-firework that spins on the ground with silver sparks.', inStock: true },
-  { id: 102, name: 'Chakkar Special (Medium)', categoryId: 1, price: 120, originalPrice: 200, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Classic ground chakkar spinning with red and green sparks.', inStock: true },
-  { id: 103, name: 'Deluxe Ground Chakkar', categoryId: 1, price: 290, originalPrice: 450, discount: '35% OFF', qty: '1 Box / 5 Pcs', description: 'Extra large ground wheel with bright golden sparks and longer duration.', inStock: true },
+  // Ground Chakkars (Category A)
+  { id: "A1", name: 'Chakkar Ash (Big)', categoryId: "A", price: 180, originalPrice: 300, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Traditional spinning wheel wheel-firework that spins on the ground with silver sparks.', inStock: true },
+  { id: "A2", name: 'Chakkar Special (Medium)', categoryId: "A", price: 120, originalPrice: 200, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Classic ground chakkar spinning with red and green sparks.', inStock: true },
+  { id: "A3", name: 'Deluxe Ground Chakkar', categoryId: "A", price: 290, originalPrice: 450, discount: '35% OFF', qty: '1 Box / 5 Pcs', description: 'Extra large ground wheel with bright golden sparks and longer duration.', inStock: true },
 
-  // Flower Pots
-  { id: 201, name: 'Flower Pots Ash (Big)', categoryId: 2, price: 210, originalPrice: 350, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Classic cone fountain emitting bright silver and golden fountain of sparks.', inStock: true },
-  { id: 202, name: 'Flower Pots Special', categoryId: 2, price: 150, originalPrice: 250, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Medium sized flower pots producing bright multicolored sparkles.', inStock: true },
-  { id: 203, name: 'Flower Pots Deluxe', categoryId: 2, price: 340, originalPrice: 500, discount: '32% OFF', qty: '1 Box / 5 Pcs', description: 'Giant cone firework emitting showers of golden stars up to 10 feet high.', inStock: true },
+  // Flower Pots (Category B)
+  { id: "B1", name: 'Flower Pots Ash (Big)', categoryId: "B", price: 210, originalPrice: 350, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Classic cone fountain emitting bright silver and golden fountain of sparks.', inStock: true },
+  { id: "B2", name: 'Flower Pots Special', categoryId: "B", price: 150, originalPrice: 250, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Medium sized flower pots producing bright multicolored sparkles.', inStock: true },
+  { id: "B3", name: 'Flower Pots Deluxe', categoryId: "B", price: 340, originalPrice: 500, discount: '32% OFF', qty: '1 Box / 5 Pcs', description: 'Giant cone firework emitting showers of golden stars up to 10 feet high.', inStock: true },
 
-  // Fancy Fountains
-  { id: 301, name: 'Fancy Fountain (7 Color)', categoryId: 3, price: 390, originalPrice: 650, discount: '40% OFF', qty: '1 Box / 2 Pcs', description: 'Fountain that sequentially changes colors into seven vibrant shades.', inStock: true },
-  { id: 302, name: 'Crackling King Fountain', categoryId: 3, price: 450, originalPrice: 750, discount: '40% OFF', qty: '1 Box / 1 Pc', description: 'Spectacular fountain with heavy crackling sound and silver glitters.', inStock: true },
+  // Fancy Fountains (Category C)
+  { id: "C1", name: 'Fancy Fountain (7 Color)', categoryId: "C", price: 390, originalPrice: 650, discount: '40% OFF', qty: '1 Box / 2 Pcs', description: 'Fountain that sequentially changes colors into seven vibrant shades.', inStock: true },
+  { id: "C2", name: 'Crackling King Fountain', categoryId: "C", price: 450, originalPrice: 750, discount: '40% OFF', qty: '1 Box / 1 Pc', description: 'Spectacular fountain with heavy crackling sound and silver glitters.', inStock: true },
 
-  // Pencils
-  { id: 401, name: 'Color Pencils (Extra Long)', categoryId: 4, price: 110, originalPrice: 180, discount: '38% OFF', qty: '1 Box / 10 Pcs', description: 'Pencil sticks that emit multi-colored fire sparkles from the tip.', inStock: true },
-  { id: 402, name: 'Deluxe Sparkle Pencil', categoryId: 4, price: 140, originalPrice: 220, discount: '36% OFF', qty: '1 Box / 5 Pcs', description: 'Thick hand-held sticks emitting heavy gold crackling sparks.', inStock: true },
+  // Pencils (Category D)
+  { id: "D1", name: 'Color Pencils (Extra Long)', categoryId: "D", price: 110, originalPrice: 180, discount: '38% OFF', qty: '1 Box / 10 Pcs', description: 'Pencil sticks that emit multi-colored fire sparkles from the tip.', inStock: true },
+  { id: "D2", name: 'Deluxe Sparkle Pencil', categoryId: "D", price: 140, originalPrice: 220, discount: '36% OFF', qty: '1 Box / 5 Pcs', description: 'Thick hand-held sticks emitting heavy gold crackling sparks.', inStock: true },
 
-  // Sparklers
-  { id: 501, name: '10 cm Electric Sparklers', categoryId: 5, price: 40, originalPrice: 80, discount: '50% OFF', qty: '1 Box / 10 Pcs', description: 'Classic hand-held steel wire sparklers that emit brilliant silver sparks.', inStock: true },
-  { id: 502, name: '15 cm Multi-Color Sparklers', categoryId: 5, price: 90, originalPrice: 150, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Sparklers that burn in multiple colors including Red, Green, and Gold.', inStock: true },
-  { id: 503, name: '30 cm Mega Gold Sparklers', categoryId: 5, price: 190, originalPrice: 300, discount: '36% OFF', qty: '1 Box / 5 Pcs', description: 'Extra-long giant sparklers with rich gold spark emissions and long burning time.', inStock: true },
+  // Sparklers (Category E)
+  { id: "E1", name: '10 cm Electric Sparklers', categoryId: "E", price: 40, originalPrice: 80, discount: '50% OFF', qty: '1 Box / 10 Pcs', description: 'Classic hand-held steel wire sparklers that emit brilliant silver sparks.', inStock: true },
+  { id: "E2", name: '15 cm Multi-Color Sparklers', categoryId: "E", price: 90, originalPrice: 150, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Sparklers that burn in multiple colors including Red, Green, and Gold.', inStock: true },
+  { id: "E3", name: '30 cm Mega Gold Sparklers', categoryId: "E", price: 190, originalPrice: 300, discount: '36% OFF', qty: '1 Box / 5 Pcs', description: 'Extra-long giant sparklers with rich gold spark emissions and long burning time.', inStock: true },
 
-  // Atom Bombs
-  { id: 601, name: 'Hydro Bomb (Green)', categoryId: 6, price: 130, originalPrice: 220, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Traditional jute-wrapped thread bomb with high decibel explosion sound.', inStock: true },
-  { id: 602, name: 'King of King Bomb', categoryId: 6, price: 250, originalPrice: 400, discount: '37% OFF', qty: '1 Box / 5 Pcs', description: 'Heavy charge giant bomb with a earth-shaking loud thunder sound.', inStock: true },
+  // Atom Bombs (Category F)
+  { id: "F1", name: 'Hydro Bomb (Green)', categoryId: "F", price: 130, originalPrice: 220, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Traditional jute-wrapped thread bomb with high decibel explosion sound.', inStock: true },
+  { id: "F2", name: 'King of King Bomb', categoryId: "F", price: 250, originalPrice: 400, discount: '37% OFF', qty: '1 Box / 5 Pcs', description: 'Heavy charge giant bomb with a earth-shaking loud thunder sound.', inStock: true },
 
-  // Rockets
-  { id: 701, name: 'Baby Rocket', categoryId: 7, price: 150, originalPrice: 250, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Cute small rockets that zoom into the air with a soft whistle and pop.', inStock: true },
-  { id: 702, name: 'Lunik Sky shot Rocket', categoryId: 7, price: 290, originalPrice: 480, discount: '39% OFF', qty: '1 Box / 3 Pcs', description: 'Shoots high up and bursts into a beautiful umbrella of colorful stars.', inStock: true },
+  // Rockets (Category G)
+  { id: "G1", name: 'Baby Rocket', categoryId: "G", price: 150, originalPrice: 250, discount: '40% OFF', qty: '1 Box / 10 Pcs', description: 'Cute small rockets that zoom into the air with a soft whistle and pop.', inStock: true },
+  { id: "G2", name: 'Lunik Sky shot Rocket', categoryId: "G", price: 290, originalPrice: 480, discount: '39% OFF', qty: '1 Box / 3 Pcs', description: 'Shoots high up and bursts into a beautiful umbrella of colorful stars.', inStock: true },
 
-  // Bijili Crackers
-  { id: 801, name: 'Red Bijili (50 Wala)', categoryId: 8, price: 80, originalPrice: 140, discount: '42% OFF', qty: '1 Packet / 50 Pcs', description: 'Small red thread crackers offering rapid crackling sounds.', inStock: true },
-  { id: 802, name: 'Stripped Bijili (100 Wala)', categoryId: 8, price: 140, originalPrice: 240, discount: '41% OFF', qty: '1 Packet / 100 Pcs', description: 'Long chain of small sound crackers that burst sequentially.', inStock: true },
+  // Bijili Crackers (Category H)
+  { id: "H1", name: 'Red Bijili (50 Wala)', categoryId: "H", price: 80, originalPrice: 140, discount: '42% OFF', qty: '1 Packet / 50 Pcs', description: 'Small red thread crackers offering rapid crackling sounds.', inStock: true },
+  { id: "H2", name: 'Stripped Bijili (100 Wala)', categoryId: "H", price: 140, originalPrice: 240, discount: '41% OFF', qty: '1 Packet / 100 Pcs', description: 'Long chain of small sound crackers that burst sequentially.', inStock: true },
 
-  // Combo Packs
-  { id: 901, name: 'KPR Diwali Family Combo (Budget)', categoryId: 9, price: 2499, originalPrice: 4200, discount: '40% OFF', qty: '1 Box / 25 Varieties', description: 'Curated box containing Chakkars, Sparklers, Flower pots, Pencils, and small Bombs for children.', inStock: true },
-  { id: 902, name: 'KPR Grand Festive Combo (Mega)', categoryId: 9, price: 4999, originalPrice: 8500, discount: '41% OFF', qty: '1 Box / 50 Varieties', description: 'Mega box of joy including heavy aerial sky shots, fancy fountains, deluxe sparklers, and sound bombs.', inStock: true }
+  // Combo Packs (Category I)
+  { id: "I1", name: 'KPR Diwali Family Combo (Budget)', categoryId: "I", price: 2499, originalPrice: 4200, discount: '40% OFF', qty: '1 Box / 25 Varieties', description: 'Curated box containing Chakkars, Sparklers, Flower pots, Pencils, and small Bombs for children.', inStock: true },
+  { id: "I2", name: 'KPR Grand Festive Combo (Mega)', categoryId: "I", price: 4999, originalPrice: 8500, discount: '41% OFF', qty: '1 Box / 50 Varieties', description: 'Mega box of joy including heavy aerial sky shots, fancy fountains, deluxe sparklers, and sound bombs.', inStock: true }
 ];
 
 const DEFAULT_TESTIMONIALS = [
@@ -145,6 +145,45 @@ function saveEnquiries(enquiries) {
   localStorage.setItem('jcs_enquiries', JSON.stringify(enquiries));
 }
 
+/**
+ * Persist a customer enquiry directly to the Firestore "enquiries" collection.
+ * Uses the shared compat-SDK handle (window.db) initialized in
+ * firebase-config.js. A server-side timestamp is ALWAYS attached because the
+ * admin panel orders enquiries by the `timestamp` field — documents without it
+ * would be excluded from the ordered query and appear "missing".
+ *
+ * @param {Object} enquiryData - Structured enquiry payload (customer, cartItems,
+ *                               financialBreakdown, message, etc.).
+ * @returns {Promise<string>} Resolves with the new Firestore document ID.
+ */
+function saveEnquiryToFirestore(enquiryData) {
+  if (!window.db || typeof firebase === 'undefined') {
+    console.error('[Firestore] Cannot save enquiry: Firestore (window.db) is not initialized.');
+    return Promise.reject(new Error('Firestore is not initialized.'));
+  }
+
+  const payload = {
+    ...enquiryData,
+    status: enquiryData.status || 'new',
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  return window.db.collection('enquiries').add(payload)
+    .then((docRef) => {
+      console.log('[Firestore] Enquiry saved with ID:', docRef.id);
+      return docRef.id;
+    })
+    .catch((error) => {
+      console.error('[Firestore] Error adding enquiry:', error);
+      throw error;
+    });
+}
+
+// Expose the helper globally so it is reachable from app.js (classic scripts).
+if (typeof window !== 'undefined') {
+  window.saveEnquiryToFirestore = saveEnquiryToFirestore;
+}
+
 // Helper to generate next unique ID
 function generateId(items) {
   if (!items || items.length === 0) return 1;
@@ -165,47 +204,209 @@ function getCategoryCode(categoryIndex) {
 }
 
 /**
+ * Get the category letter from a category ID (supports both string "A" and numeric 1 formats).
+ * @param {string|number} categoryId - The category ID
+ * @returns {string} - The category letter (A, B, C, etc.) or '?'
+ */
+function getCategoryLetterFromId(categoryId) {
+  if (!categoryId) return '?';
+  const catIdStr = String(categoryId).trim().toUpperCase();
+  // If already a letter, return it
+  if (/^[A-Z]$/.test(catIdStr)) return catIdStr;
+  // If numeric, convert to letter
+  const num = parseInt(catIdStr, 10);
+  if (!isNaN(num) && num >= 1 && num <= 26) {
+    return String.fromCharCode(64 + num); // 1 -> A, 2 -> B, etc.
+  }
+  return '?';
+}
+
+/**
+ * Get the category index from a category ID (supports both string "A" and numeric 1 formats).
+ * @param {string|number} categoryId - The category ID
+ * @returns {number} - The category index (0-based) or -1 if not found
+ */
+function getCategoryIndex(categoryId) {
+  if (!categoryId) return -1;
+  const catIdStr = String(categoryId).trim().toUpperCase();
+  // If already a letter, convert to index
+  if (/^[A-Z]$/.test(catIdStr)) {
+    return catIdStr.charCodeAt(0) - 65; // A -> 0, B -> 1, etc.
+  }
+  // If numeric, return zero-based index
+  const num = parseInt(catIdStr, 10);
+  if (!isNaN(num) && num >= 1 && num <= 26) {
+    return num - 1; // 1 -> 0, 2 -> 1, etc.
+  }
+  return -1;
+}
+
+/**
  * Get the alphanumeric product code based on category and product position.
  * Products are indexed sequentially within each category.
- * @param {number} categoryId - The numeric category ID
+ * @param {string|number} categoryId - The category ID (e.g., "A" or 1)
  * @param {number} productIndexWithinCategory - The 1-based index of the product within its category
  * @returns {string} - The alphanumeric code (e.g., A1, B2, C3)
  */
 function getProductCode(categoryId, productIndexWithinCategory) {
-  const categories = getCategories();
-  const catIndex = categories.findIndex(c => Number(c.id) === Number(categoryId));
-  if (catIndex === -1) return `#?${productIndexWithinCategory || ''}`;
-  
-  const categoryLetter = getCategoryCode(catIndex);
+  const categoryLetter = getCategoryLetterFromId(categoryId);
+  if (categoryLetter === '?') return `#?${productIndexWithinCategory || ''}`;
   return `${categoryLetter}${productIndexWithinCategory || ''}`;
 }
 
 /**
  * Get products sorted by category and calculate their display index within each category.
  * Returns the product index (1-based) for a given product ID within its category.
- * @param {number} productId - The numeric product ID
- * @returns {object} - { index: number, categoryId: number, categoryIndex: number, categoryLetter: string }
+ * @param {string|number} productId - The product ID
+ * @returns {object} - { index: number, categoryId: string|number, categoryIndex: number, categoryLetter: string }
  */
 function getProductDisplayIndex(productId) {
   const products = getProducts();
   const categories = getCategories();
-  const prod = products.find(p => Number(p.id) === Number(productId));
+  const prod = products.find(p => String(p.id) === String(productId));
   if (!prod) return { index: 0, categoryId: 0, categoryIndex: -1, categoryLetter: '?' };
   
-  const catIndex = categories.findIndex(c => Number(c.id) === Number(prod.categoryId));
+  const catIndex = getCategoryIndex(prod.categoryId);
   if (catIndex === -1) return { index: 0, categoryId: prod.categoryId, categoryIndex: -1, categoryLetter: '?' };
   
-  // Get all products in the same category, sorted by their numeric ID
-  const catProducts = products.filter(p => Number(p.categoryId) === Number(prod.categoryId))
-    .sort((a, b) => Number(a.id) - Number(b.id));
+  // Get all products in the same category, sorted by their ID
+  const catProducts = products
+    .filter(p => String(p.categoryId).toUpperCase() === String(prod.categoryId).toUpperCase())
+    .sort((a, b) => {
+      const idA = String(a.id).toUpperCase();
+      const idB = String(b.id).toUpperCase();
+      return idA.localeCompare(idB);
+    });
   
-  const productIndex = catProducts.findIndex(p => Number(p.id) === Number(productId)) + 1;
+  const productIndex = catProducts.findIndex(p => String(p.id).toUpperCase() === String(productId).toUpperCase()) + 1;
   return {
     index: productIndex,
     categoryId: prod.categoryId,
     categoryIndex: catIndex,
     categoryLetter: getCategoryCode(catIndex)
   };
+}
+
+/* ==========================================================================
+   FIRESTORE DATA SANITIZATION
+   Fixes mismatches between document IDs and inner field values.
+   ========================================================================== */
+
+/**
+ * Sanitize Firestore product data by ensuring:
+ * 1. Product doc.id matches inner field `id`
+ * 2. categoryId is updated to match the Category Letter String
+ * This function should be called once during admin initialization.
+ */
+async function sanitizeFirestoreProducts() {
+  if (!window.db) {
+    console.warn('[Sanitizer] Firestore not connected. Skipping sanitization.');
+    return { success: false, message: 'Firestore not connected' };
+  }
+
+  try {
+    console.log('[Sanitizer] Starting Firestore product data sanitization...');
+    
+    // Get all categories to determine the letter mapping
+    const categories = await loadCategoriesFromFirestore();
+    
+    // Map categories by their index to letter
+    const categoryLetterMap = {};
+    categories.forEach((cat, idx) => {
+      const letter = getCategoryLetterFromId(cat.id);
+      categoryLetterMap[idx + 1] = letter; // numeric -> letter
+      categoryLetterMap[letter] = letter; // letter -> letter (pass-through)
+    });
+    
+    // Fetch all products
+    const snapshot = await window.db.collection('products').get();
+    const batch = window.db.batch();
+    let fixCount = 0;
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const docId = doc.id;
+      let needsUpdate = false;
+      const updates = {};
+      
+      // Fix 1: Ensure inner `id` matches document ID
+      if (String(data.id) !== docId) {
+        updates.id = docId;
+        needsUpdate = true;
+        console.log(`[Sanitizer] Product ${docId}: Fixing inner id from "${data.id}" to "${docId}"`);
+      }
+      
+      // Fix 2: Ensure categoryId is the letter string
+      const correctCategoryId = categoryLetterMap[data.categoryId] || categoryLetterMap[String(data.categoryId)];
+      if (correctCategoryId && String(data.categoryId) !== correctCategoryId) {
+        updates.categoryId = correctCategoryId;
+        needsUpdate = true;
+        console.log(`[Sanitizer] Product ${docId}: Fixing categoryId from "${data.categoryId}" to "${correctCategoryId}"`);
+      }
+      
+      if (needsUpdate) {
+        batch.update(doc.ref, updates);
+        fixCount++;
+      }
+    });
+    
+    if (fixCount > 0) {
+      await batch.commit();
+      console.log(`[Sanitizer] ✓ Fixed ${fixCount} product documents in Firestore.`);
+      // Refresh localStorage cache
+      await loadProductsFromFirestore();
+    } else {
+      console.log('[Sanitizer] ✓ No product documents needed fixing.');
+    }
+    
+    return { success: true, fixedCount: fixCount };
+  } catch (err) {
+    console.error('[Sanitizer] ✗ Failed to sanitize Firestore products:', err);
+    return { success: false, message: err.message };
+  }
+}
+
+/**
+ * Sanitize Firestore category data by ensuring category IDs are strings.
+ */
+async function sanitizeFirestoreCategories() {
+  if (!window.db) {
+    console.warn('[Sanitizer] Firestore not connected. Skipping sanitization.');
+    return { success: false, message: 'Firestore not connected' };
+  }
+
+  try {
+    console.log('[Sanitizer] Starting Firestore category data sanitization...');
+    
+    const snapshot = await window.db.collection('categories').get();
+    const batch = window.db.batch();
+    let fixCount = 0;
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const docId = doc.id;
+      
+      // Ensure inner `id` matches document ID (should be letter strings)
+      if (String(data.id) !== docId) {
+        batch.update(doc.ref, { id: docId });
+        fixCount++;
+        console.log(`[Sanitizer] Category ${docId}: Fixing inner id from "${data.id}" to "${docId}"`);
+      }
+    });
+    
+    if (fixCount > 0) {
+      await batch.commit();
+      console.log(`[Sanitizer] ✓ Fixed ${fixCount} category documents in Firestore.`);
+      await loadCategoriesFromFirestore();
+    } else {
+      console.log('[Sanitizer] ✓ No category documents needed fixing.');
+    }
+    
+    return { success: true, fixedCount: fixCount };
+  } catch (err) {
+    console.error('[Sanitizer] ✗ Failed to sanitize Firestore categories:', err);
+    return { success: false, message: err.message };
+  }
 }
 
 // Execute initial seeding
@@ -521,12 +722,8 @@ function loadCategoriesFromFirestore() {
     return Promise.resolve(getCategories());
   }
 
-  // Add timeout to prevent hanging indefinitely
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Firestore categories fetch timeout (10s)')), 10000);
-  });
-
-  const fetchPromise = window.db.collection('categories')
+  // Fetch categories directly without artificial timeout
+  return window.db.collection('categories')
     .orderBy('id', 'asc')
     .get({ source: 'server' })
     .then(snapshot => {
@@ -558,12 +755,6 @@ function loadCategoriesFromFirestore() {
       console.log('[data.js] Falling back to localStorage cache.');
       return getCategories();
     });
-
-  // Race the fetch against the timeout
-  return Promise.race([fetchPromise, timeoutPromise]).catch(timeoutErr => {
-    console.error('[data.js] ✗ Timeout or error in loadCategoriesFromFirestore:', timeoutErr);
-    return getCategories();
-  });
 }
 
 /**
