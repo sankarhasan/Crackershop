@@ -1308,3 +1308,280 @@ function deleteStateRuleFromFirestore(stateName) {
       throw err;
     });
 }
+
+/* ==========================================================================
+   FIRESTORE REAL-TIME LISTENERS (onSnapshot)
+   These listeners provide instant UI updates when admin changes data.
+   They replace the need for manual page refresh on the storefront.
+   When any category, product, or banner is added/edited/deleted from the
+   Admin panel, the storefront immediately reflects the changes.
+   ========================================================================== */
+
+// Unsubscribe handles for clean teardown
+let _unsubscribeCategoriesListener = null;
+let _unsubscribeProductsListener = null;
+let _unsubscribeBannersListener = null;
+
+/**
+ * Set up a real-time onSnapshot listener for the categories collection.
+ * - On initial snapshot: hydrates localStorage and renders the UI
+ * - On subsequent changes: immediately updates localStorage and re-renders
+ * - Handles empty collection by seeding defaults
+ * - Gracefully errors: falls back silently if Firestore is unavailable
+ * @returns {function|null} The unsubscribe function, or null if Firestore is unavailable
+ */
+function listenCategoriesRealtime() {
+  if (!window.db) {
+    console.warn('[Realtime] Firestore not connected. Cannot listen to categories.');
+    return null;
+  }
+
+  // Unsubscribe any previous listener to prevent duplicates
+  if (_unsubscribeCategoriesListener) {
+    _unsubscribeCategoriesListener();
+    _unsubscribeCategoriesListener = null;
+  }
+
+  console.log('[Realtime] 📡 Setting up CATEGORIES real-time listener...');
+
+  _unsubscribeCategoriesListener = window.db.collection('categories')
+    .orderBy('id', 'asc')
+    .onSnapshot((snapshot) => {
+      console.log('[Realtime] Categories snapshot received. Size:', snapshot.size, 'Empty:', snapshot.empty);
+
+      let categories;
+
+      if (snapshot.empty) {
+        // Collection is empty — seed with defaults so the storefront is never blank
+        console.log('[Realtime] Categories collection empty. Seeding DEFAULT_CATEGORIES to Firestore...');
+        const batch = window.db.batch();
+        DEFAULT_CATEGORIES.forEach(cat => {
+          const ref = window.db.collection('categories').doc(String(cat.id));
+          batch.set(ref, cat);
+        });
+        batch.commit().then(() => {
+          console.log('[Realtime] ✓ Default categories seeded.');
+        }).catch(err => {
+          console.error('[Realtime] ✗ Failed to seed categories:', err);
+        });
+        categories = DEFAULT_CATEGORIES;
+      } else {
+        categories = [];
+        snapshot.forEach(doc => {
+          categories.push(doc.data());
+        });
+      }
+
+      // Always update localStorage (single source of truth)
+      localStorage.setItem('jcs_categories', JSON.stringify(categories));
+
+      // Re-render all storefront UI that depends on categories
+      if (typeof renderCategoriesGrid === 'function') {
+        renderCategoriesGrid();
+      }
+      if (typeof renderFilterButtons === 'function') {
+        renderFilterButtons();
+      }
+      if (typeof renderProductsCatalog === 'function') {
+        renderProductsCatalog();
+      }
+      if (typeof renderMobileSlider === 'function') {
+        renderMobileSlider();
+      }
+      if (typeof populateStateDropdown === 'function') {
+        populateStateDropdown();
+      }
+
+      console.log('[Realtime] ✓ Categories updated. Count:', categories.length);
+    }, (error) => {
+      // Error callback — log but don't crash the app
+      console.error('[Realtime] ✗ Categories listener error:', error.code, error.message);
+    });
+
+  console.log('[Realtime] ✅ Categories listener active.');
+  return _unsubscribeCategoriesListener;
+}
+
+/**
+ * Set up a real-time onSnapshot listener for the products collection.
+ * - On initial snapshot: hydrates localStorage and renders the UI
+ * - On subsequent changes: immediately updates localStorage and re-renders
+ * - Handles empty collection by seeding defaults
+ * - Also syncs all product action buttons to reflect price/category/stock changes
+ * @returns {function|null} The unsubscribe function, or null if Firestore is unavailable
+ */
+function listenProductsRealtime() {
+  if (!window.db) {
+    console.warn('[Realtime] Firestore not connected. Cannot listen to products.');
+    return null;
+  }
+
+  // Unsubscribe any previous listener to prevent duplicates
+  if (_unsubscribeProductsListener) {
+    _unsubscribeProductsListener();
+    _unsubscribeProductsListener = null;
+  }
+
+  console.log('[Realtime] 📡 Setting up PRODUCTS real-time listener...');
+
+  _unsubscribeProductsListener = window.db.collection('products')
+    .orderBy('id', 'asc')
+    .onSnapshot((snapshot) => {
+      console.log('[Realtime] Products snapshot received. Size:', snapshot.size, 'Empty:', snapshot.empty);
+
+      let products;
+
+      if (snapshot.empty) {
+        // Collection is empty — seed with defaults
+        console.log('[Realtime] Products collection empty. Seeding DEFAULT_PRODUCTS to Firestore...');
+        const batch = window.db.batch();
+        DEFAULT_PRODUCTS.forEach(prod => {
+          const ref = window.db.collection('products').doc(String(prod.id));
+          batch.set(ref, prod);
+        });
+        batch.commit().then(() => {
+          console.log('[Realtime] ✓ Default products seeded.');
+        }).catch(err => {
+          console.error('[Realtime] ✗ Failed to seed products:', err);
+        });
+        products = DEFAULT_PRODUCTS;
+      } else {
+        products = [];
+        snapshot.forEach(doc => {
+          products.push(doc.data());
+        });
+      }
+
+      // Always update localStorage (single source of truth)
+      localStorage.setItem('jcs_products', JSON.stringify(products));
+
+      // Re-render all storefront UI that depends on products
+      if (typeof renderProductsCatalog === 'function') {
+        renderProductsCatalog();
+      }
+      if (typeof renderMobileSlider === 'function') {
+        renderMobileSlider();
+      }
+
+      // Sync all product card action buttons (ADD/stepper) to reflect changes
+      // like price updates, stock status changes, or new products appearing
+      products.forEach(prod => {
+        if (typeof syncProductAction === 'function') {
+          syncProductAction(prod.id);
+        }
+      });
+
+      console.log('[Realtime] ✓ Products updated. Count:', products.length);
+    }, (error) => {
+      // Error callback — log but don't crash the app
+      console.error('[Realtime] ✗ Products listener error:', error.code, error.message);
+    });
+
+  console.log('[Realtime] ✅ Products listener active.');
+  return _unsubscribeProductsListener;
+}
+
+/**
+ * Set up a real-time onSnapshot listener for the banners collection.
+ * - On initial snapshot: hydrates localStorage and re-initializes the carousel
+ * - On subsequent changes: immediately updates banners and re-initializes carousel
+ * - Handles empty collection by seeding defaults
+ * @returns {function|null} The unsubscribe function, or null if Firestore is unavailable
+ */
+function listenBannersRealtime() {
+  if (!window.db) {
+    console.warn('[Realtime] Firestore not connected. Cannot listen to banners.');
+    return null;
+  }
+
+  // Unsubscribe any previous listener to prevent duplicates
+  if (_unsubscribeBannersListener) {
+    _unsubscribeBannersListener();
+    _unsubscribeBannersListener = null;
+  }
+
+  console.log('[Realtime] 📡 Setting up BANNERS real-time listener...');
+
+  _unsubscribeBannersListener = window.db.collection('banners')
+    .orderBy('order', 'asc')
+    .onSnapshot((snapshot) => {
+      console.log('[Realtime] Banners snapshot received. Size:', snapshot.size, 'Empty:', snapshot.empty);
+
+      let banners;
+
+      if (snapshot.empty) {
+        // Collection is empty — seed with defaults
+        console.log('[Realtime] Banners collection empty. Seeding DEFAULT_BANNERS to Firestore...');
+        const batch = window.db.batch();
+        DEFAULT_BANNERS.forEach((banner, i) => {
+          const ref = window.db.collection('banners').doc(String(i));
+          batch.set(ref, {
+            order: i,
+            tagline: banner.tagline,
+            headingTitle: banner.headingTitle,
+            description: banner.description,
+            imageBase64: banner.imageBase64
+          });
+        });
+        batch.commit().then(() => {
+          console.log('[Realtime] ✓ Default banners seeded.');
+        }).catch(err => {
+          console.error('[Realtime] ✗ Failed to seed banners:', err);
+        });
+        banners = DEFAULT_BANNERS;
+      } else {
+        banners = [];
+        snapshot.forEach(doc => {
+          banners.push(doc.data());
+        });
+      }
+
+      const normalized = normalizeBanners(banners);
+
+      // Always update localStorage
+      localStorage.setItem('bannersData', JSON.stringify(normalized));
+
+      // Re-initialize the carousel with updated banners
+      if (typeof initCarousel === 'function') {
+        initCarousel();
+      }
+
+      console.log('[Realtime] ✓ Banners updated. Count:', normalized.length);
+    }, (error) => {
+      // Error callback — log but don't crash the app
+      console.error('[Realtime] ✗ Banners listener error:', error.code, error.message);
+    });
+
+  console.log('[Realtime] ✅ Banners listener active.');
+  return _unsubscribeBannersListener;
+}
+
+/**
+ * Clean up all active real-time listeners.
+ * Useful for SPA-style navigation or page unload scenarios.
+ */
+function unsubscribeAllRealtimeListeners() {
+  if (_unsubscribeCategoriesListener) {
+    _unsubscribeCategoriesListener();
+    _unsubscribeCategoriesListener = null;
+    console.log('[Realtime] Categories listener unsubscribed.');
+  }
+  if (_unsubscribeProductsListener) {
+    _unsubscribeProductsListener();
+    _unsubscribeProductsListener = null;
+    console.log('[Realtime] Products listener unsubscribed.');
+  }
+  if (_unsubscribeBannersListener) {
+    _unsubscribeBannersListener();
+    _unsubscribeBannersListener = null;
+    console.log('[Realtime] Banners listener unsubscribed.');
+  }
+}
+
+// Expose listener functions globally for use in app.js (classic script pattern)
+if (typeof window !== 'undefined') {
+  window.listenCategoriesRealtime = listenCategoriesRealtime;
+  window.listenProductsRealtime = listenProductsRealtime;
+  window.listenBannersRealtime = listenBannersRealtime;
+  window.unsubscribeAllRealtimeListeners = unsubscribeAllRealtimeListeners;
+}

@@ -194,47 +194,58 @@ document.addEventListener('DOMContentLoaded', () => {
   // This ensures the green checkmark container syncs from localStorage
   renderAppliedCouponsList();
 
-  // Hydrate products from Firestore (async) then re-render catalog
-  loadProductsFromFirestore().then(products => {
-    renderProductsCatalog();
-    renderMobileSlider();
-  });
-
-  // Hydrate banners from Firestore (async) then re-render carousel
-  loadBannersFromFirestore().then(() => {
-    initCarousel();
-  });
-
   // Hydrate offer banner from Firestore (async) then render offer section
   loadOfferFromFirestore().then(offer => {
     renderOfferBanner(offer);
   });
 
-  // Hydrate categories from Firestore (async) then re-render category grid, filters, and products
-  console.log('[Categories] Starting Firestore hydration...');
-  loadCategoriesFromFirestore()
-    .then(categories => {
-      console.log('[Categories] ✓ Firestore hydration complete. Categories loaded:', categories ? categories.length : 'undefined');
-      console.log('[Categories] Re-rendering UI with Firestore data...');
+  // ==========================================================================
+  // FIRESTORE REAL-TIME LISTENERS
+  // These replace the one-time loadCategoriesFromFirestore, loadProductsFromFirestore,
+  // and loadBannersFromFirestore calls. The listeners:
+  //   1. Fetch the initial snapshot from Firestore (replacing the one-time get())
+  //   2. Update localStorage with the fresh data
+  //   3. Re-render all relevant UI components
+  //   4. STAY ACTIVE — any future add/edit/delete from the Admin panel will
+  //      instantly propagate to the storefront WITHOUT a page refresh.
+  // ==========================================================================
+  console.log('[Realtime] ⏳ Initializing Firestore real-time listeners...');
+
+  // Categories listener — also re-renders filter buttons + product catalog
+  if (typeof window.listenCategoriesRealtime === 'function') {
+    window.listenCategoriesRealtime();
+  } else {
+    // Fallback: one-time fetch if listener function is unavailable
+    console.warn('[Realtime] listenCategoriesRealtime not found. Falling back to one-time fetch.');
+    loadCategoriesFromFirestore().then(() => {
       renderCategoriesGrid();
       renderFilterButtons();
-      renderProductsCatalog(); // Re-render products to reflect any new category filters
-      console.log('[Categories] ✓ UI re-render complete.');
-    })
-    .catch(err => {
-      console.error('[Categories] ✗ Firestore hydration FAILED:', err);
-      console.error('[Categories] Error details:', err.code, err.message);
-      console.log('[Categories] Falling back to localStorage/defaults...');
-      // Ensure UI still renders with localStorage cache or default categories
-      try {
-        renderCategoriesGrid();
-        renderFilterButtons();
-        renderProductsCatalog();
-        console.log('[Categories] ✓ Fallback render complete.');
-      } catch (renderErr) {
-        console.error('[Categories] ✗ Fallback render also failed:', renderErr);
-      }
+      renderProductsCatalog();
     });
+  }
+
+  // Products listener — re-renders catalog and syncs action buttons
+  if (typeof window.listenProductsRealtime === 'function') {
+    window.listenProductsRealtime();
+  } else {
+    console.warn('[Realtime] listenProductsRealtime not found. Falling back to one-time fetch.');
+    loadProductsFromFirestore().then(() => {
+      renderProductsCatalog();
+      renderMobileSlider();
+    });
+  }
+
+  // Banners listener — re-initializes carousel
+  if (typeof window.listenBannersRealtime === 'function') {
+    window.listenBannersRealtime();
+  } else {
+    console.warn('[Realtime] listenBannersRealtime not found. Falling back to one-time fetch.');
+    loadBannersFromFirestore().then(() => {
+      initCarousel();
+    });
+  }
+
+  console.log('[Realtime] ✅ Real-time listeners initialized. Storefront will auto-update when admin makes changes.');
   
   // Close menu on nav link clicks
   const navLinks = document.querySelectorAll('.nav-link');
