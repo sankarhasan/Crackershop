@@ -325,31 +325,37 @@ function logoutAdmin() {
 function renderCategoriesTable() {
   const tbody = document.getElementById('categories-table-body');
   if (!tbody) return;
-  
-  const categories = getCategories();
-  
+
+  // CRITICAL FIX: Clear previous items to prevent duplicate DOM rows
   tbody.innerHTML = '';
-  
-  if (categories.length === 0) {
+
+  const categories = getCategories();
+
+  // Deduplicate categories by ID just in case
+  const uniqueCategories = Array.from(
+    new Map(categories.map(cat => [cat.id, cat])).values()
+  );
+
+  if (uniqueCategories.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" class="text-center">No categories found.</td></tr>';
     return;
   }
-  
+
   // Calculate bgIndex using category letter position
   const emojiMap = { 'A': '🌀', 'B': '🌋', 'C': '⛲', 'D': '✏️', 'E': '✨', 'F': '💣', 'G': '🚀', 'H': '⚡', 'I': '🎁', 'J': '🌀', 'K': '🌋', 'L': '⛲' };
-  
-  categories.forEach(cat => {
+
+  tbody.innerHTML = uniqueCategories.map(cat => {
     const catLetter = String(cat.id).toUpperCase();
     const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1;
     const emoji = emojiMap[catLetter] || '🎆';
-    
+
     let imageCellContent = `<div class="prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
     const imageUrl = cat.categoryImageUrl || cat.image;
     if (imageUrl) {
       imageCellContent = `<img src="${imageUrl}" class="admin-prod-thumb" alt="${cat.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--admin-border);">`;
     }
-    
-    tbody.innerHTML += `
+
+    return `
       <tr>
         <td>#${escapeHtml(cat.id)}</td>
         <td>${imageCellContent}</td>
@@ -363,7 +369,7 @@ function renderCategoriesTable() {
         </td>
       </tr>
     `;
-  });
+  }).join('');
 }
 
 /* ==========================================================================
@@ -688,35 +694,41 @@ function updateSalePriceFromDiscount() {
 function renderProductsTable() {
   const tbody = document.getElementById('products-table-body');
   if (!tbody) return;
-  
+
+  // CRITICAL FIX: Clear previous items to prevent duplicate DOM rows
+  tbody.innerHTML = '';
+
   const products = getProducts();
   const categories = getCategories();
   const searchVal = document.getElementById('admin-product-search')?.value.toLowerCase() || '';
   const filterCat = document.getElementById('admin-product-filter-cat')?.value || 'all';
-  
-  tbody.innerHTML = '';
-  
-  let filtered = products;
-  
+
+  // Deduplicate products by ID just in case
+  const uniqueProducts = Array.from(
+    new Map(products.map(p => [p.id, p])).values()
+  );
+
+  let filtered = uniqueProducts;
+
   // Category dropdown filter check - use string matching
   if (filterCat !== 'all') {
     filtered = filtered.filter(p => String(p.categoryId).toUpperCase() === String(filterCat).toUpperCase());
   }
-  
+
   // Search text filter check
   if (searchVal.trim() !== '') {
     filtered = filtered.filter(p => p.name.toLowerCase().includes(searchVal));
   }
-  
+
   if (filtered.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" class="text-center">No inventory matching criteria found.</td></tr>';
     return;
   }
-  
+
   // Pre-calculate product indices for each category
   const productIndicesByCategory = {};
   categories.forEach((cat, catIndex) => {
-    const catProducts = products.filter(p => String(p.categoryId).toUpperCase() === String(cat.id).toUpperCase())
+    const catProducts = uniqueProducts.filter(p => String(p.categoryId).toUpperCase() === String(cat.id).toUpperCase())
       .sort((a, b) => {
         const idA = String(a.id).toUpperCase();
         const idB = String(b.id).toUpperCase();
@@ -726,27 +738,27 @@ function renderProductsTable() {
       productIndicesByCategory[p.id] = { index: idx + 1, catIndex: catIndex };
     });
   });
-  
-  filtered.forEach(p => {
+
+  tbody.innerHTML = filtered.map(p => {
     // Use string matching for category lookup
     const cat = categories.find(c => String(c.id).toUpperCase() === String(p.categoryId).toUpperCase());
     const catName = cat ? cat.name : 'Unknown';
-    
+
     // Calculate bgIndex using category letter position
     const catLetter = String(p.categoryId).toUpperCase();
     const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1; // A=1, B=2, etc.
     const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁', 10: '🌀', 11: '🌋', 12: '⛲' };
     const emoji = emojiMap[bgIndex] || '🎆';
-    
+
     // Get alphanumeric product code - use product.id directly since it's now "A1", "B2", etc.
     const productCode = `#${p.id}`;
-    
+
     let imageCellContent = `<div class="prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
     if (p.image) {
       imageCellContent = `<img src="${p.image}" class="admin-prod-thumb" alt="${p.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--admin-border);">`;
     }
-    
-    tbody.innerHTML += `
+
+    return `
       <tr>
         <td>${productCode}</td>
         <td>
@@ -768,7 +780,7 @@ function renderProductsTable() {
         </td>
       </tr>
     `;
-  });
+  }).join('');
 }
 
 function populateCategoryDropdowns() {
@@ -1133,6 +1145,33 @@ async function purgeOrphanedNumericProductDocuments() {
   }
 }
 
+/**
+ * Dynamically determine the next available single-character alphabetical category ID.
+ * Inspects existing category IDs and finds the next letter after the highest one in use.
+ * Unlike the position-based getCategoryCode(), this ensures strictly sequential
+ * letter assignment (A, B, C, ...) even after categories have been deleted.
+ * @param {Array} existingCategories - Array of existing category objects
+ * @returns {string} - The next available uppercase letter ID ('A'..'Z')
+ */
+function getNextCategoryId(existingCategories) {
+  // Extract all valid single-character uppercase IDs ('A'..'Z')
+  const existingIds = (existingCategories || [])
+    .map(c => String(c.id).trim().toUpperCase())
+    .filter(id => id.length === 1 && id >= 'A' && id <= 'Z');
+
+  if (existingIds.length === 0) return 'A';
+
+  // Find the highest ASCII character code present
+  const maxCharCode = Math.max(...existingIds.map(id => id.charCodeAt(0)));
+
+  // Next letter is max + 1
+  if (maxCharCode >= 90) { // 'Z'
+    throw new Error("Maximum alphabet category limit ('Z') reached.");
+  }
+
+  return String.fromCharCode(maxCharCode + 1);
+}
+
 /* ==========================================================================
    5. Categories CRUD Manager (modals + save)
    NOTE: Category IDs are letter strings ("A", "B", ...). All lookups use
@@ -1211,8 +1250,11 @@ function saveCategoryData() {
   const categories = getCategories();
 
   if (idVal === '') {
-    // Add Mode - generate the next letter code (A, B, C, ...) for consistency
-    const newId = getCategoryCode(categories.length);
+    // Add Mode - generate the next sequential letter code (A, B, C, ...)
+    // Uses getNextCategoryId() which inspects existing IDs to find the next
+    // available letter, ensuring strictly sequential alphabetical assignment
+    // even after categories have been deleted (unlike position-based getCategoryCode).
+    const newId = getNextCategoryId(categories);
     const newCat = {
       id: newId,
       name,
