@@ -1329,6 +1329,26 @@ function calculateSubtotal() {
   return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 }
 
+/**
+ * Resolve a cart item's categoryId to a 1-based number for placeholder styling.
+ * Supports the current alphanumeric model (letter IDs like "A" -> 1, "B" -> 2)
+ * and any legacy numeric IDs. Falls back to 1 for unknown values so the
+ * placeholder class is never "p-bg-NaN".
+ * @param {string|number} categoryId
+ * @returns {number}
+ */
+function getCartItemCategoryNumber(categoryId) {
+  if (typeof categoryId === 'number' && Number.isFinite(categoryId)) {
+    return categoryId;
+  }
+  const str = String(categoryId || '').trim().toUpperCase();
+  if (/^[A-Z]$/.test(str)) {
+    return str.charCodeAt(0) - 64; // 'A' -> 1, 'B' -> 2, ...
+  }
+  const num = parseInt(str, 10);
+  return Number.isFinite(num) ? num : 1;
+}
+
 function updateCartUI() {
   const cartCountElem = document.getElementById('cart-count');
   const cartTotalElem = document.getElementById('cart-total');
@@ -1382,9 +1402,9 @@ function updateCartUI() {
     const itemRow = document.createElement('div');
     itemRow.className = 'cart-item';
     
-    const bgIndex = (item.categoryId % 9) + 1;
+    const bgIndex = (getCartItemCategoryNumber(item.categoryId) % 9) + 1;
     const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁' };
-    const emoji = emojiMap[item.categoryId] || '🎆';
+    const emoji = emojiMap[bgIndex] || '🎆';
     
 let cartImgContent = `<div class="cart-item-img-placeholder p-bg-${bgIndex}">${emoji}</div>`;
     if (item.image) {
@@ -1398,11 +1418,11 @@ let cartImgContent = `<div class="cart-item-img-placeholder p-bg-${bgIndex}">${e
         <span class="cart-item-price">₹${item.price} x ${item.quantity}</span>
       </div>
       <div class="cart-item-actions">
-        <button class="cart-item-delete" onclick="removeCartItem(${item.id})">Delete</button>
+        <button class="cart-item-delete" onclick="removeCartItem('${item.id}')">Delete</button>
         <div class="qty-counter">
-          <button class="qty-btn minus" onclick="adjustDrawerQty(${item.id}, -1)">-</button>
+          <button class="qty-btn minus" onclick="adjustDrawerQty('${item.id}', -1)">-</button>
           <span class="qty-number">${item.quantity}</span>
-          <button class="qty-btn plus" onclick="adjustDrawerQty(${item.id}, 1)">+</button>
+          <button class="qty-btn plus" onclick="adjustDrawerQty('${item.id}', 1)">+</button>
         </div>
       </div>
     `;
@@ -1434,6 +1454,20 @@ function adjustDrawerQty(prodId, change) {
   
   // Sync every on-screen catalog control for this product
   syncProductAction(prodId);
+}
+
+// Expose cart mutation handlers on window so inline onclick attributes resolve
+// reliably (and to guard against any future move to module scope). The aliases
+// map the conventional API names to this project's actual function names.
+if (typeof window !== 'undefined') {
+  window.adjustDrawerQty = adjustDrawerQty;
+  window.removeCartItem = removeCartItem;
+  window.updateCartItemQuantity = updateCartItemQuantity;
+  window.addProductToCart = addProductToCart;
+  // Conventional aliases
+  window.changeCartQty = adjustDrawerQty;
+  window.updateCartQuantity = updateCartItemQuantity;
+  window.removeFromCart = removeCartItem;
 }
 
 function checkoutCart() {
