@@ -26,6 +26,11 @@ let deleteTargetId = null;
 // Firestore-backed enquiries cache (populated by the realtime listener)
 let firestoreEnquiries = [];
 
+// Re-entry guard flags to prevent duplicate form submissions
+let _savingCategory = false;
+let _savingProduct = false;
+let _savingCoupon = false;
+
 document.addEventListener('DOMContentLoaded', () => {
   initAdminAuth();
   
@@ -54,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (prodForm) {
     prodForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      e.stopImmediatePropagation();
       saveProductData();
     });
   }
@@ -62,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (catForm) {
     catForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      e.stopImmediatePropagation();
       saveCategoryData();
     });
     
@@ -843,6 +850,28 @@ function closeProductModal() {
 }
 
 function saveProductData() {
+  // ============================================================
+  // RE-ENTRY GUARD: Prevent duplicate parallel execution
+  // ============================================================
+  if (_savingProduct) {
+    console.warn('[Product Save] Already saving — ignoring duplicate call.');
+    return;
+  }
+  
+  const form = document.getElementById('product-form');
+  const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+  let originalBtnText = '';
+  
+  // Disable submit button immediately
+  if (submitBtn) {
+    originalBtnText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+  }
+  
+  // Set re-entry guard
+  _savingProduct = true;
+
   updateSalePriceFromDiscount();
   
   const idVal = document.getElementById('product-modal-id').value;
@@ -933,6 +962,8 @@ function saveProductData() {
   // Sync to Firestore (async) with visible error feedback
   const productToSync = idVal === '' ? products[products.length - 1] : products.find(p => String(p.id) === String(idVal));
   
+  let firestorePromise = Promise.resolve();
+  
   if (!window.db) {
     console.error('[Firestore] window.db is NULL — Firebase not initialized. Check that firebase-config.js loaded correctly.');
     showAdminToast('Firestore not connected. Data saved locally only.', 'error');
@@ -944,25 +975,21 @@ function saveProductData() {
       // Category CHANGED: Need to DELETE old document and CREATE new one
       console.log('[Firestore] Category changed. Moving product from cat', originalCategoryId, 'to cat', categoryId);
       
-      handleCategoryChangeFirestore(originalProductId, productToSync)
+      firestorePromise = handleCategoryChangeFirestore(originalProductId, productToSync)
         .then(() => {
           console.log('[Firestore] Product moved to new category successfully.');
           // Re-render products table after Firestore sync
-          loadProductsFromFirestore().then(() => {
-            renderProductsTable();
-          });
+          return loadProductsFromFirestore();
         })
         .catch(err => {
           const code = err.code || 'unknown';
           const msg = err.message || 'Unknown error';
           console.error('[Firestore] Category change/move FAILED. Code:', code, 'Message:', msg, err);
           showAdminToast('Firestore move failed [' + code + ']: ' + msg, 'error');
-          // Still re-render to show local state
-          renderProductsTable();
         });
     } else {
       // Category UNCHANGED: Simple update
-      saveProductToFirestore(productToSync)
+      firestorePromise = saveProductToFirestore(productToSync)
         .then(() => {
           console.log('[Firestore] Product synced successfully:', productToSync.name);
         })
@@ -975,8 +1002,20 @@ function saveProductData() {
     }
   }
   
-  closeProductModal();
-  renderProductsTable();
+  // After Firestore sync completes, clean up: close modal, refresh UI, re-enable button, release guard
+  firestorePromise.finally(() => {
+    closeProductModal();
+    renderProductsTable();
+    
+    // Re-enable submit button
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText || 'Save Firecracker';
+    }
+    
+    // Release re-entry guard
+    _savingProduct = false;
+  });
 }
 
 /**
@@ -1139,6 +1178,28 @@ function closeCategoryModal() {
 }
 
 function saveCategoryData() {
+  // ============================================================
+  // RE-ENTRY GUARD: Prevent duplicate parallel execution
+  // ============================================================
+  if (_savingCategory) {
+    console.warn('[Category Save] Already saving — ignoring duplicate call.');
+    return;
+  }
+  
+  const form = document.getElementById('category-form');
+  const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+  let originalBtnText = '';
+  
+  // Disable submit button immediately
+  if (submitBtn) {
+    originalBtnText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+  }
+  
+  // Set re-entry guard
+  _savingCategory = true;
+
   const idVal = document.getElementById('category-modal-id').value;
 
   const name = document.getElementById('category-modal-name').value;
@@ -1181,10 +1242,12 @@ function saveCategoryData() {
     ? categories[categories.length - 1]
     : categories.find(c => String(c.id) === String(idVal));
 
+  let firestorePromise = Promise.resolve();
+
   if (window.db && categoryToSync) {
     console.log('[Category Save] Attempting Firestore write for category ID:', categoryToSync.id);
     try {
-      saveCategoryToFirestore(categoryToSync)
+      firestorePromise = saveCategoryToFirestore(categoryToSync)
         .then(() => {
           console.log('[Firestore] ✓ Category synced successfully:', categoryToSync.name);
         })
@@ -1202,9 +1265,22 @@ function saveCategoryData() {
     console.error('[Firestore] window.db is NULL — cannot sync categories.');
   }
 
-  closeCategoryModal();
-  populateCategoryDropdowns();
-  renderCategoriesTable();
+  // After Firestore sync completes (or immediately if no sync needed),
+  // clean up: close modal, refresh UI, re-enable button, release guard
+  firestorePromise.finally(() => {
+    closeCategoryModal();
+    populateCategoryDropdowns();
+    renderCategoriesTable();
+    
+    // Re-enable submit button
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText || 'Save Category';
+    }
+    
+    // Release re-entry guard
+    _savingCategory = false;
+  });
 }
 
 /* ==========================================================================
