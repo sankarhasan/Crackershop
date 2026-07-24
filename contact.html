@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us | KPR Crackers - Sivakasi Store Coordinates</title>
+  <meta name="description" content="Contact KPR Crackers in Sivakasi. Find our warehouse location, phone numbers, email and business hours, or send a quick enquiry directly.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/coupon-stack.css">
+
+  <!-- Lottie Web Player (fix loader animation warnings) -->
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+</head>
+<body>
+
+  <!-- Shared preloader (injected by js/components.js) -->
+  <div id="site-preloader"></div>
+
+  <!-- Shared top ticker + header/nav (injected by js/components.js) -->
+  <div id="site-header"></div>
+
+  <main>
+    <!-- Contact Details & Map Section -->
+    <section id="contact" class="contact-section fade-in-up">
+      <div class="container">
+        <div class="section-header">
+          <h4 class="section-subtitle">GET IN TOUCH</h4>
+          <h2 class="section-title">Our Store Coordinates</h2>
+        </div>
+        <div class="contact-grid">
+          <div class="contact-info-cards">
+            <!-- Card 1: Warehouse Location -->
+            <div class="contact-card-info">
+              <div class="icon-wrapper">📍</div>
+              <div class="content-stack">
+                <h3 class="heading">Our Warehouse Location</h3>
+                <p class="text">KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu - 626123</p>
+              </div>
+            </div>
+
+            <!-- Card 2: Contact Phone Numbers -->
+            <div class="contact-card-info">
+              <div class="icon-wrapper">📞</div>
+              <div class="content-stack">
+                <h3 class="heading">Contact Phone Numbers</h3>
+                <p class="text"><a href="tel:+919789432373">+91 97894 32373</a></p>
+                <p class="text"><a href="tel:+916385651757">+91 63856 51757</a></p>
+              </div>
+            </div>
+
+            <!-- Card 3: Official Email Address -->
+            <div class="contact-card-info">
+              <div class="icon-wrapper">✉️</div>
+              <div class="content-stack">
+                <h3 class="heading">Official Email Address</h3>
+                <p class="text"><a href="mailto:info@kprcrackers.com">info@kprcrackers.com</a></p>
+                <p class="text"><a href="mailto:sales@kprcrackers.com">sales@kprcrackers.com</a></p>
+              </div>
+            </div>
+
+            <!-- Card 4: Business Hours -->
+            <div class="contact-card-info">
+              <div class="icon-wrapper">🕒</div>
+              <div class="content-stack">
+                <h3 class="heading">Business Hours</h3>
+                <p class="text">Open Everyday: 8:00 AM - 10:00 PM</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-map">
+            <!-- Map Placeholder Box - Styled inside CSS to represent an elegant dark UI map with geolocation pins -->
+            <div class="styled-map-placeholder">
+              <div class="map-glow-radar"></div>
+              <span class="map-icon">📍</span>
+              <h4>KPR Crackers Depot</h4>
+              <h4>Sivakasi Bypass Road, Tamil Nadu</h4>
+              <div class="coordinates-overlay">Lat: 9.4533° N, Lon: 77.8024° E</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Enquiry Form (injected by js/components.js) -->
+    <div id="enquiry-form-mount"></div>
+  </main>
+
+  <!-- Shared footer (injected by js/components.js) -->
+  <div id="site-footer"></div>
+
+  <!-- Shared cart drawer (injected by js/components.js) -->
+  <div id="cart-drawer-mount"></div>
+
+  <!-- Shared WhatsApp widget (injected by js/components.js) -->
+  <div id="whatsapp-mount"></div>
+
+  <!-- Shared global modals: notice + toast + success (injected by js/components.js) -->
+  <div id="site-modals"></div>
+
+  <!-- Script Declarations -->
+  <!-- Firebase SDKs (compat) + shared config -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <!-- Lottie Player Script -->
+  <script src="https://unpkg.com/@dotlottie/player-component@2.7.1/dist/dotlottie-player.mjs" type="module"></script>
+  <script src="js/data.js"></script>
+  <!-- Shared components: injects chrome BEFORE app.js binds handlers -->
+  <script src="js/components.js"></script>
+  <!-- Confetti (lightweight) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/coupon-stack.js"></script>
+</body>
+</html>

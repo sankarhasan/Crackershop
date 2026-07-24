@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Enquiry | KPR Crackers - Send Your Order Enquiry</title>
+  <meta name="description" content="Send a quick enquiry to KPR Crackers for bulk orders, dealer pricing or custom firecracker packages. Our agent will call you within 1 hour.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/coupon-stack.css">
+
+  <!-- Lottie Web Player (fix loader animation warnings) -->
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+</head>
+<body>
+
+  <!-- Shared preloader (injected by js/components.js) -->
+  <div id="site-preloader"></div>
+
+  <!-- Shared top ticker + header/nav (injected by js/components.js) -->
+  <div id="site-header"></div>
+
+  <main>
+    <!-- Quick Enquiry Form (injected by js/components.js) -->
+    <div id="enquiry-form-mount"></div>
+  </main>
+
+  <!-- Shared footer (injected by js/components.js) -->
+  <div id="site-footer"></div>
+
+  <!-- Shared cart drawer (injected by js/components.js) -->
+  <div id="cart-drawer-mount"></div>
+
+  <!-- Shared WhatsApp widget (injected by js/components.js) -->
+  <div id="whatsapp-mount"></div>
+
+  <!-- Shared global modals: notice + toast + success (injected by js/components.js) -->
+  <div id="site-modals"></div>
+
+  <!-- Script Declarations -->
+  <!-- Firebase SDKs (compat) + shared config -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <!-- Lottie Player Script -->
+  <script src="https://unpkg.com/@dotlottie/player-component@2.7.1/dist/dotlottie-player.mjs" type="module"></script>
+  <script src="js/data.js"></script>
+  <!-- Shared components: injects chrome BEFORE app.js binds handlers -->
+  <script src="js/components.js"></script>
+  <!-- Confetti (lightweight) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/coupon-stack.js"></script>
+</body>
+</html>

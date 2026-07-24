@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Safety Tips | KPR Crackers - Firecracker Safety Guidelines</title>
+  <meta name="description" content="Essential firecracker safety tips from KPR Crackers. Follow these dos and don'ts for a colorful, safe and accident-free Diwali celebration.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/coupon-stack.css">
+
+  <!-- Lottie Web Player (fix loader animation warnings) -->
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+</head>
+<body>
+
+  <!-- Shared preloader (injected by js/components.js) -->
+  <div id="site-preloader"></div>
+
+  <!-- Shared top ticker + header/nav (injected by js/components.js) -->
+  <div id="site-header"></div>
+
+  <main>
+    <!-- Safety Tips Section -->
+    <section id="safety" class="safety-section fade-in-up">
+      <div class="container">
+        <div class="section-header">
+          <h4 class="section-subtitle">CELEBRATE SAFELY</h4>
+          <h2 class="section-title">Essential Safety Tips</h2>
+          <p class="section-desc">Follow these rules to ensure a colorful and safe Diwali celebration for your family and pets.</p>
+        </div>
+        <div class="safety-grid">
+          <div class="safety-card do">
+            <div class="safety-icon-wrapper do-icon">✔️</div>
+            <h3>Dos</h3>
+            <ul>
+              <li>Always light crackers in open, clear outdoor spaces.</li>
+              <li>Keep a bucket of water and sand nearby for emergencies.</li>
+              <li>Store your crackers in a closed, dry box away from fire sources.</li>
+              <li>Wear well-fitting, tight cotton clothing while lighting fireworks.</li>
+              <li>Maintain safe distance as specified on product boxes.</li>
+            </ul>
+          </div>
+          <div class="safety-card dont">
+            <div class="safety-icon-wrapper dont-icon">❌</div>
+            <h3>Don'ts</h3>
+            <ul>
+              <li>Never attempt to re-ignite a firecracker that has failed to light (duds).</li>
+              <li>Don't hold crackers in hand while lighting them.</li>
+              <li>Never wear loose-fitting synthetic clothes (polyester/nylon).</li>
+              <li>Never light firecrackers inside or near enclosed buildings.</li>
+              <li>Avoid throwing crackers at animals, pets, or people.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Shared footer (injected by js/components.js) -->
+  <div id="site-footer"></div>
+
+  <!-- Shared cart drawer (injected by js/components.js) -->
+  <div id="cart-drawer-mount"></div>
+
+  <!-- Shared WhatsApp widget (injected by js/components.js) -->
+  <div id="whatsapp-mount"></div>
+
+  <!-- Shared global modals: notice + toast + success (injected by js/components.js) -->
+  <div id="site-modals"></div>
+
+  <!-- Script Declarations -->
+  <!-- Firebase SDKs (compat) + shared config -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <!-- Lottie Player Script -->
+  <script src="https://unpkg.com/@dotlottie/player-component@2.7.1/dist/dotlottie-player.mjs" type="module"></script>
+  <script src="js/data.js"></script>
+  <!-- Shared components: injects chrome BEFORE app.js binds handlers -->
+  <script src="js/components.js"></script>
+  <!-- Confetti (lightweight) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/coupon-stack.js"></script>
+</body>
+</html>

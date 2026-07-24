@@ -170,6 +170,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize app elements
   initCarousel();
   renderProductsCatalog();
+
+  // Cross-page: apply ?category= filter on the products page after the initial
+  // catalog render (e.g. arriving from a category card on Home/Categories).
+  if (document.getElementById('products-grid')) {
+    const params = new URLSearchParams(window.location.search);
+    const categoryParam = params.get('category');
+    if (categoryParam) {
+      filterByCategory(categoryParam);
+    }
+  }
+
   renderMobileSlider();
   renderTestimonialsSlider();
   initContactMap();
@@ -251,7 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const navLinks = document.querySelectorAll('.nav-link');
   const navMenu = document.getElementById('mobile-nav'); // Mobile drawer only
   const menuToggle = document.getElementById('menu-toggle');
-  
+
+  // Guard: the header (with #menu-toggle and #mobile-nav) is injected by
+  // js/components.js. If a page lacks these elements, skip the bindings so
+  // DOMContentLoaded never aborts with a null-reference error.
+  if (menuToggle && navMenu) {
   // Sync the hamburger/X icon to the current menu open state
   const syncHamburgerIcon = () => {
     const bars = menuToggle.querySelectorAll('.bar');
@@ -327,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     navMenu.appendChild(footer);
   }
+  } // end if (menuToggle && navMenu)
 });
 
 /* ==========================================================================
@@ -627,6 +643,13 @@ function navigateMobileSliderTo(slug) {
 }
 
 function filterByCategory(slug) {
+  // Cross-page: if the catalog grid isn't on this page (e.g. Home or Categories),
+  // navigate to the products page with the category as a query param.
+  if (!document.getElementById('products-grid')) {
+    window.location.href = 'products.html?category=' + encodeURIComponent(slug);
+    return;
+  }
+
   activeCategory = slug;
   
   // Update mobile banner
@@ -650,7 +673,8 @@ function filterByCategory(slug) {
   }
   
   // Scroll to products
-  document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+  const productsSection = document.getElementById('products');
+  if (productsSection) productsSection.scrollIntoView({ behavior: 'smooth' });
 }
 
 /* ==========================================================================
@@ -1491,6 +1515,14 @@ function checkoutCart() {
   }
   
   toggleCartDrawer();
+
+  // Cross-page: if the enquiry form isn't on this page, send the user to the
+  // dedicated enquiry page. The cart is already persisted in localStorage, so
+  // the order summary will populate there.
+  if (!document.getElementById('enquiry-form')) {
+    window.location.href = 'enquiry.html';
+    return;
+  }
   
   // NOTE: The enquiry message textarea is intentionally NOT pre-filled with a
   // cart summary. Cart products are persisted separately in the `cartItems`
@@ -1501,7 +1533,8 @@ function checkoutCart() {
   populateOrderSummaryFromCart();
   
   // Auto scroll to enquiry form
-  document.getElementById('quick-enquiry').scrollIntoView({ behavior: 'smooth' });
+  const enquirySection = document.getElementById('quick-enquiry');
+  if (enquirySection) enquirySection.scrollIntoView({ behavior: 'smooth' });
   showToast('Please fill in your details below to complete the enquiry! 📝', 'info');
 }
 

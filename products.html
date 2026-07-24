@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products | KPR Crackers - Premium Sivakasi Firecrackers</title>
+  <meta name="description" content="Browse and add premium Sivakasi firecrackers to your cart. Search and filter by category. Minimum order ₹3000. Quick delivery & safe shopping.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/coupon-stack.css">
+
+  <!-- Lottie Web Player (fix loader animation warnings) -->
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+</head>
+<body>
+
+  <!-- Shared preloader (injected by js/components.js) -->
+  <div id="site-preloader"></div>
+
+  <!-- Shared top ticker + header/nav (injected by js/components.js) -->
+  <div id="site-header"></div>
+
+  <main>
+    <!-- Product Catalog Section -->
+    <section id="products" class="products-section fade-in-up">
+      <div class="container">
+        <div class="section-header">
+          <h4 class="section-subtitle">EXPLORE SHOP</h4>
+          <h2 class="section-title">Our Premium Crackers</h2>
+          <p class="section-desc">Add safety-tested, beautiful firecrackers to your cart. Select category to filter.</p>
+        </div>
+
+        <!-- Scroll anchor for "Our Premium Crackers" -->
+        <div id="premium-crackers" aria-hidden="true" style="position: relative; top: -100px; height: 1px;"></div>
+
+        <!-- Filter Controls -->
+        <div class="filter-controls-container">
+          <div class="search-bar-container">
+            <input type="text" id="product-search" placeholder="Search firecrackers..." class="form-control search-input">
+            <span class="search-icon-btn">🔍</span>
+          </div>
+          <div class="filter-bar" id="filter-bar">
+            <!-- Filter buttons loaded by JS -->
+            <button class="filter-btn active" data-category="all">All Items</button>
+          </div>
+        </div>
+
+        <!-- Mobile Pagination: "All Items" full-width row (hidden on desktop) -->
+        <div class="mobile-pagination-all" id="mobile-pagination-all"></div>
+
+        <!-- Mobile Pagination: numbered circles row (hidden on desktop) -->
+        <div class="mobile-pagination-numbers" id="mobile-pagination-numbers"></div>
+
+        <!-- Mobile Slider Container (hidden on desktop) -->
+        <div class="mobile-slider-container" id="mobile-slider-container"></div>
+
+        <!-- Desktop Product Grid (hidden on mobile) -->
+        <div class="products-grid" id="products-grid">
+          <!-- Dynamically Loaded by JS -->
+          <div class="product-card-placeholder">Loading products...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Promotional Big Sale Banner Section -->
+    <section class="promo-banner-section fade-in-up" id="promo-banner-section">
+      <div class="container">
+        <div class="promo-card">
+          <div class="promo-bg-glow"></div>
+          <div class="promo-content">
+            <span class="promo-badge" id="promo-tag">🎉 FESTIVAL EXTRAVAGANZA</span>
+            <h2 class="promo-title" id="promo-title">DIWALI BIG SALE</h2>
+            <h3 class="promo-subtitle" id="promo-subtitle">Get Flat 10% Extra Discount on orders above ₹10,000</h3>
+            <p class="promo-desc" id="promo-desc">Stock up early for your community celebrations. Free delivery across major cities. Offer valid till Diwali eve!</p>
+            <div class="promo-countdown" id="promo-timer">
+              <div class="time-box"><span id="days">00</span><span class="time-lbl">Days</span></div>
+              <div class="time-box"><span id="hours">00</span><span class="time-lbl">Hours</span></div>
+              <div class="time-box"><span id="minutes">00</span><span class="time-lbl">Mins</span></div>
+              <div class="time-box"><span id="seconds">00</span><span class="time-lbl">Secs</span></div>
+            </div>
+            <a href="enquiry.html" class="btn btn-secondary btn-lg btn-pulse" id="promo-btn">Claim Big Discount Now</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Shared footer (injected by js/components.js) -->
+  <div id="site-footer"></div>
+
+  <!-- Shared cart drawer (injected by js/components.js) -->
+  <div id="cart-drawer-mount"></div>
+
+  <!-- Shared WhatsApp widget (injected by js/components.js) -->
+  <div id="whatsapp-mount"></div>
+
+  <!-- Shared global modals: notice + toast + success (injected by js/components.js) -->
+  <div id="site-modals"></div>
+
+  <!-- Script Declarations -->
+  <!-- Firebase SDKs (compat) + shared config -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <!-- Lottie Player Script -->
+  <script src="https://unpkg.com/@dotlottie/player-component@2.7.1/dist/dotlottie-player.mjs" type="module"></script>
+  <script src="js/data.js"></script>
+  <!-- Shared components: injects chrome BEFORE app.js binds handlers -->
+  <script src="js/components.js"></script>
+  <!-- Confetti (lightweight) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/coupon-stack.js"></script>
+</body>
+</html>
