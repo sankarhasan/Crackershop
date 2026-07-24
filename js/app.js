@@ -1492,23 +1492,17 @@ function checkoutCart() {
   
   toggleCartDrawer();
   
-  // Pre-fill enquiry form message with cart items
-  const messageInput = document.getElementById('enquiry-message');
-  if (messageInput) {
-    let summary = 'Interested in placing order for:\n';
-    cart.forEach(item => {
-      summary += `- ${item.name} (Qty: ${item.quantity}) - ₹${item.price * item.quantity}\n`;
-    });
-    summary += `Total Est: ₹${calculateSubtotal()}`;
-    messageInput.value = summary;
-  }
+  // NOTE: The enquiry message textarea is intentionally NOT pre-filled with a
+  // cart summary. Cart products are persisted separately in the `cartItems`
+  // array (and shown in the admin breakdown modal), so the `message` field must
+  // contain ONLY the customer's own optional text.
   
   // Populate the Order Summary card with live cart calculations
   populateOrderSummaryFromCart();
   
   // Auto scroll to enquiry form
   document.getElementById('quick-enquiry').scrollIntoView({ behavior: 'smooth' });
-  showToast('Items imported into enquiry form. Please fill in details below! 📝', 'info');
+  showToast('Please fill in your details below to complete the enquiry! 📝', 'info');
 }
 
 /* ==========================================================================
