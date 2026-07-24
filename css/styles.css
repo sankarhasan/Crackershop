@@ -1284,6 +1284,25 @@ section {
   box-shadow: 0 6px 16px rgba(10, 92, 54, 0.3);
 }
 
+/* Custom arrow icon images inside buttons (replaces text arrow glyphs) */
+.btn-icon-down {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+  filter: brightness(0) invert(1); /* Ensures icon renders clean white inside green button */
+}
+
+.btn-icon-right {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+  filter: brightness(0) invert(1); /* Ensures icon renders clean white inside green button */
+}
+
 .category-card-placeholder {
   grid-column: 1 / -1;
   text-align: center;
@@ -1970,6 +1989,58 @@ section {
 .service-card p {
   font-size: 0.9rem;
   color: #374151;
+}
+
+/* --- Legal Notice / Supreme Court Compliance Directive --- */
+.legal-notice-section {
+  background-color: var(--white);
+  padding: 0 0 60px 0;
+}
+
+.legal-notice-card {
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 16px;
+  padding: 32px;
+  color: #1f2937;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.legal-notice-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.legal-notice-intro {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.legal-notice-list {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0;
+}
+
+.legal-notice-list li {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+
+.legal-notice-list li:last-child {
+  margin-bottom: 0;
+}
+
+.legal-notice-card strong {
+  color: #111827;
+  font-weight: 700;
 }
 
 /* --- Testimonials Section --- */
@@ -4237,6 +4308,24 @@ select.form-control {
 
   .service-card p {
     font-size: 0.8rem;
+  }
+
+  /* Legal notice: tighter padding on mobile */
+  .legal-notice-section {
+    padding-bottom: 40px;
+  }
+
+  .legal-notice-card {
+    padding: 24px;
+  }
+
+  .legal-notice-title {
+    font-size: 1.1rem;
+  }
+
+  .legal-notice-intro,
+  .legal-notice-list li {
+    font-size: 0.875rem;
   }
 
   /* --- Promo --- */
