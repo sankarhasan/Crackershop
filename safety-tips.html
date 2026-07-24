@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Content Security Policy: allow Firebase, fonts, Lottie player scripts + JSON assets, and confetti CDN. Mirrors the header in vercel.json. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://unpkg.com https://cdn.jsdelivr.net; connect-src 'self' https://*.firestore.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://*.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://lottie.host https://*.lottie.host https://*.lottiefiles.com https://assets*.lottiefiles.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; worker-src 'self' blob:; frame-src https://accounts.google.com;">
   <title>Safety Tips | KPR Crackers - Firecracker Safety Guidelines</title>
   <meta name="description" content="Essential firecracker safety tips from KPR Crackers. Follow these dos and don'ts for a colorful, safe and accident-free Diwali celebration.">
 
@@ -23,8 +25,86 @@
   <!-- Shared preloader (injected by js/components.js) -->
   <div id="site-preloader"></div>
 
-  <!-- Shared top ticker + header/nav (injected by js/components.js) -->
-  <div id="site-header"></div>
+  <!-- Static site header (inlined for ZERO white flash / FOUC on navigation).
+       Active-tab highlighting is applied by js/components.js -> setActiveNav(). -->
+  <div id="site-header">
+    <div class="top-bar green-top-bar section-to-scroll">
+      <div class="ticker-wrap">
+        <div class="ticker-content">
+          <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
+          <span class="ticker-spacer"></span>
+          <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-spacer"></span>
+          <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
+          <span class="ticker-spacer"></span>
+          <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-spacer"></span>
+          <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
+          <span class="ticker-spacer"></span>
+          <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-spacer"></span>
+          <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
+          <span class="ticker-spacer"></span>
+          <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-spacer"></span>
+        </div>
+      </div>
+    </div>
+
+    <header class="main-header main-white-navbar sticky-element">
+      <div class="container header-container">
+        <a href="index.html" class="logo">
+          <img src="Images/KPR-LOGO.png" alt="KPR Crackers Logo" class="logo-image">
+          <div class="logo-text">
+            <span class="logo-main">KPR</span>
+            <span class="logo-sub">CRACKERS</span>
+          </div>
+        </a>
+
+        <nav class="navbar desktop-navbar" id="main-nav">
+          <ul class="nav-menu">
+            <li><a href="index.html" class="nav-link">Home</a></li>
+            <li><a href="about.html" class="nav-link">About Us</a></li>
+            <li><a href="products.html" class="nav-link">Products</a></li>
+            <li><a href="enquiry.html" class="nav-link">Quick Enquiry</a></li>
+            <li><a href="safety-tips.html" class="nav-link">Safety Tips</a></li>
+            <li><a href="contact.html" class="nav-link">Contact Us</a></li>
+          </ul>
+        </nav>
+
+        <div class="header-actions">
+          <div class="phone-box">
+            <span class="phone-label">Call to Order:</span>
+            <a href="tel:+919789432373" class="phone-number">📞 +91 97894 32373</a>
+            <a href="tel:+916385651757" class="phone-number">📞 +91 63856 51757</a>
+          </div>
+
+          <div class="cart-widget" id="cart-toggle" onclick="toggleCartDrawer()">
+            <span class="cart-icon">🛒</span>
+            <span class="cart-count" id="cart-count">0</span>
+            <span class="cart-total" id="cart-total">₹0</span>
+          </div>
+
+          <button class="mobile-menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </button>
+        </div>
+      </div>
+
+      <nav class="navbar mobile-drawer-navbar" id="mobile-nav">
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="about.html" class="nav-link">About Us</a></li>
+          <li><a href="products.html" class="nav-link">Products</a></li>
+          <li><a href="enquiry.html" class="nav-link">Quick Enquiry</a></li>
+          <li><a href="safety-tips.html" class="nav-link">Safety Tips</a></li>
+          <li><a href="contact.html" class="nav-link">Contact Us</a></li>
+        </ul>
+      </nav>
+    </header>
+  </div>
 
   <main>
     <!-- Safety Tips Section -->
