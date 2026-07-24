@@ -1123,6 +1123,7 @@ section {
 /* --- Categories Section --- */
 .categories-section {
   background-color: var(--white);
+  padding-bottom: 24px;
 }
 
 .categories-grid {
@@ -2123,6 +2124,7 @@ section {
 /* --- Quick Enquiry Form Section --- */
 .enquiry-section {
   background-color: var(--white);
+  padding-top: 16px;
 }
 
 .enquiry-card {

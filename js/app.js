@@ -1007,6 +1007,15 @@ function renderMobileSlider() {
 
   // Set up IntersectionObserver for arrow & pill state
   setupSliderPaginationObserver();
+
+  // Honor the currently-selected category (e.g. arriving via ?category= deep-link on
+  // mobile) so the slider opens on the matching slide instead of defaulting to "All
+  // Items". Covers initial load and Firestore realtime re-renders. Deferred so the
+  // freshly-appended slides have valid layout offsets before we scroll.
+  const currentSlug = (activeCategory || 'all').toString().trim().toLowerCase();
+  if (currentSlug && currentSlug !== 'all' && currentSlug !== 'all-items') {
+    setTimeout(function () { navigateMobileSliderTo(currentSlug); }, 100);
+  }
 }
 
 /* Helper: create a single product card DOM node for the mobile slider */
