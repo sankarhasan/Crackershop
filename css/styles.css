@@ -1127,7 +1127,7 @@ section {
 
 .categories-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 30px;
 }
 
@@ -1211,14 +1211,14 @@ section {
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 24px;
+  padding: 16px;
   z-index: 3;
   color: var(--white);
 }
 
 .category-name {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 600;
   margin-bottom: 4px;
   transition: var(--transition);
   text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
@@ -1229,14 +1229,58 @@ section {
 }
 
 .category-link {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 500;
   color: rgba(255, 255, 255, 0.7);
   display: flex;
   align-items: center;
   gap: 6px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+}
+
+/* Category grid pagination: cards beyond the initial 16 stay hidden until "Load More" */
+.category-hidden {
+  display: none !important;
+}
+
+/* Action buttons row below the category grid (Load More + View All Products) */
+.category-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 40px;
+}
+
+/* Solid green pill buttons for the category actions (always visible, prominent) */
+#load-more-categories,
+#view-all-products {
+  background: var(--deep-green);
+  color: var(--white);
+  border: none;
+  border-radius: 9999px;
+  padding: 12px 32px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 20px auto;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(10, 92, 54, 0.25);
+  transition: var(--transition);
+}
+
+#load-more-categories:hover,
+#view-all-products:hover {
+  background: var(--deep-green-dark);
+  color: var(--white);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(10, 92, 54, 0.3);
 }
 
 .category-card-placeholder {

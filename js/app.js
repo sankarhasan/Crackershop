@@ -518,6 +518,9 @@ function escapeHtml(text) {
 /* ==========================================================================
    2. Category Cards Rendering
    ========================================================================== */
+const CATEGORY_INITIAL_LIMIT = 16; // 4 rows x 4 columns on desktop
+let categoriesExpanded = false;    // becomes true after "Load More Categories"
+
 function renderCategoriesGrid() {
   console.log('[renderCategoriesGrid] Function called.');
   
@@ -549,6 +552,10 @@ function renderCategoriesGrid() {
     try {
       const card = document.createElement('div');
       card.className = `category-card fade-in-up visible`; // 'visible' ensures opacity:1 — without it, cards stay invisible (opacity:0) until scroll observer fires
+      // Only the first CATEGORY_INITIAL_LIMIT (16) cards show until "Load More" is clicked.
+      if (!categoriesExpanded && index >= CATEGORY_INITIAL_LIMIT) {
+        card.classList.add('category-hidden');
+      }
       card.style.transitionDelay = `${index * 50}ms`;
       card.setAttribute('onclick', `filterByCategory('${cat.slug}')`);
       
@@ -599,7 +606,37 @@ function renderCategoriesGrid() {
   });
   
   console.log('[renderCategoriesGrid] ✓ Render complete. Grid children count:', grid.children.length);
+
+  // Reveal/hide the Load More + View All Products actions based on total count.
+  updateCategoryActions(categories.length);
 }
+
+// Show/hide the category action buttons. "Load More Categories" appears only when
+// there are more than CATEGORY_INITIAL_LIMIT categories still collapsed; otherwise
+// the primary "View All Products" button is shown (immediately when <= 16, or once
+// everything has been expanded).
+function updateCategoryActions(total) {
+  const loadMoreBtn = document.getElementById('load-more-categories');
+  const viewAllBtn = document.getElementById('view-all-products');
+  if (!loadMoreBtn && !viewAllBtn) return;
+
+  const hasMoreToShow = total > CATEGORY_INITIAL_LIMIT && !categoriesExpanded;
+  if (loadMoreBtn) loadMoreBtn.style.display = hasMoreToShow ? '' : 'none';
+  if (viewAllBtn) viewAllBtn.style.display = hasMoreToShow ? 'none' : '';
+}
+
+// Reveal the remaining (hidden) category cards, then swap in "View All Products".
+function loadMoreCategories() {
+  categoriesExpanded = true;
+  const grid = document.getElementById('categories-grid');
+  if (grid) {
+    grid.querySelectorAll('.category-hidden').forEach(function (card) {
+      card.classList.remove('category-hidden');
+    });
+  }
+  updateCategoryActions(getCategories().length);
+}
+window.loadMoreCategories = loadMoreCategories;
 
 function updateMobileCategoryBanner() {
   const label = document.getElementById('mobile-category-label');
@@ -664,6 +701,8 @@ function filterByCategory(slug) {
       btn.classList.remove('active');
     }
   });
+
+  scrollToActiveCategoryPill();
   
   renderProductsCatalog();
 
@@ -680,6 +719,20 @@ function filterByCategory(slug) {
 /* ==========================================================================
    3. Product Catalog Grid with Search / Filters & Add-To-Cart
    ========================================================================== */
+/* Center the currently-active category pill within the horizontally scrollable
+   filter bar. Scrolls ONLY the container (not the page) to avoid layout jumps. */
+function scrollToActiveCategoryPill() {
+  const filterBar = document.getElementById('filter-bar');
+  if (!filterBar) return;
+  const activePill = filterBar.querySelector('.filter-btn.active');
+  if (!activePill) return;
+
+  const barRect = filterBar.getBoundingClientRect();
+  const pillRect = activePill.getBoundingClientRect();
+  const delta = (pillRect.left - barRect.left) - (filterBar.clientWidth / 2) + (pillRect.width / 2);
+  filterBar.scrollTo({ left: filterBar.scrollLeft + delta, behavior: 'smooth' });
+}
+
 function renderFilterButtons() {
   const filterBar = document.getElementById('filter-bar');
   if (!filterBar) return;
@@ -689,8 +742,13 @@ function renderFilterButtons() {
   // Explicitly set data-category="all" so the filter logic can reliably detect it.
   filterBar.innerHTML = '';
 
+  // Honor the currently-selected category so the correct pill stays highlighted across
+  // re-renders (initial load, ?category= deep-link, and Firestore realtime updates).
+  const currentCategory = (activeCategory || 'all').toString().trim().toLowerCase();
+  const isAllActive = !currentCategory || currentCategory === 'all' || currentCategory === 'all-items';
+
   const allBtn = document.createElement('button');
-  allBtn.className = 'filter-btn active';
+  allBtn.className = 'filter-btn' + (isAllActive ? ' active' : '');
   allBtn.setAttribute('data-category', 'all');
   allBtn.innerText = 'All Items';
   allBtn.addEventListener('click', () => {
@@ -699,13 +757,14 @@ function renderFilterButtons() {
     activeCategory = 'all';
     updateMobileCategoryBanner();
     renderProductsCatalog();
+    scrollToActiveCategoryPill();
   });
 
   filterBar.appendChild(allBtn);
 
   categories.forEach(cat => {
     const btn = document.createElement('button');
-    btn.className = 'filter-btn';
+    btn.className = 'filter-btn' + ((cat.slug || '').toString().trim().toLowerCase() === currentCategory ? ' active' : '');
     btn.setAttribute('data-category', cat.slug);
     btn.innerText = cat.name;
 
@@ -715,6 +774,7 @@ function renderFilterButtons() {
       activeCategory = cat.slug;
       updateMobileCategoryBanner();
       renderProductsCatalog();
+      scrollToActiveCategoryPill();
     });
 
     filterBar.appendChild(btn);
@@ -729,6 +789,10 @@ function renderFilterButtons() {
       renderMobileSlider();
     });
   }
+
+  // Center the active pill within the scrollable filter bar after render
+  // (covers initial load, ?category= deep-link, and Firestore realtime re-renders).
+  setTimeout(scrollToActiveCategoryPill, 100);
 }
 
 function renderProductsCatalog() {
