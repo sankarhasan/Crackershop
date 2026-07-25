@@ -529,9 +529,11 @@ html, body, div, section, textarea, table {
   }
 }
 
-/* Navbar Menu */
+/* Navbar Menu — nudged slightly left for balanced spacing between the logo
+   and the phone/cart block (links sit a touch left of true center) */
 .navbar {
-  margin-left: 20px;
+  margin-left: 12px;
+  margin-right: 28px;
 }
 
 /* Desktop navbar: visible on screens > 768px, hidden on mobile */
@@ -581,6 +583,9 @@ html, body, div, section, textarea, table {
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  /* Locked in place: never squeezed by the cart pill; nudged slightly left */
+  flex-shrink: 0;
+  margin-right: 6px;
 }
 
 .phone-label {
@@ -627,9 +632,11 @@ html, body, div, section, textarea, table {
   box-shadow: 0 4px 10px rgba(10, 92, 54, 0.2);
   transition: var(--transition);
 
-  /* Keep cart compact; width can grow naturally but won't reflow the nav/phone layout */
+  /* Reserve constant width on desktop so a growing total (e.g. ₹0 → ₹1,19,976)
+     never widens .header-actions and pushes the nav links / phone block left.
+     Fits totals up to ~₹99,99,999; only beyond that does it grow. */
   flex: 0 0 auto;
-  min-width: 92px; /* fit “₹0” nicely */
+  min-width: 150px;
   width: auto;
   justify-content: center;
 }
@@ -1102,6 +1109,32 @@ section {
   z-index: 2;
   margin-bottom: 20px;
   filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.4));
+}
+
+/* Brand logo inside the About page green card (replaces the lantern emoji).
+   Full-width flex wrapper guarantees dead-center alignment above the heading. */
+.about-brand-logo-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+  z-index: 2;
+}
+
+.about-brand-logo {
+  height: 90px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 768px) {
+  .about-brand-logo {
+    height: 80px;
+  }
 }
 
 .decorative-placeholder-about h3 {
@@ -3887,8 +3920,12 @@ select.form-control {
 
   .decorative-placeholder-about {
     max-width: 100%;
-    height: 320px;
-    padding: 30px;
+    /* Perfect square card, flex-centered content on mobile */
+    height: auto;
+    aspect-ratio: 1 / 1;
+    padding: 24px;
+    margin: 0 auto;
+    text-align: center;
   }
 
   .decorative-placeholder-about h3 {
@@ -4767,8 +4804,9 @@ select.form-control {
 
   /* About */
   .decorative-placeholder-about {
-    height: 260px;
-    padding: 24px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    padding: 20px;
   }
 
   .decorative-placeholder-about h3 {
