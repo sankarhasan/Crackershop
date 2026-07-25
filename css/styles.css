@@ -92,11 +92,10 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 1;
   visibility: visible;
   overflow: hidden;
-  /* Solid color paints instantly (before image decodes) so nothing shows through */
+  /* Solid color paints instantly (before image decodes) so nothing shows through.
+     No overlay mask — the background image renders at full opacity, crisp. */
   background-color: var(--deep-green-dark);
-  background-image:
-    linear-gradient(rgba(3, 34, 20, 0.62), rgba(3, 34, 20, 0.62)),
-    url("../Images/Loading Background.jpg");
+  background-image: url("../Images/Loading Background.jpg");
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
@@ -140,7 +139,8 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 2.4rem;
   font-weight: 800;
   letter-spacing: 1px;
-  color: var(--golden-yellow);
+  text-transform: uppercase;
+  color: #ffffff;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
   margin-bottom: 2px;
 }

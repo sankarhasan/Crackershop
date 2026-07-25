@@ -27,7 +27,7 @@
           autoplay>
         </dotlottie-player>
         <div class="brand-text-wrapper">
-          <h1 class="unique-brand-title">KPR Crackers</h1>
+          <h1 class="unique-brand-title">KPR CRACKERS</h1>
           <p class="brand-subtitle">Your Joy is our Pride</p>
           <div class="loading-indicator">
             <span>LOADING</span>
