@@ -15,6 +15,7 @@
 
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="preload" as="image" href="Icons/Brand Logo png.png">
   <link rel="stylesheet" href="css/coupon-stack.css">
 
   <!-- Lottie Web Player (fix loader animation warnings) -->
@@ -54,7 +55,7 @@
     <header class="main-header main-white-navbar sticky-element">
       <div class="container header-container">
         <a href="index.html" class="logo brand-logo-link">
-          <img src="Icons/Brand Logo png.png" alt="KPR Crackers Logo" class="brand-logo-img">
+          <img src="Icons/Brand Logo png.png" alt="KPR Crackers Logo" class="brand-logo-img" fetchpriority="high" decoding="sync">
         </a>
 
         <nav class="navbar desktop-navbar" id="main-nav">
@@ -80,6 +81,21 @@
             <span class="cart-count" id="cart-count">0</span>
             <span class="cart-total" id="cart-total">₹0</span>
           </div>
+          <!-- Synchronous cart hydration: paint saved totals before first render (prevents 0/₹0 flicker) -->
+          <script>
+            (function () {
+              try {
+                var saved = JSON.parse(localStorage.getItem('kpr_cart') || '[]');
+                var count = 0, total = 0;
+                for (var i = 0; i < saved.length; i++) {
+                  count += saved[i].quantity || 0;
+                  total += (saved[i].price || 0) * (saved[i].quantity || 0);
+                }
+                document.getElementById('cart-count').textContent = count;
+                document.getElementById('cart-total').textContent = '₹' + total.toLocaleString();
+              } catch (e) { /* keep static ₹0 markup on any failure */ }
+            })();
+          </script>
 
           <button class="mobile-menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
             <span class="bar"></span>
