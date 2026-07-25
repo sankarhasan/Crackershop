@@ -3600,6 +3600,12 @@ select.form-control {
     padding: 50px 0;
   }
 
+  /* Products section: trim bottom padding so the slider card can run close
+     to the bottom of the screen (pairs with .category-slide-page height) */
+  .products-section {
+    padding-bottom: 12px;
+  }
+
   .section-title {
     font-size: 1.7rem;
   }
@@ -4191,14 +4197,18 @@ select.form-control {
     display: none;
   }
 
-  /* Each category slide = full-width 520px card */
+  /* Each category slide = full-width card that fills the viewport almost to
+     the bottom edge (~120px of chrome above + small bottom margin), so no
+     dead white space below. 520px floor keeps short landscape viewports
+     usable; dvh handles mobile browser UI bars. */
   .category-slide-page {
     flex: 0 0 100%;
     scroll-snap-align: start;
     display: flex;
     flex-direction: column;
-    height: 520px;
-    max-height: 520px;
+    height: calc(100vh - 120px);
+    height: calc(100dvh - 120px);
+    max-height: none;
     min-height: 520px;
     border: 1px solid var(--border-color);
     border-radius: 12px;
