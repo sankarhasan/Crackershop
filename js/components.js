@@ -269,6 +269,14 @@
     <section id="quick-enquiry" class="enquiry-section fade-in-up">
       <div class="container">
         <div class="enquiry-card">
+          <!-- Empty cart notice: shown by updateCartUI() only when the cart has 0 items -->
+          <div id="empty-cart-notice" class="empty-cart-notice" style="display: none;">
+            <p class="empty-cart-notice-text"><img src="Icons/warning.png" alt="Warning" class="empty-cart-notice-warning-icon"> <span><strong>Please Note:</strong> You haven't added any crackers to your cart yet. Please add products to your cart before sending an enquiry!</span></p>
+            <a href="products.html" class="empty-cart-notice-btn">
+              <img src="Icons/Right arrow.png" alt="" class="empty-cart-notice-arrow">
+              <span>Add to Cart</span>
+            </a>
+          </div>
           <div class="section-header">
             <h4 class="section-subtitle text-center">GET A FREE QUOTE</h4>
             <h2 class="section-title">Send a Quick Enquiry</h2>

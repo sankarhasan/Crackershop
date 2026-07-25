@@ -1350,8 +1350,10 @@ function loadCartFromStorage() {
     } catch (e) {
       cart = [];
     }
-    updateCartUI();
   }
+  // Always sync the UI — first-time visitors (no saved key) still need the
+  // empty-cart state painted (e.g. the enquiry page empty-cart notice).
+  updateCartUI();
 }
 
 function saveCartToStorage() {
@@ -1468,6 +1470,11 @@ function updateCartUI() {
   if (cartCountElem) cartCountElem.innerText = itemCount;
   if (cartTotalElem) cartTotalElem.innerText = `₹${subtotal.toLocaleString()}`;
   if (drawerSubtotal) drawerSubtotal.innerText = `₹${subtotal.toLocaleString()}`;
+
+  // Empty-cart notice above the enquiry form (enquiry/contact pages only):
+  // visible when the cart is empty, hidden as soon as it has items.
+  const emptyCartNotice = document.getElementById('empty-cart-notice');
+  if (emptyCartNotice) emptyCartNotice.style.display = itemCount === 0 ? 'block' : 'none';
   
   // Keep the Order Summary card in sync with cart changes
   populateOrderSummaryFromCart();
