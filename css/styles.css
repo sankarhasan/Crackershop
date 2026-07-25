@@ -4455,6 +4455,15 @@ select.form-control {
     font-size: 0.9rem;
   }
 
+  /* Center the Claim Big Discount Now button in the red banner on mobile */
+  .promo-content #promo-btn {
+    display: block;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+
   /* --- Testimonials --- */
   .testimonial-card {
     flex: 0 0 100%;

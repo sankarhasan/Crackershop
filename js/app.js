@@ -1216,7 +1216,9 @@ function renderOfferBanner(offer) {
   if (descEl) descEl.textContent = offer.description || '';
   if (btnEl) {
     btnEl.textContent = offer.buttonText || 'Claim Offer';
-    btnEl.href = offer.buttonLink || '#products';
+    // Always route the offer CTA to the products page, regardless of the
+    // admin-configured buttonLink — the discount is claimed by ordering.
+    btnEl.href = 'products.html';
   }
 
   // Show the section
