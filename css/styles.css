@@ -52,6 +52,33 @@
   padding: 0;
   box-sizing: border-box;
   font-family: 'Poppins', sans-serif !important;
+  /* Kill the default blue tap-highlight flash on mobile browsers site-wide */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* No long-press callout on interactive elements for a native-app feel */
+a,
+button,
+input,
+select,
+textarea,
+label,
+[role="button"],
+[onclick] {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Suppress focus outlines for touch/mouse taps only — :focus-visible keeps
+   the outline for keyboard (Tab) navigation, so accessibility is preserved */
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible),
+[onclick]:focus:not(:focus-visible) {
+  outline: none;
 }
 
 html {

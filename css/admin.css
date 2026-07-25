@@ -32,6 +32,8 @@
   padding: 0;
   box-sizing: border-box;
   font-family: 'Poppins', sans-serif !important;
+  /* Kill the default blue tap-highlight flash on mobile browsers */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
