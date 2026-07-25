@@ -70,10 +70,8 @@ function onStateChange(state) {
  */
 function populateStateDropdown() {
   const stateDropdown = document.getElementById('enquiry-state');
-  if (!stateDropdown) {
-    console.warn('[State] #enquiry-state dropdown not found in DOM.');
-    return;
-  }
+  // Dropdown only exists on pages with the enquiry form — return quietly elsewhere.
+  if (!stateDropdown) return;
 
   // Clear static placeholders
   stateDropdown.innerHTML = '';
@@ -522,16 +520,13 @@ const CATEGORY_INITIAL_LIMIT = 16; // 4 rows x 4 columns on desktop
 let categoriesExpanded = false;    // becomes true after "Load More Categories"
 
 function renderCategoriesGrid() {
-  console.log('[renderCategoriesGrid] Function called.');
-  
+  // The categories grid only exists on index.html, but realtime listeners in
+  // data.js call this on every page — return quietly when the container is
+  // absent instead of logging a console error (e.g. on products.html).
   const grid = document.getElementById('categories-grid');
-  console.log('[renderCategoriesGrid] Grid element:', grid ? 'FOUND' : 'NOT FOUND');
-  
-  if (!grid) {
-    console.error('[renderCategoriesGrid] ✗ Grid element not found! Aborting.');
-    return;
-  }
-  
+  if (!grid) return;
+  console.log('[renderCategoriesGrid] Function called. Grid element: FOUND');
+
   const categories = getCategories();
   console.log('[renderCategoriesGrid] Categories loaded:', categories);
   console.log('[renderCategoriesGrid] Categories count:', categories.length);
@@ -1198,10 +1193,8 @@ function renderOfferBanner(offer) {
   console.log('[Offer] renderOfferBanner called. active:', offer.active);
 
   const section = document.getElementById('promo-banner-section');
-  if (!section) {
-    console.warn('[Offer] #promo-banner-section not found in DOM.');
-    return;
-  }
+  // Offer banner only exists on some pages — return quietly elsewhere.
+  if (!section) return;
 
   // Hide if offer is inactive
   if (offer.active === false) {
@@ -2204,10 +2197,8 @@ function triggerSuccessConfetti() {
 
 function initEnquiryForm() {
   const form = document.getElementById('enquiry-form');
-  if (!form) {
-    console.warn('[Enquiry] #enquiry-form not found in DOM.');
-    return;
-  }
+  // Enquiry form only exists on some pages — return quietly elsewhere.
+  if (!form) return;
   
   console.log('[Enquiry] Form found. Attaching submit handler...');
   

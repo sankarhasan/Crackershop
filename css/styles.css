@@ -509,6 +509,26 @@ html, body, div, section, textarea, table {
   line-height: 1;
 }
 
+/* Brand logo: transparent PNG rendered directly on the navbar background
+   (no white card wrapper). */
+.brand-logo-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand-logo-img {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .brand-logo-img {
+    height: 48px;
+  }
+}
+
 /* Navbar Menu */
 .navbar {
   margin-left: 20px;
@@ -1995,6 +2015,15 @@ section {
 .legal-notice-section {
   background-color: var(--white);
   padding: 0 0 60px 0;
+}
+
+/* Variant: notice placed between the red offer/countdown banner and the
+   footer on products.html — clean 20px top margin, larger bottom margin to
+   keep the yellow card off the dark-green footer (no section padding; the
+   neighbouring sections supply their own vertical padding). */
+.legal-notice-top {
+  padding: 0;
+  margin: 20px 0 48px;
 }
 
 .legal-notice-card {
@@ -4313,6 +4342,10 @@ select.form-control {
   /* Legal notice: tighter padding on mobile */
   .legal-notice-section {
     padding-bottom: 40px;
+  }
+
+  .legal-notice-top {
+    padding: 0;
   }
 
   .legal-notice-card {
