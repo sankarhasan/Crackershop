@@ -126,6 +126,12 @@ ul {
   color: var(--admin-danger);
 }
 
+.form-group label .optional-hint {
+  color: var(--admin-text-muted);
+  font-weight: 400;
+  text-transform: lowercase;
+}
+
 .form-control-admin {
   width: 100%;
   padding: 12px 16px;

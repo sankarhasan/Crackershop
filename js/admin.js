@@ -1091,7 +1091,7 @@ function openProductEditModal(id) {
   document.getElementById('product-modal-orig-price').value = p.originalPrice;
   document.getElementById('product-modal-discount').value = p.discount || '';
   updateSalePriceFromDiscount();
-  document.getElementById('product-modal-desc').value = p.description;
+  document.getElementById('product-modal-desc').value = p.description || '';
   document.getElementById('product-modal-stock').checked = p.inStock;
   
   // Set image state
@@ -1580,7 +1580,36 @@ function syncReindexToFirestore(categories, products, categoryRenames, productRe
  * @returns {Promise}
  */
 function normalizeAllProductSequences() {
-  const products = getProducts();
+  let products = getProducts();
+
+  // 1) Purge duplicate rows left behind by the old NaN cache-merge bug
+  //    (Number('A1') === NaN made every cache update append instead of
+  //    replace). Duplicates = same category + name + price + qty (identical
+  //    payloads, so legit same-name variants with different price/qty are
+  //    never touched); the lowest-ID copy is kept.
+  const removedIds = [];
+  const seenKeys = new Set();
+  [...products]
+    .sort((a, b) => String(a.id).toUpperCase().localeCompare(String(b.id).toUpperCase(), undefined, { numeric: true }))
+    .forEach(p => {
+      const key = [
+        String(p.categoryId).trim().toUpperCase(),
+        String(p.name).trim().toLowerCase(),
+        String(p.price),
+        String(p.qty).trim().toLowerCase()
+      ].join('|');
+      if (seenKeys.has(key)) {
+        removedIds.push(String(p.id));
+      } else {
+        seenKeys.add(key);
+      }
+    });
+  if (removedIds.length > 0) {
+    products = products.filter(p => !removedIds.includes(String(p.id)));
+    console.warn('[Admin] Purged duplicate product rows:', removedIds.join(', '));
+  }
+
+  // 2) Close any ID sequence gaps per category
   const catIds = [...new Set(products.map(p => String(p.categoryId).trim().toUpperCase()).filter(Boolean))];
 
   let allRenames = [];
@@ -1588,15 +1617,36 @@ function normalizeAllProductSequences() {
     allRenames = allRenames.concat(reindexProductsWithinCategory(products, catId));
   });
 
-  if (allRenames.length === 0) return Promise.resolve();
+  if (removedIds.length === 0 && allRenames.length === 0) return Promise.resolve();
 
-  console.log('[Admin] Closing product ID sequence gaps:', allRenames.map(r => `${r.from}->${r.to}`).join(', '));
+  if (allRenames.length > 0) {
+    console.log('[Admin] Closing product ID sequence gaps:', allRenames.map(r => `${r.from}->${r.to}`).join(', '));
+  }
   saveProducts(products);
   renderProductsTable();
 
-  return syncReindexToFirestore(getCategories(), products, [], allRenames)
+  // Firestore: delete purged duplicate docs FIRST (except IDs that a rename
+  // will immediately re-create — the batch set overwrites those anyway, and
+  // deleting after would wipe the renamed payload), then sync the renames.
+  let deletePromise = Promise.resolve();
+  if (removedIds.length > 0 && window.db) {
+    const renameTargets = new Set(allRenames.map(r => r.to));
+    const idsToDelete = removedIds.filter(id => !renameTargets.has(id));
+    if (idsToDelete.length > 0) {
+      const batch = window.db.batch();
+      const col = window.db.collection('products');
+      idsToDelete.forEach(id => batch.delete(col.doc(id)));
+      deletePromise = batch.commit();
+    }
+  }
+
+  return deletePromise
+    .then(() => syncReindexToFirestore(getCategories(), products, [], allRenames))
     .then(() => {
-      showAdminToast(`Re-indexed ${allRenames.length} product ID(s) to close sequence gaps.`, 'info');
+      const parts = [];
+      if (removedIds.length > 0) parts.push(`removed ${removedIds.length} duplicate product(s)`);
+      if (allRenames.length > 0) parts.push(`re-indexed ${allRenames.length} product ID(s)`);
+      showAdminToast(`Cleanup: ${parts.join(' and ')}.`, 'info');
     })
     .catch(err => {
       console.error('[Admin] Product sequence normalization sync failed:', err);

@@ -282,13 +282,13 @@ function getProductDisplayIndex(productId) {
   const catIndex = getCategoryIndex(prod.categoryId);
   if (catIndex === -1) return { index: 0, categoryId: prod.categoryId, categoryIndex: -1, categoryLetter: '?' };
   
-  // Get all products in the same category, sorted by their ID
+  // Get all products in the same category, sorted by their ID (numeric-aware so A10 > A2)
   const catProducts = products
     .filter(p => String(p.categoryId).toUpperCase() === String(prod.categoryId).toUpperCase())
     .sort((a, b) => {
       const idA = String(a.id).toUpperCase();
       const idB = String(b.id).toUpperCase();
-      return idA.localeCompare(idB);
+      return idA.localeCompare(idB, undefined, { numeric: true });
     });
   
   const productIndex = catProducts.findIndex(p => String(p.id).toUpperCase() === String(productId).toUpperCase()) + 1;
@@ -482,9 +482,10 @@ function saveProductToFirestore(product) {
     .doc(String(product.id))
     .set(product)
     .then(() => {
-      // Also update localStorage cache
+      // Also update localStorage cache (IDs are strings like "A1" — compare as strings,
+      // Number() would yield NaN and always append a duplicate instead of replacing)
       const cached = getProducts();
-      const idx = cached.findIndex(p => Number(p.id) === Number(product.id));
+      const idx = cached.findIndex(p => String(p.id) === String(product.id));
       if (idx !== -1) {
         cached[idx] = product;
       } else {
@@ -508,8 +509,8 @@ function deleteProductFromFirestore(productId) {
     .doc(String(productId))
     .delete()
     .then(() => {
-      // Update localStorage cache
-      const cached = getProducts().filter(p => Number(p.id) !== Number(productId));
+      // Update localStorage cache (string ID comparison — see saveProductToFirestore)
+      const cached = getProducts().filter(p => String(p.id) !== String(productId));
       localStorage.setItem('jcs_products', JSON.stringify(cached));
     })
     .catch(err => {
@@ -789,9 +790,9 @@ function saveCategoryToFirestore(category) {
     .set(category)
     .then(() => {
       console.log('[data.js] ✓ Firestore set() succeeded for category:', category.id);
-      // Update localStorage cache
+      // Update localStorage cache (IDs are letter strings like "A" — compare as strings)
       const cached = getCategories();
-      const idx = cached.findIndex(c => Number(c.id) === Number(category.id));
+      const idx = cached.findIndex(c => String(c.id) === String(category.id));
       if (idx !== -1) {
         cached[idx] = category;
       } else {
@@ -816,8 +817,8 @@ function deleteCategoryFromFirestore(categoryId) {
     .doc(String(categoryId))
     .delete()
     .then(() => {
-      // Update localStorage cache
-      const cached = getCategories().filter(c => Number(c.id) !== Number(categoryId));
+      // Update localStorage cache (string ID comparison — see saveCategoryToFirestore)
+      const cached = getCategories().filter(c => String(c.id) !== String(categoryId));
       localStorage.setItem('jcs_categories', JSON.stringify(cached));
     })
     .catch(err => {
