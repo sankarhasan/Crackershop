@@ -442,6 +442,26 @@ initData();
  *
  * Uses { source: 'server' } to force a live network fetch, bypassing any local Firestore cache.
  */
+/**
+ * Canonical admin-panel ordering. Firestore's orderBy('id') is LEXICOGRAPHIC
+ * on string IDs (A1, A10, A11, A2... and AA before B), so every ingestion
+ * point re-sorts with these before caching — the storefront then renders
+ * plain array order and always matches the admin sequence exactly.
+ */
+function sortCategoriesByAdminOrder(categories) {
+  return categories.sort((a, b) => getCategoryIndex(a.id) - getCategoryIndex(b.id));
+}
+
+function sortProductsByAdminOrder(products) {
+  return products.sort((a, b) => {
+    const catDiff = getCategoryIndex(a.categoryId) - getCategoryIndex(b.categoryId);
+    if (catDiff !== 0) return catDiff;
+    const numA = parseInt(String(a.id).replace(/^[A-Za-z]+/, ''), 10);
+    const numB = parseInt(String(b.id).replace(/^[A-Za-z]+/, ''), 10);
+    return (Number.isFinite(numA) ? numA : 0) - (Number.isFinite(numB) ? numB : 0);
+  });
+}
+
 function loadProductsFromFirestore() {
   if (!window.db) return Promise.resolve(getProducts());
 
@@ -459,6 +479,7 @@ function loadProductsFromFirestore() {
       snapshot.forEach(doc => {
         firestoreProducts.push(doc.data());
       });
+      sortProductsByAdminOrder(firestoreProducts);
 
       // ALWAYS overwrite localStorage with live Firestore data (single source of truth)
       localStorage.setItem('jcs_products', JSON.stringify(firestoreProducts));
@@ -756,6 +777,7 @@ function loadCategoriesFromFirestore() {
       snapshot.forEach(doc => {
         firestoreCategories.push(doc.data());
       });
+      sortCategoriesByAdminOrder(firestoreCategories);
 
       console.log('[data.js] ✓ Loaded', firestoreCategories.length, 'categories from Firestore server.');
       
@@ -1384,6 +1406,7 @@ function listenCategoriesRealtime() {
         snapshot.forEach(doc => {
           categories.push(doc.data());
         });
+        sortCategoriesByAdminOrder(categories);
       }
 
       // Always update localStorage (single source of truth)
@@ -1464,6 +1487,7 @@ function listenProductsRealtime() {
         snapshot.forEach(doc => {
           products.push(doc.data());
         });
+        sortProductsByAdminOrder(products);
       }
 
       // Always update localStorage (single source of truth)
