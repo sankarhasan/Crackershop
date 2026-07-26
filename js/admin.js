@@ -359,8 +359,8 @@ function renderCategoriesTable() {
     }
 
     return `
-      <tr>
-        <td>#${escapeHtml(cat.id)}</td>
+      <tr class="category-drag-row" draggable="true" data-category-id="${escapeHtml(cat.id)}">
+        <td><span class="category-drag-handle" title="Drag to reorder">⣿</span> #${escapeHtml(cat.id)}</td>
         <td>${imageCellContent}</td>
         <td><strong>${escapeHtml(cat.name)}</strong></td>
         <td><code>${escapeHtml(cat.slug)}</code></td>
@@ -373,6 +373,107 @@ function renderCategoriesTable() {
       </tr>
     `;
   }).join('');
+
+  initCategoriesTableDrag(tbody);
+}
+
+/* Currently dragged row within the main categories table */
+let _draggedCategoryTableRow = null;
+
+/**
+ * Bind drag-and-drop sorting to the categories table body (once — the tbody
+ * persists across renders, so listeners use delegation). Dropping a row
+ * commits immediately: category IDs are re-indexed by visual position
+ * (Excel sequence) and all child product IDs cascade with them.
+ * @param {HTMLElement} tbody - The #categories-table-body element
+ */
+function initCategoriesTableDrag(tbody) {
+  if (tbody.dataset.dragBound === 'true') return;
+  tbody.dataset.dragBound = 'true';
+
+  tbody.addEventListener('dragstart', (e) => {
+    const row = e.target.closest('tr[data-category-id]');
+    if (!row) return;
+    _draggedCategoryTableRow = row;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', row.dataset.categoryId); } catch (err) { /* IE/edge cases */ }
+  });
+
+  tbody.addEventListener('dragover', (e) => {
+    if (!_draggedCategoryTableRow) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const rows = [...tbody.querySelectorAll('tr[data-category-id]:not(.dragging)')];
+    let afterRow = null;
+    let closestOffset = Number.NEGATIVE_INFINITY;
+    rows.forEach(row => {
+      const box = row.getBoundingClientRect();
+      const offset = e.clientY - box.top - box.height / 2;
+      if (offset < 0 && offset > closestOffset) {
+        closestOffset = offset;
+        afterRow = row;
+      }
+    });
+    if (afterRow == null) {
+      tbody.appendChild(_draggedCategoryTableRow);
+    } else if (afterRow !== _draggedCategoryTableRow) {
+      tbody.insertBefore(_draggedCategoryTableRow, afterRow);
+    }
+  });
+
+  tbody.addEventListener('drop', (e) => {
+    if (_draggedCategoryTableRow) e.preventDefault();
+  });
+
+  tbody.addEventListener('dragend', () => {
+    if (!_draggedCategoryTableRow) return;
+    _draggedCategoryTableRow.classList.remove('dragging');
+    _draggedCategoryTableRow = null;
+    commitCategoriesTableOrder();
+  });
+}
+
+/**
+ * Commit the visual order of the categories table: re-index category IDs
+ * sequentially (A, B, C, ... Z, AA) by row position, cascade all child
+ * product IDs (A1 -> B1), persist to localStorage, re-render both tables
+ * and batch-sync the renames to Firestore.
+ */
+function commitCategoriesTableOrder() {
+  const tbody = document.getElementById('categories-table-body');
+  if (!tbody) return;
+
+  const orderedIds = [...tbody.querySelectorAll('tr[data-category-id]')]
+    .map(row => String(row.dataset.categoryId));
+  const categories = getCategories();
+  if (orderedIds.length === 0 || orderedIds.length !== categories.length) return;
+
+  // Rebuild the array in the new visual order
+  const byId = new Map(categories.map(c => [String(c.id), c]));
+  const reordered = orderedIds.map(id => byId.get(id)).filter(Boolean);
+  if (reordered.length !== categories.length) return;
+
+  // No-op when the order did not actually change
+  if (reordered.every((c, i) => c === categories[i])) return;
+
+  const products = getProducts();
+  const { categoryRenames, productRenames } = reindexCategoriesAndProducts(reordered, products);
+
+  saveCategories(reordered);
+  saveProducts(products);
+
+  renderCategoriesTable();
+  renderProductsTable();
+  populateCategoryDropdowns();
+
+  if (categoryRenames.length > 0 || productRenames.length > 0) {
+    console.log('[Category Reorder] Renames:',
+      categoryRenames.map(r => `${r.from}→${r.to}`).join(', '),
+      '| Products:', productRenames.map(r => `${r.from}→${r.to}`).join(', '));
+    showAdminToast(`Categories reordered — ${categoryRenames.length} category and ${productRenames.length} product ID(s) re-indexed.`, 'success');
+    syncReindexToFirestore(reordered, products, categoryRenames, productRenames);
+  }
 }
 
 /* ==========================================================================
@@ -711,64 +812,36 @@ function renderProductsTable() {
     new Map(products.map(p => [p.id, p])).values()
   );
 
-  let filtered = uniqueProducts;
+  // Drag reordering is only safe when every product of a category is visible;
+  // an active search would hide rows and corrupt the re-numbering.
+  const dragEnabled = searchVal.trim() === '';
 
-  // Category dropdown filter check - use string matching
-  if (filterCat !== 'all') {
-    filtered = filtered.filter(p => String(p.categoryId).toUpperCase() === String(filterCat).toUpperCase());
-  }
+  const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁' };
 
-  // Search text filter check
-  if (searchVal.trim() !== '') {
-    filtered = filtered.filter(p => p.name.toLowerCase().includes(searchVal));
-  }
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center">No inventory matching criteria found.</td></tr>';
-    return;
-  }
-
-  // Pre-calculate product indices for each category
-  const productIndicesByCategory = {};
-  categories.forEach((cat, catIndex) => {
-    const catProducts = uniqueProducts.filter(p => String(p.categoryId).toUpperCase() === String(cat.id).toUpperCase())
-      .sort((a, b) => {
-        const idA = String(a.id).toUpperCase();
-        const idB = String(b.id).toUpperCase();
-        return idA.localeCompare(idB);
-      });
-    catProducts.forEach((p, idx) => {
-      productIndicesByCategory[p.id] = { index: idx + 1, catIndex: catIndex };
-    });
-  });
-
-  tbody.innerHTML = filtered.map(p => {
-    // Use string matching for category lookup
-    const cat = categories.find(c => String(c.id).toUpperCase() === String(p.categoryId).toUpperCase());
-    const catName = cat ? cat.name : 'Unknown';
-
+  const buildRow = (p, catName) => {
     // Calculate bgIndex using category letter position
     const catLetter = String(p.categoryId).toUpperCase();
     const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1; // A=1, B=2, etc.
-    const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁', 10: '🌀', 11: '🌋', 12: '⛲' };
     const emoji = emojiMap[bgIndex] || '🎆';
-
-    // Get alphanumeric product code - use product.id directly since it's now "A1", "B2", etc.
-    const productCode = `#${p.id}`;
 
     let imageCellContent = `<div class="prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
     if (p.image) {
-      imageCellContent = `<img src="${p.image}" class="admin-prod-thumb" alt="${p.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--admin-border);">`;
+      imageCellContent = `<img src="${p.image}" class="admin-prod-thumb" alt="${p.name}" draggable="false" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--admin-border);">`;
     }
 
+    const dragAttrs = dragEnabled
+      ? ` class="product-drag-row" draggable="true" data-product-id="${escapeHtml(String(p.id))}" data-category-id="${escapeHtml(catLetter)}"`
+      : '';
+    const grip = dragEnabled ? '<span class="category-drag-handle" title="Drag to reorder">⣿</span> ' : '';
+
     return `
-      <tr>
-        <td>${productCode}</td>
+      <tr${dragAttrs}>
+        <td>${grip}#${escapeHtml(String(p.id))}</td>
         <td>
           ${imageCellContent}
         </td>
         <td><strong>${escapeHtml(p.name)}</strong></td>
-        <td>${catName}</td>
+        <td>${escapeHtml(catName)}</td>
         <td>₹${p.price}</td>
         <td><span style="text-decoration:line-through;color:var(--admin-text-muted)">₹${p.originalPrice}</span></td>
         <td>
@@ -783,7 +856,192 @@ function renderProductsTable() {
         </td>
       </tr>
     `;
-  }).join('');
+  };
+
+  const buildGroupHeader = (code, name, count) => `
+    <tr class="product-group-header">
+      <td colspan="9">
+        <div class="product-group-header-inner">
+          <span class="product-group-code">#${escapeHtml(code)}</span>
+          <span class="product-group-name">${escapeHtml(name)}</span>
+          <span class="product-group-count${count === 0 ? ' empty' : ''}">${count} Product${count === 1 ? '' : 's'}</span>
+        </div>
+      </td>
+    </tr>
+  `;
+
+  const emptyGroupRow = `
+    <tr class="product-group-empty">
+      <td colspan="9">📦 No products added yet in this category. Click "+ Add Product" to add items here.</td>
+    </tr>
+  `;
+
+  // Group products by category (in category display order).
+  // Every registered category renders — empty ones get a notice row —
+  // except while searching, where empty groups would only be noise.
+  let html = '';
+  const searchActive = searchVal.trim() !== '';
+  const knownCatIds = new Set();
+
+  categories.forEach(cat => {
+    const catId = String(cat.id).toUpperCase();
+    knownCatIds.add(catId);
+
+    // Category dropdown filter check - use string matching
+    if (filterCat !== 'all' && catId !== String(filterCat).toUpperCase()) return;
+
+    let catProducts = uniqueProducts
+      .filter(p => String(p.categoryId).toUpperCase() === catId)
+      .sort((a, b) => String(a.id).toUpperCase().localeCompare(String(b.id).toUpperCase(), undefined, { numeric: true }));
+
+    // Search text filter check
+    if (searchActive) {
+      catProducts = catProducts.filter(p => p.name.toLowerCase().includes(searchVal));
+      if (catProducts.length === 0) return;
+    }
+
+    html += buildGroupHeader(catId, cat.name, catProducts.length);
+    html += catProducts.length > 0
+      ? catProducts.map(p => buildRow(p, cat.name)).join('')
+      : emptyGroupRow;
+  });
+
+  // Defensive: surface orphaned products (category no longer exists)
+  if (filterCat === 'all') {
+    let orphans = uniqueProducts.filter(p => !knownCatIds.has(String(p.categoryId).toUpperCase()));
+    if (searchActive) {
+      orphans = orphans.filter(p => p.name.toLowerCase().includes(searchVal));
+    }
+    if (orphans.length > 0) {
+      html += buildGroupHeader('?', 'Uncategorized', orphans.length);
+      html += orphans.map(p => buildRow(p, 'Unknown')).join('');
+    }
+  }
+
+  if (html === '') {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center">No inventory matching criteria found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = html;
+  initProductsTableDrag(tbody);
+}
+
+/* Currently dragged row within the main products table */
+let _draggedProductTableRow = null;
+
+/**
+ * Bind drag-and-drop sorting to the products table body (once — the tbody
+ * persists across renders, so listeners use delegation). Rows can only move
+ * WITHIN their own category group; dropping commits immediately: that
+ * category's product IDs are re-numbered by visual position (A1, A2, ...).
+ * @param {HTMLElement} tbody - The #products-table-body element
+ */
+function initProductsTableDrag(tbody) {
+  if (tbody.dataset.dragBound === 'true') return;
+  tbody.dataset.dragBound = 'true';
+
+  tbody.addEventListener('dragstart', (e) => {
+    const row = e.target.closest('tr.product-drag-row');
+    if (!row) return;
+    _draggedProductTableRow = row;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', row.dataset.productId); } catch (err) { /* IE/edge cases */ }
+  });
+
+  tbody.addEventListener('dragover', (e) => {
+    if (!_draggedProductTableRow) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    // Constrain movement to the dragged row's own category group
+    const catId = _draggedProductTableRow.dataset.categoryId;
+    const rows = [...tbody.querySelectorAll(`tr.product-drag-row[data-category-id="${catId}"]:not(.dragging)`)];
+    if (rows.length === 0) return;
+
+    let afterRow = null;
+    let closestOffset = Number.NEGATIVE_INFINITY;
+    rows.forEach(row => {
+      const box = row.getBoundingClientRect();
+      const offset = e.clientY - box.top - box.height / 2;
+      if (offset < 0 && offset > closestOffset) {
+        closestOffset = offset;
+        afterRow = row;
+      }
+    });
+
+    if (afterRow != null) {
+      if (afterRow !== _draggedProductTableRow) {
+        tbody.insertBefore(_draggedProductTableRow, afterRow);
+      }
+    } else {
+      // Past the last row of the group: park directly after it (never
+      // appendChild, which would escape into the next category group)
+      const lastRow = rows[rows.length - 1];
+      if (lastRow.nextSibling !== _draggedProductTableRow) {
+        tbody.insertBefore(_draggedProductTableRow, lastRow.nextSibling);
+      }
+    }
+  });
+
+  tbody.addEventListener('drop', (e) => {
+    if (_draggedProductTableRow) e.preventDefault();
+  });
+
+  tbody.addEventListener('dragend', () => {
+    if (!_draggedProductTableRow) return;
+    const catId = _draggedProductTableRow.dataset.categoryId;
+    _draggedProductTableRow.classList.remove('dragging');
+    _draggedProductTableRow = null;
+    commitProductsTableOrder(catId);
+  });
+}
+
+/**
+ * Commit the visual order of one category group in the products table:
+ * the row at position N gets ID `CAT{N+1}`. Persists to localStorage,
+ * re-renders the table and batch-syncs the renames to Firestore.
+ * @param {string} categoryId - The category whose group was reordered
+ */
+function commitProductsTableOrder(categoryId) {
+  const tbody = document.getElementById('products-table-body');
+  if (!tbody || !categoryId) return;
+
+  const catId = String(categoryId).trim().toUpperCase();
+  const orderedIds = [...tbody.querySelectorAll(`tr.product-drag-row[data-category-id="${catId}"]`)]
+    .map(row => String(row.dataset.productId));
+  if (orderedIds.length === 0) return;
+
+  const products = getProducts();
+
+  // Safety: only commit when every product of the category is on screen
+  const catTotal = products.filter(p => String(p.categoryId).toUpperCase() === catId).length;
+  if (orderedIds.length !== catTotal) return;
+
+  const byId = new Map(products.map(p => [String(p.id), p]));
+  const renames = [];
+  orderedIds.forEach((oldId, idx) => {
+    const p = byId.get(oldId);
+    if (!p) return;
+    const newId = catId + (idx + 1);
+    if (String(p.id) !== newId) {
+      renames.push({ from: String(p.id), to: newId });
+      p.id = newId;
+    }
+  });
+
+  if (renames.length === 0) {
+    renderProductsTable(); // restore pristine group order markup
+    return;
+  }
+
+  saveProducts(products);
+  renderProductsTable();
+
+  console.log('[Product Reorder] Renames:', renames.map(r => `${r.from}→${r.to}`).join(', '));
+  showAdminToast(`Products reordered — ${renames.length} product ID(s) re-indexed in category ${catId}.`, 'success');
+  syncReindexToFirestore(getCategories(), products, [], renames);
 }
 
 function populateCategoryDropdowns() {
