@@ -597,6 +597,12 @@
             <!-- Compatibility hidden legacy field (not shown to user) -->
             <input type="hidden" id="categoryImageUrl" name="categoryImageUrl" value="">
           </div>
+
+          <!-- Products in this category (populated in Edit mode only) -->
+          <div class="form-group" id="category-products-section" style="display: none;">
+            <label>Products in this Category <span class="category-products-count-badge" id="category-products-count">0</span></label>
+            <div id="category-products-list" class="category-products-list"></div>
+          </div>
         </div>
 
         <!-- Fixed Footer -->

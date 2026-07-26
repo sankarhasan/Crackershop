@@ -231,9 +231,12 @@ function onAdminAuthenticated() {
   // Seed initial admin drop-down select options
   populateCategoryDropdowns();
   
-  // Hydrate products from Firestore into localStorage cache, then render
+  // Hydrate products from Firestore into localStorage cache, then render.
+  // After hydration, close any legacy gaps in per-category ID sequences
+  // (e.g. A1-A4, A6, A7, A9 from older deletes that didn't re-index).
   loadProductsFromFirestore().then(() => {
     renderProductsTable();
+    normalizeAllProductSequences();
   });
   
   // Hydrate banners from Firestore into localStorage cache
@@ -920,10 +923,14 @@ function saveProductData() {
   // Track original category for change detection (EDIT MODE fix)
   let originalCategoryId = null;
   let originalProductId = null;
+  // Renames produced when Add mode heals a legacy gap before assigning the new ID
+  let addModeRenames = [];
   
   if (idVal === '') {
-    // Add Mode - Generate alphanumeric ID based on category and position
-    const catIndex = getCategoryIndex(categoryId);
+    // Add Mode - heal any legacy gaps in this category's sequence FIRST, then
+    // assign the next gapless ID (count + 1). Without the pre-heal, count + 1
+    // can collide with an existing ID (e.g. A1-A4,A6 -> count 5 -> "A6" clash).
+    addModeRenames = reindexProductsWithinCategory(products, categoryId);
     const catProducts = products.filter(p => String(p.categoryId).toUpperCase() === String(categoryId).toUpperCase());
     const newIndexWithinCategory = catProducts.length + 1;
     const newId = getProductCode(categoryId, newIndexWithinCategory);
@@ -990,6 +997,16 @@ function saveProductData() {
       firestorePromise = handleCategoryChangeFirestore(originalProductId, productToSync)
         .then(() => {
           console.log('[Firestore] Product moved to new category successfully.');
+          // The vacated category now has a gap in its sequence — close it
+          // (e.g. moving A2 away renumbers A1, A3, A4 -> A1, A2, A3).
+          const refreshed = getProducts();
+          const vacatedRenames = reindexProductsWithinCategory(refreshed, originalCategoryId);
+          if (vacatedRenames.length > 0) {
+            saveProducts(refreshed);
+            return syncReindexToFirestore(getCategories(), refreshed, [], vacatedRenames);
+          }
+        })
+        .then(() => {
           // Re-render products table after Firestore sync
           return loadProductsFromFirestore();
         })
@@ -1000,8 +1017,9 @@ function saveProductData() {
           showAdminToast('Firestore move failed [' + code + ']: ' + msg, 'error');
         });
     } else {
-      // Category UNCHANGED: Simple update
+      // Category UNCHANGED: Simple update (plus any Add-mode gap-heal renames)
       firestorePromise = saveProductToFirestore(productToSync)
+        .then(() => syncReindexToFirestore(getCategories(), products, [], addModeRenames))
         .then(() => {
           console.log('[Firestore] Product synced successfully:', productToSync.name);
         })
@@ -1061,8 +1079,14 @@ async function handleCategoryChangeFirestore(oldProductId, updatedProduct) {
       return idA.localeCompare(idB);
     });
   
-  // Calculate the new product index within the category
-  const newIndexWithinCategory = sortedNewCatProducts.length + 1;
+  // Calculate the new product index within the category.
+  // Use max existing numeric suffix + 1 (collision-proof even if the target
+  // category still carries legacy gaps; count + 1 could clash with a survivor).
+  const maxSuffix = sortedNewCatProducts.reduce((max, p) => {
+    const n = parseInt(String(p.id).replace(/^[A-Za-z]+/, ''), 10);
+    return Number.isFinite(n) && n > max ? n : max;
+  }, 0);
+  const newIndexWithinCategory = maxSuffix + 1;
   
   // Generate the alphanumeric code for the new category
   const newId = getProductCode(updatedProduct.categoryId, newIndexWithinCategory);
@@ -1146,30 +1170,180 @@ async function purgeOrphanedNumericProductDocuments() {
 }
 
 /**
- * Dynamically determine the next available single-character alphabetical category ID.
- * Inspects existing category IDs and finds the next letter after the highest one in use.
- * Unlike the position-based getCategoryCode(), this ensures strictly sequential
- * letter assignment (A, B, C, ...) even after categories have been deleted.
+ * Dynamically determine the next available alphabetical category ID.
+ * Inspects existing category IDs, finds the highest Excel-style index in use,
+ * and returns the following code in the sequence (A, B, ... Z, AA, AB, ...).
+ * Unlike the old single-letter version, this never runs out: after 'Z' the
+ * sequence continues with 'AA', 'AB', ... 'AZ', 'BA', and so on.
  * @param {Array} existingCategories - Array of existing category objects
- * @returns {string} - The next available uppercase letter ID ('A'..'Z')
+ * @returns {string} - The next available letter code ('A', 'B', ... 'AA', ...)
  */
 function getNextCategoryId(existingCategories) {
-  // Extract all valid single-character uppercase IDs ('A'..'Z')
-  const existingIds = (existingCategories || [])
-    .map(c => String(c.id).trim().toUpperCase())
-    .filter(id => id.length === 1 && id >= 'A' && id <= 'Z');
+  // Convert every valid letter/numeric ID into its 0-based Excel-style index
+  const existingIndices = (existingCategories || [])
+    .map(c => getCategoryIndex(c.id))
+    .filter(idx => idx >= 0);
 
-  if (existingIds.length === 0) return 'A';
+  if (existingIndices.length === 0) return 'A';
 
-  // Find the highest ASCII character code present
-  const maxCharCode = Math.max(...existingIds.map(id => id.charCodeAt(0)));
+  // Next code follows the highest index in use (A..Z, then AA, AB, ...)
+  return getCategoryCode(Math.max(...existingIndices) + 1);
+}
 
-  // Next letter is max + 1
-  if (maxCharCode >= 90) { // 'Z'
-    throw new Error("Maximum alphabet category limit ('Z') reached.");
+/**
+ * Re-index all categories to a gapless Excel-style sequence (A, B, ... Z, AA, ...)
+ * based on their current array position, cascading every rename to the
+ * products of the shifted categories (e.g. category Y -> X renames Y1 -> X1).
+ * Mutates the passed arrays in place.
+ * @param {Array} categories - Remaining categories (after a deletion)
+ * @param {Array} products - All products (mutated when their category shifts)
+ * @returns {{categoryRenames: Array, productRenames: Array}} rename maps ({from, to})
+ */
+function reindexCategoriesAndProducts(categories, products) {
+  const categoryRenames = [];
+  const productRenames = [];
+
+  // Build the rename map from ORIGINAL ids before mutating anything
+  const renameMap = {};
+  categories.forEach((cat, index) => {
+    const oldId = String(cat.id).trim().toUpperCase();
+    const newId = getCategoryCode(index);
+    if (oldId !== newId) renameMap[oldId] = newId;
+  });
+
+  if (Object.keys(renameMap).length === 0) {
+    return { categoryRenames, productRenames };
   }
 
-  return String.fromCharCode(maxCharCode + 1);
+  // Apply category renames
+  categories.forEach(cat => {
+    const oldId = String(cat.id).trim().toUpperCase();
+    const newId = renameMap[oldId];
+    if (newId) {
+      cat.id = newId;
+      categoryRenames.push({ from: oldId, to: newId });
+    }
+  });
+
+  // Cascade: rebuild product IDs under every renamed category (Y1 -> X1)
+  products.forEach(p => {
+    const oldCat = String(p.categoryId).trim().toUpperCase();
+    const newCat = renameMap[oldCat];
+    if (newCat) {
+      const oldPid = String(p.id);
+      const numPart = oldPid.toUpperCase().startsWith(oldCat)
+        ? oldPid.slice(oldCat.length)
+        : oldPid.replace(/^[A-Za-z]+/, '');
+      p.categoryId = newCat;
+      p.id = newCat + numPart;
+      productRenames.push({ from: oldPid, to: p.id });
+    }
+  });
+
+  return { categoryRenames, productRenames };
+}
+
+/**
+ * Re-index the products of ONE category to a gapless numeric sequence
+ * (A1, A2, A3, ...) after one of them was deleted. Mutates products in place.
+ * @param {Array} products - All products (already excluding the deleted one)
+ * @param {string} categoryId - The category whose products should be re-numbered
+ * @returns {Array} rename maps ({from, to})
+ */
+function reindexProductsWithinCategory(products, categoryId) {
+  const catId = String(categoryId || '').trim().toUpperCase();
+  const renames = [];
+  if (!catId) return renames;
+
+  const catProducts = products
+    .filter(p => String(p.categoryId).toUpperCase() === catId)
+    .sort((a, b) => String(a.id).toUpperCase().localeCompare(String(b.id).toUpperCase(), undefined, { numeric: true }));
+
+  catProducts.forEach((p, idx) => {
+    const newId = catId + (idx + 1);
+    if (String(p.id).toUpperCase() !== newId) {
+      renames.push({ from: String(p.id), to: newId });
+      p.id = newId;
+    }
+  });
+
+  return renames;
+}
+
+/**
+ * Push re-indexed IDs to Firestore in a single batch. Since documents are
+ * keyed by their ID, each rename deletes the old doc and writes the new one.
+ * @param {Array} categories - Current (already renamed) category array
+ * @param {Array} products - Current (already renamed) product array
+ * @param {Array} categoryRenames - ({from, to}) list from re-indexing
+ * @param {Array} productRenames - ({from, to}) list from re-indexing
+ * @returns {Promise}
+ */
+function syncReindexToFirestore(categories, products, categoryRenames, productRenames) {
+  if (categoryRenames.length === 0 && productRenames.length === 0) {
+    return Promise.resolve();
+  }
+  if (!window.db) {
+    console.error('[Firestore] window.db is NULL — re-indexed IDs saved locally only.');
+    return Promise.resolve();
+  }
+
+  const batch = window.db.batch();
+  const catCol = window.db.collection('categories');
+  const prodCol = window.db.collection('products');
+
+  // IDs being written; old docs whose ID is reused get overwritten by set(),
+  // so only delete docs whose old ID is NOT among the new IDs. This keeps
+  // each document touched exactly once within the batch.
+  const newCatIds = new Set(categoryRenames.map(r => r.to));
+  const newProdIds = new Set(productRenames.map(r => r.to));
+
+  categoryRenames.forEach(r => {
+    if (!newCatIds.has(r.from)) batch.delete(catCol.doc(r.from));
+    const cat = categories.find(c => String(c.id) === r.to);
+    if (cat) batch.set(catCol.doc(r.to), cat);
+  });
+
+  productRenames.forEach(r => {
+    if (!newProdIds.has(r.from)) batch.delete(prodCol.doc(r.from));
+    const prod = products.find(p => String(p.id) === r.to);
+    if (prod) batch.set(prodCol.doc(r.to), prod);
+  });
+
+  return batch.commit().then(() => {
+    console.log('[Firestore] ✓ Re-index synced:', categoryRenames.length, 'category rename(s),', productRenames.length, 'product rename(s).');
+  });
+}
+
+/**
+ * One-time pass over ALL categories: close any legacy gaps in product ID
+ * sequences (e.g. A1-A4, A6, A7, A9 -> A1..A7). Runs at admin startup after
+ * products hydrate, saves locally, refreshes the table and syncs Firestore.
+ * @returns {Promise}
+ */
+function normalizeAllProductSequences() {
+  const products = getProducts();
+  const catIds = [...new Set(products.map(p => String(p.categoryId).trim().toUpperCase()).filter(Boolean))];
+
+  let allRenames = [];
+  catIds.forEach(catId => {
+    allRenames = allRenames.concat(reindexProductsWithinCategory(products, catId));
+  });
+
+  if (allRenames.length === 0) return Promise.resolve();
+
+  console.log('[Admin] Closing product ID sequence gaps:', allRenames.map(r => `${r.from}->${r.to}`).join(', '));
+  saveProducts(products);
+  renderProductsTable();
+
+  return syncReindexToFirestore(getCategories(), products, [], allRenames)
+    .then(() => {
+      showAdminToast(`Re-indexed ${allRenames.length} product ID(s) to close sequence gaps.`, 'info');
+    })
+    .catch(err => {
+      console.error('[Admin] Product sequence normalization sync failed:', err);
+      showAdminToast('Sequence re-index sync failed: ' + (err.message || 'Unknown'), 'error');
+    });
 }
 
 /* ==========================================================================
@@ -1184,6 +1358,9 @@ function openCategoryAddModal() {
   // Reset image preview to placeholder state
   setCategoryImagePreview('');
   resetCategoryImageDimensionInfo();
+  // Product list only applies to Edit mode
+  const productsSection = document.getElementById('category-products-section');
+  if (productsSection) productsSection.style.display = 'none';
   document.getElementById('category-modal').style.display = 'flex';
 }
 
@@ -1209,7 +1386,176 @@ function openCategoryEditModal(id) {
   const fileInput = document.getElementById('categoryImageFile');
   if (fileInput) fileInput.value = '';
 
+  // List all products belonging to this category at the bottom of the modal
+  renderCategoryProductsList(cat.id);
+
   document.getElementById('category-modal').style.display = 'flex';
+}
+
+/**
+ * Render the list of products belonging to a category inside the
+ * Edit Category modal (image, name, price and product ID per row).
+ * Rows are drag-and-drop sortable; badges preview the sequential IDs the
+ * products will receive (from the visual order) when the category is saved.
+ * @param {string} categoryId - The category letter code (e.g. "A", "AA")
+ */
+function renderCategoryProductsList(categoryId) {
+  const section = document.getElementById('category-products-section');
+  const list = document.getElementById('category-products-list');
+  const countBadge = document.getElementById('category-products-count');
+  if (!section || !list) return;
+
+  const catProducts = getProducts()
+    .filter(p => String(p.categoryId).toUpperCase() === String(categoryId).toUpperCase())
+    .sort((a, b) => String(a.id).toUpperCase().localeCompare(String(b.id).toUpperCase(), undefined, { numeric: true }));
+
+  if (countBadge) countBadge.textContent = catProducts.length;
+  list.dataset.categoryId = String(categoryId).trim().toUpperCase();
+
+  if (catProducts.length === 0) {
+    list.innerHTML = '<p class="category-products-empty">No products in this category yet.</p>';
+  } else {
+    list.innerHTML = catProducts.map(p => {
+      const thumb = p.image
+        ? `<img src="${p.image}" alt="${escapeHtml(p.name)}" class="category-product-thumb" draggable="false">`
+        : `<div class="category-product-thumb category-product-thumb-placeholder">🎆</div>`;
+      return `
+        <div class="category-product-row" draggable="true" data-product-id="${p.id}">
+          <span class="category-product-drag-handle" title="Drag to reorder">⣿</span>
+          ${thumb}
+          <span class="category-product-name">${escapeHtml(p.name)}</span>
+          <span class="category-product-price">₹${p.price}</span>
+          <span class="category-product-id">#${p.id}</span>
+          <button type="button" class="category-product-edit-btn" onclick="openProductEditFromCategoryModal('${p.id}')" title="Edit Product">✏️</button>
+        </div>`;
+    }).join('');
+  }
+
+  initCategoryProductsDrag(list);
+  section.style.display = 'block';
+}
+
+/* Currently dragged row within the category modal product list */
+let _draggedCategoryProductRow = null;
+
+/**
+ * Bind drag-and-drop sorting to the category modal product list (once — the
+ * container element persists across renders, so listeners use delegation).
+ * @param {HTMLElement} list - The #category-products-list container
+ */
+function initCategoryProductsDrag(list) {
+  if (list.dataset.dragBound === 'true') return;
+  list.dataset.dragBound = 'true';
+
+  list.addEventListener('dragstart', (e) => {
+    const row = e.target.closest('.category-product-row');
+    if (!row) return;
+    _draggedCategoryProductRow = row;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', row.dataset.productId); } catch (err) { /* IE/edge cases */ }
+  });
+
+  list.addEventListener('dragover', (e) => {
+    if (!_draggedCategoryProductRow) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const afterRow = getCategoryRowAfterPointer(list, e.clientY);
+    if (afterRow == null) {
+      list.appendChild(_draggedCategoryProductRow);
+    } else if (afterRow !== _draggedCategoryProductRow) {
+      list.insertBefore(_draggedCategoryProductRow, afterRow);
+    }
+  });
+
+  list.addEventListener('drop', (e) => {
+    if (_draggedCategoryProductRow) e.preventDefault();
+  });
+
+  list.addEventListener('dragend', () => {
+    if (!_draggedCategoryProductRow) return;
+    _draggedCategoryProductRow.classList.remove('dragging');
+    _draggedCategoryProductRow = null;
+    refreshCategoryProductIdBadges(list);
+  });
+}
+
+/**
+ * Find the row the dragged element should be inserted BEFORE, based on the
+ * pointer's vertical position (closest row whose midpoint is below the pointer).
+ * @param {HTMLElement} list - The list container
+ * @param {number} clientY - Pointer Y coordinate
+ * @returns {HTMLElement|null}
+ */
+function getCategoryRowAfterPointer(list, clientY) {
+  const rows = [...list.querySelectorAll('.category-product-row:not(.dragging)')];
+  let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+  rows.forEach(row => {
+    const box = row.getBoundingClientRect();
+    const offset = clientY - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      closest = { offset, element: row };
+    }
+  });
+  return closest.element;
+}
+
+/**
+ * Recompute the sequential ID badge (#A1, #A2, ...) of every row from its
+ * current visual position. Pure preview — real IDs update on Save Category.
+ * @param {HTMLElement} list - The list container
+ */
+function refreshCategoryProductIdBadges(list) {
+  const catId = (list.dataset.categoryId || '').toUpperCase();
+  if (!catId) return;
+  [...list.querySelectorAll('.category-product-row')].forEach((row, idx) => {
+    const badge = row.querySelector('.category-product-id');
+    if (badge) badge.textContent = `#${catId}${idx + 1}`;
+  });
+}
+
+/**
+ * Apply the drag-and-drop order currently in the modal DOM to the products
+ * array: the row in position N gets ID `CAT{N+1}`. Mutates and returns the
+ * full products array plus the rename list for Firestore syncing.
+ * @param {string} categoryId - The category being saved
+ * @returns {{products: Array|null, renames: Array}}
+ */
+function applyCategoryProductOrderFromDom(categoryId) {
+  const list = document.getElementById('category-products-list');
+  if (!list) return { products: null, renames: [] };
+
+  const orderedIds = [...list.querySelectorAll('.category-product-row[data-product-id]')]
+    .map(row => String(row.dataset.productId));
+  if (orderedIds.length === 0) return { products: null, renames: [] };
+
+  const products = getProducts();
+  const byId = new Map(products.map(p => [String(p.id), p]));
+  const catId = String(categoryId).trim().toUpperCase();
+  const renames = [];
+
+  orderedIds.forEach((oldId, idx) => {
+    const p = byId.get(oldId);
+    if (!p) return;
+    const newId = catId + (idx + 1);
+    if (String(p.id) !== newId) {
+      renames.push({ from: String(p.id), to: newId });
+      p.id = newId;
+    }
+  });
+
+  return { products, renames };
+}
+
+/**
+ * Jump from the Edit Category modal straight into the Edit Product modal
+ * for the clicked product (closes the category modal first so the two
+ * overlays never stack).
+ * @param {string} productId - The product ID (e.g. "A3")
+ */
+function openProductEditFromCategoryModal(productId) {
+  closeCategoryModal();
+  openProductEditModal(productId);
 }
 
 function closeCategoryModal() {
@@ -1277,6 +1623,21 @@ function saveCategoryData() {
   saveCategories(categories);
   console.log('[Category Save] localStorage updated. Categories count:', categories.length);
 
+  // Edit Mode: persist any drag-and-drop reordering of this category's
+  // products — row position N in the modal becomes product ID `CAT{N+1}`.
+  let orderRenames = [];
+  let reorderedProducts = null;
+  if (idVal !== '') {
+    const orderResult = applyCategoryProductOrderFromDom(idVal);
+    orderRenames = orderResult.renames;
+    reorderedProducts = orderResult.products;
+    if (orderRenames.length > 0) {
+      saveProducts(reorderedProducts);
+      console.log('[Category Save] Product order re-indexed:',
+        orderRenames.map(r => `${r.from}→${r.to}`).join(', '));
+    }
+  }
+
   showAdminToast('Category saved successfully!', 'success');
 
   // Async Firestore sync (fire-and-forget, error only shown if sync fails)
@@ -1307,12 +1668,25 @@ function saveCategoryData() {
     console.error('[Firestore] window.db is NULL — cannot sync categories.');
   }
 
+  // Sync reordered product IDs to Firestore after the category write.
+  // Reordering is a permutation of the same ID set, so syncReindexToFirestore
+  // safely overwrites the affected docs without deleting any of them.
+  if (orderRenames.length > 0 && reorderedProducts) {
+    firestorePromise = firestorePromise
+      .then(() => syncReindexToFirestore(categories, reorderedProducts, [], orderRenames))
+      .catch(err => {
+        console.error('[Firestore] ✗ Product reorder sync FAILED:', err);
+        showAdminToast('Firestore reorder sync error: ' + (err.message || 'Unknown'), 'error');
+      });
+  }
+
   // After Firestore sync completes (or immediately if no sync needed),
   // clean up: close modal, refresh UI, re-enable button, release guard
   firestorePromise.finally(() => {
     closeCategoryModal();
     populateCategoryDropdowns();
     renderCategoriesTable();
+    if (orderRenames.length > 0) renderProductsTable();
     
     // Re-enable submit button
     if (submitBtn) {
@@ -1500,12 +1874,21 @@ function closeDeleteModal() {
 function executePendingDelete() {
   if (deleteTargetType === 'product') {
     let products = getProducts();
+    const deletedProduct = products.find(p => String(p.id) === String(deleteTargetId));
     products = products.filter(p => String(p.id) !== String(deleteTargetId));
+
+    // Re-number the remaining products of that category so the sequence stays
+    // gapless (deleting A2 turns A1, A3, A4 into A1, A2, A3).
+    const productRenames = deletedProduct
+      ? reindexProductsWithinCategory(products, deletedProduct.categoryId)
+      : [];
+
     saveProducts(products);
     if (!window.db) {
       console.error('[Firestore] window.db is NULL — cannot delete from Firestore.');
     } else {
       deleteProductFromFirestore(deleteTargetId)
+        .then(() => syncReindexToFirestore(getCategories(), products, [], productRenames))
         .catch(err => {
           const code = err.code || 'unknown';
           console.error('[Firestore] Product delete FAILED. Code:', code, 'Message:', err.message, err);
@@ -1517,12 +1900,22 @@ function executePendingDelete() {
   } else if (deleteTargetType === 'category') {
     let categories = getCategories();
     categories = categories.filter(c => String(c.id) !== String(deleteTargetId));
+
+    // Close the alphabet gap: remaining categories are re-assigned sequential
+    // Excel-style IDs (A, B, ... Z, AA, ...) and every shifted category's
+    // products are cascaded to the new prefix (Y1 -> X1).
+    const products = getProducts();
+    const { categoryRenames, productRenames } = reindexCategoriesAndProducts(categories, products);
+
     saveCategories(categories);
+    saveProducts(products);
+
     if (!window.db) {
       console.error('[Firestore] window.db is NULL — cannot delete category from Firestore.');
     } else {
       deleteCategoryFromFirestore(deleteTargetId)
-        .then(() => console.log('[Firestore] Category deleted successfully.'))
+        .then(() => syncReindexToFirestore(categories, products, categoryRenames, productRenames))
+        .then(() => console.log('[Firestore] Category deleted and re-index synced.'))
         .catch(err => {
           const code = err.code || 'unknown';
           console.error('[Firestore] Category delete FAILED. Code:', code, 'Message:', err.message, err);
@@ -1532,6 +1925,7 @@ function executePendingDelete() {
     showAdminToast('Category removed successfully!', 'success');
     populateCategoryDropdowns();
     renderCategoriesTable();
+    renderProductsTable();
   } else if (deleteTargetType === 'enquiry') {
     if (window.db && deleteTargetId) {
       window.db.collection('enquiries').doc(deleteTargetId).delete()

@@ -193,49 +193,62 @@ function generateId(items) {
 
 /**
  * Get the alphabetical code for a category based on its display order index.
- * Categories are 0-indexed, so we add 1 to get the position.
+ * Uses the Excel-column algorithm so the sequence never runs out:
+ * 0 -> "A", 25 -> "Z", 26 -> "AA", 27 -> "AB", 51 -> "AZ", 52 -> "BA", ...
  * @param {number} categoryIndex - The index of the category (0-based)
- * @returns {string} - The alphabetical code (A, B, C, etc.)
+ * @returns {string} - The alphabetical code (A, B, ... Z, AA, AB, ...)
  */
 function getCategoryCode(categoryIndex) {
   if (typeof categoryIndex !== 'number' || categoryIndex < 0) return '?';
-  const code = String.fromCharCode(65 + categoryIndex); // 65 = 'A'
+  let code = '';
+  let index = categoryIndex + 1; // convert to 1-based (Excel column number)
+  while (index > 0) {
+    const remainder = (index - 1) % 26;
+    code = String.fromCharCode(65 + remainder) + code;
+    index = Math.floor((index - 1) / 26);
+  }
   return code;
 }
 
 /**
- * Get the category letter from a category ID (supports both string "A" and numeric 1 formats).
+ * Get the category letter code from a category ID (supports letter strings
+ * like "A"/"AA" and legacy numeric formats like 1/27).
  * @param {string|number} categoryId - The category ID
- * @returns {string} - The category letter (A, B, C, etc.) or '?'
+ * @returns {string} - The category letter code (A..Z, AA, AB, ...) or '?'
  */
 function getCategoryLetterFromId(categoryId) {
   if (!categoryId) return '?';
   const catIdStr = String(categoryId).trim().toUpperCase();
-  // If already a letter, return it
-  if (/^[A-Z]$/.test(catIdStr)) return catIdStr;
-  // If numeric, convert to letter
+  // If already a letter code (single or multi-letter), return it
+  if (/^[A-Z]+$/.test(catIdStr)) return catIdStr;
+  // If numeric, convert to Excel-style letter code (1 -> A, 27 -> AA, ...)
   const num = parseInt(catIdStr, 10);
-  if (!isNaN(num) && num >= 1 && num <= 26) {
-    return String.fromCharCode(64 + num); // 1 -> A, 2 -> B, etc.
+  if (!isNaN(num) && num >= 1) {
+    return getCategoryCode(num - 1);
   }
   return '?';
 }
 
 /**
- * Get the category index from a category ID (supports both string "A" and numeric 1 formats).
+ * Get the category index from a category ID (supports letter strings like
+ * "A"/"AA" and legacy numeric formats like 1/27).
  * @param {string|number} categoryId - The category ID
  * @returns {number} - The category index (0-based) or -1 if not found
  */
 function getCategoryIndex(categoryId) {
   if (!categoryId) return -1;
   const catIdStr = String(categoryId).trim().toUpperCase();
-  // If already a letter, convert to index
-  if (/^[A-Z]$/.test(catIdStr)) {
-    return catIdStr.charCodeAt(0) - 65; // A -> 0, B -> 1, etc.
+  // Letter code (single or multi-letter): decode as base-26 Excel column
+  if (/^[A-Z]+$/.test(catIdStr)) {
+    let idx = 0;
+    for (let i = 0; i < catIdStr.length; i++) {
+      idx = idx * 26 + (catIdStr.charCodeAt(i) - 64); // A=1 ... Z=26 per digit
+    }
+    return idx - 1; // back to 0-based: A -> 0, Z -> 25, AA -> 26, ...
   }
   // If numeric, return zero-based index
   const num = parseInt(catIdStr, 10);
-  if (!isNaN(num) && num >= 1 && num <= 26) {
+  if (!isNaN(num) && num >= 1) {
     return num - 1; // 1 -> 0, 2 -> 1, etc.
   }
   return -1;

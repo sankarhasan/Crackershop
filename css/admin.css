@@ -880,6 +880,132 @@ textarea.form-control-admin {
   line-height: 1.3;
 }
 
+/* --- Products list inside the Edit Category modal --- */
+.category-products-count-badge {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--admin-info);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.category-products-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+  background-color: var(--admin-sidebar);
+}
+
+.category-product-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--admin-border);
+  cursor: grab;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.category-product-row:active {
+  cursor: grabbing;
+}
+
+.category-product-row.dragging {
+  opacity: 0.45;
+  background-color: var(--admin-card);
+  border: 1px dashed var(--admin-info);
+  border-radius: var(--radius-sm);
+}
+
+.category-product-drag-handle {
+  flex-shrink: 0;
+  color: var(--admin-text-muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  transition: var(--transition);
+}
+
+.category-product-row:hover .category-product-drag-handle {
+  color: var(--admin-text);
+}
+
+.category-product-row:last-child {
+  border-bottom: none;
+}
+
+.category-product-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--admin-border);
+  flex-shrink: 0;
+}
+
+.category-product-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  background-color: var(--admin-bg, #161B22);
+}
+
+.category-product-name {
+  flex: 1 1 auto;
+  font-size: 0.82rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-product-price {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--admin-success, #3FB950);
+  flex-shrink: 0;
+}
+
+.category-product-id {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  flex-shrink: 0;
+}
+
+.category-product-edit-btn {
+  flex-shrink: 0;
+  padding: 5px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--admin-card);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.category-product-edit-btn:hover {
+  background-color: var(--admin-warning);
+  transform: scale(1.08);
+}
+
+.category-products-empty {
+  padding: 14px 12px;
+  font-size: 0.8rem;
+  color: var(--admin-text-muted);
+  text-align: center;
+  margin: 0;
+}
+
 /* Scrollable body specifically for category modal so it doesn't clash with other modals */
 .category-modal-body-scroll {
   max-height: calc(80vh - 140px);
