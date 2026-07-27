@@ -1655,6 +1655,244 @@ function normalizeAllProductSequences() {
 }
 
 /* ==========================================================================
+   4b. PDF Price List Export (admin-only)
+   Draws a traditional crackers price-list sheet natively with jsPDF +
+   AutoTable (loaded from jsdelivr in admin.html) — true vector text and
+   crisp 1px borders at any zoom, no canvas rasterization.
+   ========================================================================== */
+let _generatingPriceListPdf = false;
+
+// Loads the brand logo and re-encodes it through a downscaled canvas into a
+// small base64 PNG for jsPDF. Passing the raw <img> (or a large PNG) straight
+// into doc.addImage() can blow up jsPDF's PNG encoder with
+// "RangeError: Invalid string length" — the canvas re-encode keeps the payload
+// tiny and clean. Resolves null on any failure/slow network so the export
+// never blocks or breaks because of the logo.
+function loadPriceListLogo() {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      try {
+        const maxPx = 300; // plenty of resolution for a ~22mm print slot
+        const scale = Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve({ dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height });
+      } catch (e) {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    setTimeout(() => resolve(null), 3000);
+    img.src = 'Icons/Brand%20Logo%20png.png';
+  });
+}
+
+function downloadPriceListPDF() {
+  if (_generatingPriceListPdf) return;
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    showAdminToast('PDF library not loaded. Check your internet connection and reload.', 'error');
+    return;
+  }
+
+  const categories = getCategories();
+  const products = getProducts();
+  if (products.length === 0) {
+    showAdminToast('No products available to export.', 'error');
+    return;
+  }
+
+  const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  // Strict two-decimal money formatting — PDF output only, admin UI untouched
+  const money = v => parseFloat(v || 0).toFixed(2);
+
+  // PDF-only Content abbreviations so the column never truncates with "…"
+  const abbreviate = v => String(v || 'Box')
+    .replace(/pcs/gi, 'P')
+    .replace(/packet/gi, 'pkt')
+    .replace(/varieties/gi, 'var');
+
+  // Table blocks — one per category (banner row + product rows), grouped in
+  // admin order. Each block is rendered as its own AutoTable so a category
+  // banner can never be stranded alone at the bottom of a page.
+  const categoryBlocks = [];
+  categories.forEach(cat => {
+    const catProducts = products
+      .filter(p => String(p.categoryId) === String(cat.id))
+      .sort((a, b) => String(a.id).toUpperCase().localeCompare(String(b.id).toUpperCase(), undefined, { numeric: true }));
+    if (catProducts.length === 0) return; // empty categories are skipped in print
+
+    // Centered category banner — name only (no "A —" code prefix)
+    const discountText = cat.discount ? ` (${cat.discount} Discount)` : '';
+    const rows = [[{
+      content: String(cat.name || '').toUpperCase() + discountText,
+      colSpan: 8,
+      styles: { fillColor: [209, 213, 219], fontStyle: 'bold', halign: 'center', fontSize: 8.5 }
+    }]];
+
+    catProducts.forEach(p => {
+      const originalRateNum = parseFloat(p.originalPrice || p.price || 0);
+      const finalRateNum = parseFloat(p.price || 0);
+      const discountNum = originalRateNum > finalRateNum ? (originalRateNum - finalRateNum) : 0;
+      const stockNote = p.inStock === false ? ' (Out of Stock)' : '';
+      rows.push([
+        String(p.id),
+        String(p.name || '') + stockNote,
+        abbreviate(p.qty),
+        money(originalRateNum),
+        money(discountNum),
+        money(finalRateNum),
+        '', // Quantity — blank for handwriting
+        ''  // Amount — blank for handwriting
+      ]);
+    });
+    categoryBlocks.push(rows);
+  });
+
+  _generatingPriceListPdf = true;
+  showAdminToast('Generating PDF price list… 📄', 'info');
+
+  loadPriceListLogo()
+    .then(logo => {
+      const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      if (typeof doc.autoTable !== 'function') {
+        throw new Error('jspdf-autotable plugin not loaded');
+      }
+
+      const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+      const marginX = 8;
+      const contentWidth = pageWidth - marginX * 2;       // 194mm
+      const centerX = pageWidth / 2;
+
+      // --- Header box (2px black border): logo left, centered identity block ---
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.6);
+      doc.rect(marginX, 8, contentWidth, 27);
+
+      if (logo && logo.dataUrl) {
+        // Fit inside an enlarged 26×22mm slot, preserving aspect ratio
+        const maxW = 26, maxH = 22;
+        const ratio = Math.min(maxW / logo.width, maxH / logo.height);
+        const w = logo.width * ratio;
+        const h = logo.height * ratio;
+        try {
+          doc.addImage(logo.dataUrl, 'PNG', marginX + 3, 8 + (27 - h) / 2, w, h);
+        } catch (imgErr) {
+          console.warn('[Admin] Price list logo skipped due to render error:', imgErr);
+        }
+      }
+
+      doc.setTextColor(0);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('KPR CRACKERS', centerX, 16.5, { align: 'center', charSpace: 0.3 });
+      doc.setFontSize(9);
+      doc.text('Quality Crackers at the Best Price', centerX, 22, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text('Mariyamman Nagar, Anupankulam, Sivakasi.', centerX, 26.5, { align: 'center' });
+      doc.text('Phone: +91 97894 32373 | +91 63856 51757', centerX, 31, { align: 'center' });
+
+      // --- "PRICE LIST" title bar (light-grey fill, black border) ---
+      doc.setFillColor(229, 231, 235);
+      doc.setLineWidth(0.25);
+      doc.rect(marginX, 38, contentWidth, 7, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('PRICE LIST', centerX, 42.7, { align: 'center', charSpace: 0.8 });
+
+      // --- Data table: vector grid, one AutoTable per category block ---
+      // Widths (194mm total): 17 / 75 / 22 / 18 / 18 / 18 / 13 / 13
+      // — wider Product Name + abbreviated Content remove "…" truncation
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const tableHead = [['Product Code', 'Product Name', 'Content', 'Rate / Qty', 'Discount', 'Final Rate', 'Quantity', 'Amount']];
+      const tableOpts = {
+        margin: { left: marginX, right: marginX, top: 10, bottom: 12 },
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 7.5,
+          fontStyle: 'normal',
+          textColor: [0, 0, 0],
+          lineColor: [0, 0, 0],
+          lineWidth: 0.15,
+          cellPadding: 1.5,
+          overflow: 'linebreak', // wrap cleanly instead of truncating with "…"
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [243, 244, 246],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { cellWidth: 17, halign: 'center' },
+          1: { cellWidth: 75, halign: 'left' },
+          2: { cellWidth: 22, halign: 'center' },
+          3: { cellWidth: 18, halign: 'center' },
+          4: { cellWidth: 18, halign: 'center' },
+          5: { cellWidth: 18, halign: 'center' },
+          6: { cellWidth: 13 },
+          7: { cellWidth: 13 }
+        },
+        rowPageBreak: 'avoid'
+      };
+
+      let cursorY = 48;
+      categoryBlocks.forEach((rows, i) => {
+        // Orphan guard: a block needs ~25mm (head + banner + first product);
+        // with less remaining, the whole block starts on a fresh page
+        let atPageTop = i === 0 || cursorY <= 10;
+        if (cursorY > pageHeight - tableOpts.margin.bottom - 25) {
+          doc.addPage();
+          cursorY = 10;
+          atPageTop = true;
+        }
+        doc.autoTable(Object.assign({}, tableOpts, {
+          startY: cursorY,
+          head: tableHead,
+          // repeat the column head at the top of pages, not before every
+          // mid-page category banner
+          showHead: atPageTop ? 'everyPage' : 'never',
+          body: rows
+        }));
+        cursorY = doc.lastAutoTable.finalY;
+      });
+
+      // --- Footer note ---
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.text(`Prices are subject to change without prior notice. Generated on ${dateStr}.`,
+        centerX, Math.min(cursorY + 5, pageHeight - 10), { align: 'center' });
+
+      // --- Strictly centered page numbers, stamped once per page at the end
+      // (per-table didDrawPage would double-stamp pages shared by two blocks) ---
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= pageCount; p++) {
+        doc.setPage(p);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(`Page ${p} of ${pageCount}`, centerX, pageHeight - 5, { align: 'center' });
+      }
+
+      doc.save('KPR_Crackers_Price_List.pdf');
+      showAdminToast('Price list PDF downloaded successfully! ✅', 'success');
+    })
+    .catch(err => {
+      console.error('[Admin] PDF price list generation failed:', err);
+      showAdminToast('PDF generation failed: ' + (err.message || 'Unknown error'), 'error');
+    })
+    .finally(() => {
+      _generatingPriceListPdf = false;
+    });
+}
+
+/* ==========================================================================
    5. Categories CRUD Manager (modals + save)
    NOTE: Category IDs are letter strings ("A", "B", ...). All lookups use
    String comparison to stay compatible with the alphanumeric ID scheme.

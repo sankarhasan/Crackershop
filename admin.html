@@ -13,6 +13,11 @@
   
   <!-- Admin Stylesheet -->
   <link rel="stylesheet" href="css/admin.css">
+
+  <!-- jsPDF + AutoTable for the Price List PDF export — true vector text/borders,
+       no canvas rasterization (jsdelivr; cdnjs is blocked by the CSP in vercel.json) -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
@@ -209,9 +214,14 @@
               <option value="all">All Categories</option>
             </select>
           </div>
-          <button class="btn-admin btn-admin-primary" onclick="openProductAddModal()">
-            <span class="btn-icon-admin">+</span> Add New Firecracker
-          </button>
+          <div class="actions-buttons">
+            <button class="btn-admin btn-admin-pdf" onclick="downloadPriceListPDF()">
+              <span class="btn-icon-admin">📄</span> Download Price List PDF
+            </button>
+            <button class="btn-admin btn-admin-primary" onclick="openProductAddModal()">
+              <span class="btn-icon-admin">+</span> Add New Firecracker
+            </button>
+          </div>
         </div>
 
         <div class="table-responsive">
