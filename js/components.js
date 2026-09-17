@@ -261,6 +261,76 @@
           OK
         </button>
       </div>
+    </div>
+
+    ${kprAuthModalHTML()}`;
+  }
+
+  /* ---------- KPR Client Portal (Sign In / Create Account Modal) ----------
+     Mandatory sign-in gate for checkout (see requireAuthForOrder() in app.js).
+     Injected site-wide via modalsHTML() so the portal exists on EVERY page and
+     the checkout guard never breaks on a page without it. */
+  function kprAuthModalHTML() {
+    return `
+    <div id="kprAuthModal" class="kpr-auth-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" onclick="handleAuthModalBackdrop(event)">
+      <div class="kpr-auth-card">
+        <button type="button" onclick="closeAuthModal()" class="kpr-auth-close" aria-label="Close Client Portal">&times;</button>
+
+        <div class="kpr-auth-body">
+          <div class="kpr-auth-crown" aria-hidden="true">👑</div>
+          <h2 class="kpr-auth-title">KPR Client Portal</h2>
+          <p class="kpr-auth-subtitle">Sign in to manage delivery addresses, track orders &amp; download receipts</p>
+
+          <div class="kpr-auth-tabs">
+            <button type="button" id="tabSignIn" class="kpr-auth-tab active" onclick="switchAuthTab('signin')">Sign In</button>
+            <button type="button" id="tabSignUp" class="kpr-auth-tab" onclick="switchAuthTab('signup')">Create Account</button>
+          </div>
+
+          <button type="button" onclick="handleGoogleSignIn()" class="kpr-auth-google">
+            <svg class="kpr-auth-google-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+            Continue with Google
+          </button>
+
+          <div class="kpr-auth-divider"><span>OR EMAIL</span></div>
+
+          <div id="authErrorMsg" class="kpr-auth-error" style="display: none;"></div>
+
+          <form id="authForm" onsubmit="handleEmailAuth(event)" class="kpr-auth-form">
+            <div id="nameFieldGroup" class="kpr-auth-field hidden">
+              <label class="kpr-auth-label" for="authName">FULL NAME</label>
+              <input type="text" id="authName" placeholder="John Doe" class="kpr-auth-input">
+            </div>
+
+            <div class="kpr-auth-field">
+              <label class="kpr-auth-label" for="authEmail">EMAIL ADDRESS</label>
+              <div class="kpr-auth-input-wrap">
+                <span class="kpr-auth-input-icon" aria-hidden="true">✉</span>
+                <input type="email" id="authEmail" required placeholder="name@example.com" class="kpr-auth-input has-icon" autocomplete="email">
+              </div>
+            </div>
+
+            <div class="kpr-auth-field">
+              <label class="kpr-auth-label" for="authPassword">PASSWORD</label>
+              <div class="kpr-auth-input-wrap">
+                <span class="kpr-auth-input-icon" aria-hidden="true">🔒</span>
+                <input type="password" id="authPassword" required placeholder="••••••••" class="kpr-auth-input has-icon" autocomplete="current-password">
+              </div>
+            </div>
+
+            <div class="kpr-auth-forgot-row">
+              <a href="#" onclick="handleForgotPassword(event)" class="kpr-auth-forgot">Forgot Password?</a>
+            </div>
+
+            <button type="submit" id="authSubmitBtn" class="kpr-auth-submit">
+              Sign In to Portal <span class="kpr-auth-arrow">→</span>
+            </button>
+          </form>
+
+          <div class="kpr-auth-ssl">
+            <span class="kpr-auth-ssl-icon" aria-hidden="true">🛡</span> 256-Bit SSL Encrypted Firebase Authentication
+          </div>
+        </div>
+      </div>
     </div>`;
   }
 

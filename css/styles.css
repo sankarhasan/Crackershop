@@ -5677,4 +5677,399 @@ html.notice-modal-active {
   }
 }
 
+/* ==========================================================================
+   KPR CLIENT PORTAL — AUTH MODAL (Sign In / Create Account)
+   --------------------------------------------------------------------------
+   Mandatory sign-in gate shown by requireAuthForOrder() in js/app.js before
+   "Place Order Enquiry" / "Submit Quick Enquiry" are allowed to complete.
+   Markup is injected site-wide by js/components.js -> kprAuthModalHTML().
+   The overlay MUST sit above the cart drawer (z-index 100001) and the
+   success modal (999999), otherwise the guard modal would open behind them.
+   ========================================================================== */
+
+#kprAuthModal.hidden,
+.kpr-auth-field.hidden {
+  display: none !important;
+}
+
+.kpr-auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Lock background scrolling while the portal is open */
+body.kpr-auth-open {
+  overflow: hidden;
+}
+
+.kpr-auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid #f3f4f6;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  animation: kprAuthPop 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes kprAuthPop {
+  0% { transform: translateY(24px) scale(0.97); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Close (×) */
+.kpr-auth-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.kpr-auth-close:hover {
+  color: #374151;
+}
+
+.kpr-auth-body {
+  padding: 32px;
+  text-align: center;
+}
+
+/* Crown brand tile (#f59e0b / amber-500) */
+.kpr-auth-crown {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f59e0b;
+  color: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.kpr-auth-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.kpr-auth-subtitle {
+  max-width: 20rem;
+  margin: 4px auto 0 auto;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* Sign In / Create Account segmented toggle */
+.kpr-auth-tabs {
+  display: flex;
+  margin: 20px 0;
+  padding: 4px;
+  background: #f3f4f6;
+  border-radius: 12px;
+}
+
+.kpr-auth-tab {
+  width: 50%;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.kpr-auth-tab:hover {
+  color: #111827;
+}
+
+.kpr-auth-tab.active {
+  background: #0f172a;
+  color: var(--white);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Continue with Google */
+.kpr-auth-google {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-full);
+  background: var(--white);
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.kpr-auth-google:hover {
+  background: #f9fafb;
+}
+
+.kpr-auth-google-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* "OR EMAIL" divider */
+.kpr-auth-divider {
+  position: relative;
+  margin: 16px 0;
+  text-align: center;
+}
+
+.kpr-auth-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  border-top: 1px solid #e5e7eb;
+}
+
+.kpr-auth-divider span {
+  position: relative;
+  padding: 0 8px;
+  background: var(--white);
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Inline error / info message (replaces blocking alert() dialogs) */
+.kpr-auth-form {
+  text-align: left;
+}
+
+.kpr-auth-field {
+  margin-bottom: 12px;
+}
+
+.kpr-auth-label {
+  display: block;
+  margin-bottom: 4px;
+  color: #374151;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.kpr-auth-input-wrap {
+  position: relative;
+}
+
+.kpr-auth-input-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.kpr-auth-input {
+  width: 100%;
+  padding: 9px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: var(--text-dark);
+  font-size: 12px;
+  outline: none;
+  transition: var(--transition);
+}
+
+.kpr-auth-input.has-icon {
+  padding-left: 32px;
+}
+
+.kpr-auth-input:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.35);
+}
+
+.kpr-auth-forgot-row {
+  text-align: right;
+}
+
+.kpr-auth-forgot {
+  color: #d97706;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.kpr-auth-forgot:hover {
+  text-decoration: underline;
+}
+
+/* Primary submit — KPR deep green (#004d25) */
+.kpr-auth-submit {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: #004d25;
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+}
+
+.kpr-auth-submit:hover:not(:disabled) {
+  background: #00361a;
+}
+
+.kpr-auth-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.kpr-auth-arrow {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* SSL trust badge */
+.kpr-auth-ssl {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+.kpr-auth-ssl-icon {
+  color: #10b981;
+}
+
+/* Portal toasts must beat the cart drawer (z-index 100001), otherwise the
+   "Welcome! You are signed in to the KPR Client Portal" confirmation (and the
+   existing minimum-order toast) would be hidden behind the open drawer.
+   Modals — notice/success (999999) and the portal itself (1000500) — stay on top. */
+.toast-container {
+  z-index: 1000100;
+}
+
+/* Signed-in chip inside the cart drawer footer (rendered by app.js) */
+.portal-status-row {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(10, 92, 54, 0.18);
+  border-radius: 10px;
+  background: rgba(10, 92, 54, 0.06);
+  font-size: 11px;
+  color: var(--deep-green-dark);
+}
+
+.portal-status-row .portal-status-user {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-status-row .portal-status-action {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--festive-red);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .kpr-auth-body {
+    padding: 24px 20px;
+  }
+
+  .kpr-auth-title {
+    font-size: 1.3rem;
+  }
+}
+
+.kpr-auth-error {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+}
+
+/* Variants used by showAuthNotice(message, 'success' | 'info') */
+.kpr-auth-error.is-success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.kpr-auth-error.is-info {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 

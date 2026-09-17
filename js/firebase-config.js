@@ -1,9 +1,13 @@
 /* ==========================================================================
    KPR Crackers - Firebase Configuration & Initialization (compat SDK)
-   Loaded on BOTH the public storefront (index.html) and the admin portal
-   (admin.html). Initializes the Firebase App + Firestore once and exposes a
-   shared `window.db` handle. Auth is initialized separately in admin.js
-   (the auth SDK is only loaded on the admin page).
+   Loaded on BOTH the public storefront (index.html and friends) and the admin
+   portal (admin.html). Initializes the Firebase App + Firestore once and
+   exposes a shared `window.db` handle.
+
+   Auth: the Auth SDK (firebase-auth-compat.js) is loaded on EVERY storefront
+   page too, because the KPR Client Portal (mandatory sign-in before checkout,
+   see js/app.js -> requireAuthForOrder) needs it. admin.js and app.js each call
+   firebase.auth() themselves, so no shared auth handle is created here.
    ========================================================================== */
 
 const firebaseConfig = {
