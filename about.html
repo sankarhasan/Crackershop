@@ -76,6 +76,26 @@
             <a href="tel:+916385651757" class="phone-number">📞 +91 63856 51757</a>
           </div>
 
+          <!-- KPR Client Portal: user account button (between the phone contacts and the cart) -->
+          <div class="header-user-account" id="headerUserAccount">
+            <button type="button" id="userAccountBtn" class="header-user-btn" onclick="handleHeaderUserClick()" title="KPR Client Portal" aria-label="KPR Client Portal" aria-haspopup="true" aria-expanded="false">
+              <svg id="userIconSvg" class="header-user-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+              <img id="userAvatarImg" class="header-user-avatar hidden" alt="" aria-hidden="true">
+            </button>
+
+            <!-- Signed-in profile dropdown (stays hidden for anonymous visitors) -->
+            <div id="userProfileDropdown" class="user-dropdown hidden" role="menu" aria-labelledby="userAccountBtn">
+              <div class="user-dropdown-head">
+                <p id="dropdownUserName" class="user-dropdown-name">KPR Client</p>
+                <p id="dropdownUserEmail" class="user-dropdown-email">Not signed in</p>
+              </div>
+              <button type="button" class="user-dropdown-item" role="menuitem" onclick="openMyOrders()"><span class="user-dropdown-icon">📦</span> My Orders</button>
+              <button type="button" class="user-dropdown-item user-dropdown-signout" role="menuitem" onclick="handleSignOut()"><span class="user-dropdown-icon">🚪</span> Sign Out</button>
+            </div>
+          </div>
+
           <div class="cart-widget" id="cart-toggle" onclick="toggleCartDrawer()">
             <span class="cart-icon">🛒</span>
             <span class="cart-count" id="cart-count">0</span>

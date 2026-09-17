@@ -3033,7 +3033,7 @@ function openAuthModal() {
   }
   modal.classList.remove('hidden');
   modal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('kpr-auth-open');
+  syncPortalScrollLock();
 
   const emailInput = document.getElementById('authEmail');
   if (emailInput) setTimeout(() => emailInput.focus(), 60);
@@ -3046,7 +3046,7 @@ function closeAuthModal() {
   const active = document.activeElement;
   modal.classList.add('hidden');
   modal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('kpr-auth-open');
+  syncPortalScrollLock();
 
   // Drop focus if it currently sits on a field inside the modal
   if (active && modal.contains(active) && typeof active.blur === 'function') active.blur();
@@ -3085,11 +3085,37 @@ function switchAuthTab(tab) {
 }
 
 /* ---------- Inline messages (instead of blocking alert() dialogs) ---------- */
+/**
+ * The shared in-modal message element (#authErrorMsg). If it is missing — e.g.
+ * a cached components.js that predates the portal — the box is created on the
+ * fly and attached to the portal card so auth errors are never swallowed.
+ */
+function createErrorBox() {
+  let box = document.getElementById('authErrorMsg');
+  if (box) return box;
+
+  const host = document.querySelector('#kprAuthModal .kpr-auth-body')
+    || document.querySelector('#kprAuthModal .kpr-auth-card')
+    || document.getElementById('kprAuthModal');
+  if (!host) return null;
+
+  box = document.createElement('div');
+  box.id = 'authErrorMsg';
+  box.className = 'kpr-auth-error';
+  box.style.display = 'none';
+
+  // Sit directly above the form so the message reads as part of the portal UI
+  const form = document.getElementById('authForm');
+  if (form && host.contains(form)) host.insertBefore(box, form);
+  else host.appendChild(box);
+  return box;
+}
+
 function clearAuthNotice() {
   const box = document.getElementById('authErrorMsg');
   if (!box) return;
   box.innerText = '';
-  box.className = 'kpr-auth-error';
+  box.className = 'kpr-auth-error hidden';
   box.style.display = 'none';
 }
 
@@ -3099,12 +3125,13 @@ function clearAuthNotice() {
  * @param {string} [variant] - 'error' (default) | 'success' | 'info'
  */
 function showAuthNotice(message, variant) {
-  const box = document.getElementById('authErrorMsg');
   const kind = variant || 'error';
+  const box = createErrorBox();
 
   if (box) {
     box.innerText = message;
     box.className = 'kpr-auth-error' + (kind === 'error' ? '' : ' is-' + kind);
+    box.classList.remove('hidden');
     box.style.display = 'block';
     return;
   }
@@ -3117,10 +3144,76 @@ function showAuthNotice(message, variant) {
   }
 }
 
-/** Map Firebase Auth error codes to customer-friendly copy. */
-function getFirebaseAuthErrorMessage(err, fallback) {
+/** Current site domain — surfaced in the authorized-domain guidance message. */
+function getPortalCurrentDomain() {
+  try {
+    return (window.location && window.location.hostname) ? window.location.hostname : '(this domain)';
+  } catch (e) {
+    return '(this domain)';
+  }
+}
+
+/** Human label for the sign-in method being attempted. */
+function getPortalProviderLabel(context) {
+  return (context === 'google') ? 'Google Sign-In' : 'Email & Password sign-in';
+}
+
+/** The Firebase Console fix for a disabled sign-in provider. */
+function getPortalProviderFix(context) {
+  if (context === 'google') {
+    return 'Please enable the Google provider in Firebase Console > Authentication > Sign-in method.';
+  }
+  return 'Please enable the Email/Password provider in Firebase Console > Authentication > Sign-in method.';
+}
+
+/**
+ * Log an actionable setup hint for project-configuration failures. These are
+ * Firebase Console problems (not customer mistakes), so the developer needs the
+ * exact console path — the customer only needs the friendly UI message.
+ * @param {Object} err - The Firebase Auth error
+ * @param {string} context - 'google' | 'email' | 'signup' | 'reset'
+ */
+function logPortalConfigHint(err, context) {
   const code = (err && err.code) ? err.code : '';
+
+  if (code === 'auth/unauthorized-domain') {
+    console.error('[Portal] Unauthorized domain. Add "' + getPortalCurrentDomain()
+      + '" under Firebase Console > Authentication > Settings > Authorized domains.');
+    return;
+  }
+
+  if (code === 'auth/operation-not-allowed'
+    || code === 'auth/configuration-not-found'
+    || code === 'auth/admin-restricted-operation') {
+    console.error('[Portal] Sign-in provider disabled. ' + getPortalProviderFix(context));
+  }
+}
+
+/**
+ * Map Firebase Auth error codes to customer-friendly copy.
+ * @param {Object} err - The Firebase Auth error
+ * @param {string} fallback - Prefix used when the code has no dedicated mapping
+ * @param {string} [context] - 'google' | 'email' | 'signup' | 'reset' — drives
+ *   the provider-specific console instructions for configuration errors
+ */
+function getFirebaseAuthErrorMessage(err, fallback, context) {
+  const code = (err && err.code) ? err.code : '';
+  const providerLabel = getPortalProviderLabel(context);
+
   switch (code) {
+    /* ---- Firebase Console setup problems: actionable, project-level fixes ---- */
+    case 'auth/unauthorized-domain':
+      return 'Domain unauthorized in Firebase Console. Please add "' + getPortalCurrentDomain()
+        + '" under Firebase Authentication > Settings > Authorized Domains.';
+    case 'auth/operation-not-allowed':
+      return providerLabel + ' is not enabled. ' + getPortalProviderFix(context);
+    // Raised instead of operation-not-allowed by newer SDK versions when the
+    // provider (or the whole Authentication service) is disabled in the project.
+    case 'auth/configuration-not-found':
+    case 'auth/admin-restricted-operation':
+      return providerLabel + ' is unavailable for this Firebase project. ' + getPortalProviderFix(context);
+
+    /* ---- Customer-side errors ---- */
     case 'auth/invalid-email':
       return 'Please enter a valid email address.';
     case 'auth/missing-password':
@@ -3146,10 +3239,6 @@ function getFirebaseAuthErrorMessage(err, fallback) {
       return 'Google sign-in was cancelled.';
     case 'auth/account-exists-with-different-credential':
       return 'An account already exists for this email with a different sign-in method. Please use that method.';
-    case 'auth/unauthorized-domain':
-      return 'Sign-in is not yet enabled for this domain. Please contact KPR Crackers support.';
-    case 'auth/operation-not-allowed':
-      return 'This sign-in method is not enabled in Firebase. Please contact KPR Crackers support.';
     default:
       return (err && err.message) ? (fallback + ' ' + err.message) : fallback;
   }
@@ -3173,6 +3262,10 @@ function handleGoogleSignIn() {
     .catch((err) => {
       const code = (err && err.code) ? err.code : '';
 
+      // Project-configuration failures (unauthorized domain / disabled provider)
+      // are not customer mistakes — surface the exact Firebase Console fix.
+      logPortalConfigHint(err, 'google');
+
       // Popups are blocked on several mobile browsers / strict privacy modes —
       // fall back to a full-page redirect and remember the parked checkout.
       if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
@@ -3180,7 +3273,8 @@ function handleGoogleSignIn() {
         try { sessionStorage.setItem(KPR_PORTAL_PENDING_ACTION_KEY, 'checkout'); } catch (e) {}
         auth.signInWithRedirect(provider).catch((redirectErr) => {
           console.error('[Portal] Google redirect sign-in failed:', redirectErr);
-          showAuthNotice(getFirebaseAuthErrorMessage(redirectErr, 'Google Sign-In Failed:'));
+          logPortalConfigHint(redirectErr, 'google');
+          showAuthNotice(getFirebaseAuthErrorMessage(redirectErr, 'Google Sign-In Failed:', 'google'));
         });
         return;
       }
@@ -3189,7 +3283,7 @@ function handleGoogleSignIn() {
       if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
 
       console.error('[Portal] Google sign-in failed:', err);
-      showAuthNotice(getFirebaseAuthErrorMessage(err, 'Google Sign-In Failed:'));
+      showAuthNotice(getFirebaseAuthErrorMessage(err, 'Google Sign-In Failed:', 'google'));
     });
 }
 
@@ -3247,7 +3341,8 @@ function handleEmailAuth(event) {
       .catch((err) => {
         restoreBtn();
         console.error('[Portal] Sign in failed:', err);
-        showAuthNotice(getFirebaseAuthErrorMessage(err, 'Sign In Failed:'));
+        logPortalConfigHint(err, 'email');
+        showAuthNotice(getFirebaseAuthErrorMessage(err, 'Sign In Failed:', 'email'));
       });
     return;
   }
@@ -3270,7 +3365,8 @@ function handleEmailAuth(event) {
     .catch((err) => {
       restoreBtn();
       console.error('[Portal] Account creation failed:', err);
-      showAuthNotice(getFirebaseAuthErrorMessage(err, 'Account Creation Failed:'));
+      logPortalConfigHint(err, 'signup');
+      showAuthNotice(getFirebaseAuthErrorMessage(err, 'Account Creation Failed:', 'signup'));
     });
 }
 
@@ -3301,7 +3397,8 @@ function handleForgotPassword(event) {
     })
     .catch((err) => {
       console.error('[Portal] Password reset failed:', err);
-      showAuthNotice(getFirebaseAuthErrorMessage(err, 'Could not send the reset email:'));
+      logPortalConfigHint(err, 'reset');
+      showAuthNotice(getFirebaseAuthErrorMessage(err, 'Could not send the reset email:', 'email'));
     });
 }
 
@@ -3347,7 +3444,7 @@ function onClientPortalSignedIn(user, method) {
   }
 
   hydrateEnquiryFormFromAuth(user);
-  renderClientPortalStatus(user);
+  renderHeaderUserAccount(user);
 
   // Replay the parked checkout / enquiry submission exactly once.
   const pending = window.pendingOrderSubmit;
@@ -3367,29 +3464,252 @@ function hydrateEnquiryFormFromAuth(user) {
   }
 }
 
+/* ---------- Header user account button + signed-in profile dropdown ---------- */
 /**
- * Small portal chip at the top of the cart drawer footer: shows who is signed
- * in (with a sign-out action) or offers a direct sign-in entry point.
+ * Paint the header account button (#userAccountBtn) for the current auth state:
+ *   • signed out -> generic white user glyph on the green/gold disc; clicking it
+ *     opens the KPR Client Portal modal
+ *   • signed in  -> the Firebase avatar photo fills the disc (Google accounts),
+ *     a green presence dot appears and clicking it opens the profile dropdown.
+ * Also fills the dropdown header and force-closes the menu when signed out.
  */
-function renderClientPortalStatus(user) {
-  const footer = document.querySelector('#cart-drawer .cart-drawer-footer');
-  if (!footer) return;
+function renderHeaderUserAccount(user) {
+  const btn = document.getElementById('userAccountBtn');
+  const icon = document.getElementById('userIconSvg');
+  const avatar = document.getElementById('userAvatarImg');
+  const nameEl = document.getElementById('dropdownUserName');
+  const emailEl = document.getElementById('dropdownUserEmail');
 
-  let row = document.getElementById('portal-status-row');
-  if (!row) {
-    row = document.createElement('div');
-    row.id = 'portal-status-row';
-    row.className = 'portal-status-row';
-    footer.insertBefore(row, footer.firstChild);
+  if (btn) {
+    btn.classList.toggle('is-signed-in', !!user);
+    const label = user ? 'My KPR Client Account' : 'KPR Client Portal — Sign in';
+    btn.setAttribute('title', label);
+    btn.setAttribute('aria-label', label);
   }
 
-  if (user) {
-    row.innerHTML = '<span class="portal-status-user">👤 ' + escapeHtml(getKprUserLabel(user)) + '</span>'
-      + '<button type="button" class="portal-status-action" onclick="kprSignOut()">Sign out</button>';
-  } else {
-    row.innerHTML = '<span class="portal-status-user">🔐 KPR Client Portal</span>'
-      + '<button type="button" class="portal-status-action" onclick="openAuthModal()">Sign in</button>';
+  const photoUrl = (user && user.photoURL) ? user.photoURL : '';
+  if (avatar) {
+    if (photoUrl) {
+      avatar.src = photoUrl;
+      avatar.alt = getKprUserLabel(user);
+      avatar.classList.remove('hidden');
+      avatar.setAttribute('aria-hidden', 'false');
+      // Broken avatar URL -> fall back to the generic glyph
+      avatar.onerror = function () {
+        avatar.classList.add('hidden');
+        if (icon) icon.classList.remove('hidden');
+      };
+    } else {
+      avatar.classList.add('hidden');
+      avatar.setAttribute('aria-hidden', 'true');
+      // Drop any previous client's avatar URL from the DOM
+      if (typeof avatar.removeAttribute === 'function') avatar.removeAttribute('src');
+    }
   }
+  if (icon) icon.classList.toggle('hidden', !!photoUrl);
+
+  if (nameEl) nameEl.innerText = user ? getKprUserLabel(user) : 'KPR Client';
+  if (emailEl) {
+    emailEl.innerText = user
+      ? (user.email || user.phoneNumber || 'Signed in')
+      : 'Not signed in';
+  }
+
+  // The dropdown only ever applies to a signed-in client
+  if (!user) closeUserDropdown();
+}
+
+function openUserDropdown() {
+  const dropdown = document.getElementById('userProfileDropdown');
+  const btn = document.getElementById('userAccountBtn');
+  if (!dropdown) return;
+  dropdown.classList.remove('hidden');
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+}
+
+function closeUserDropdown() {
+  const dropdown = document.getElementById('userProfileDropdown');
+  const btn = document.getElementById('userAccountBtn');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  if (dropdown) dropdown.classList.add('hidden');
+}
+
+function toggleUserDropdown() {
+  const dropdown = document.getElementById('userProfileDropdown');
+  if (!dropdown) return;
+  if (dropdown.classList.contains('hidden')) openUserDropdown();
+  else closeUserDropdown();
+}
+
+/**
+ * Header user icon click (see index.html -> #userAccountBtn):
+ *   • signed out -> KPR Client Portal modal (sign in / create account)
+ *   • signed in  -> "My Account" dropdown (📦 My Orders / 🚪 Sign Out)
+ */
+function handleHeaderUserClick() {
+  if (getKprAuthUser()) {
+    toggleUserDropdown();
+    return;
+  }
+  openAuthModal();
+  showAuthNotice('Sign in or create your KPR Client account to track orders and download receipts.', 'info');
+}
+
+/** Dropdown "🚪 Sign Out" — ends the Firebase session, keeps the cart intact. */
+function handleSignOut() {
+  closeUserDropdown();
+  kprSignOut();
+}
+
+/* ---------- Portal overlay helpers (shared body scroll lock) ---------- */
+/** True when an overlay element is missing or currently carries .hidden. */
+function isPortalOverlayHidden(id) {
+  const el = document.getElementById(id);
+  return !el || el.classList.contains('hidden');
+}
+
+/** The portal sign-in overlay and the My Orders overlay share one scroll lock. */
+function syncPortalScrollLock() {
+  const anyOpen = !isPortalOverlayHidden('kprAuthModal') || !isPortalOverlayHidden('kprOrdersModal');
+  document.body.classList.toggle('kpr-auth-open', anyOpen);
+}
+
+/* ---------- My Orders modal (header account dropdown -> 📦 My Orders) ---------- */
+function openMyOrdersModal() {
+  const modal = document.getElementById('kprOrdersModal');
+  if (!modal) {
+    console.error('[Portal] #kprOrdersModal not found. Check the js/components.js injection.');
+    return;
+  }
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+  syncPortalScrollLock();
+}
+
+function closeMyOrdersModal() {
+  const modal = document.getElementById('kprOrdersModal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden', 'true');
+  syncPortalScrollLock();
+}
+
+/** Backdrop click (never the card) closes My Orders. */
+function handleOrdersModalBackdrop(event) {
+  if (event && event.target && event.target.id === 'kprOrdersModal') closeMyOrdersModal();
+}
+
+/**
+ * List every enquiry this client submitted while signed in. Enquiries store the
+ * Firebase identity in `customer.userId` / `customer.email` (written by the
+ * enquiry form), so a single equality filter is enough — no composite index.
+ */
+function openMyOrders() {
+  closeUserDropdown();
+
+  const user = getKprAuthUser();
+  if (!user) {
+    openAuthModal();
+    showAuthNotice('Please sign in to view your order history.', 'info');
+    return;
+  }
+
+  openMyOrdersModal();
+  renderMyOrdersLoading(user);
+
+  if (!window.db) {
+    renderMyOrdersMessage(
+      'Order history unavailable',
+      'We could not reach the order service right now. Please call or WhatsApp us and we will share your order status.',
+      'Contact Us', 'contact.html'
+    );
+    return;
+  }
+
+  window.db.collection('enquiries')
+    .where('customer.userId', '==', user.uid)
+    .limit(25)
+    .get()
+    .then((snapshot) => {
+      const orders = snapshot.docs.map((doc) => {
+        const d = doc.data() || {};
+        const breakdown = d.financialBreakdown || {};
+        return {
+          docId: doc.id,
+          orderId: d.orderId || doc.id,
+          status: d.status || 'new',
+          grandTotal: breakdown.grandTotal || 0,
+          itemCount: (d.cartItems || []).reduce((sum, it) => sum + (it.quantity || 0), 0),
+          timestamp: (d.timestamp && typeof d.timestamp.toDate === 'function') ? d.timestamp.toDate() : null
+        };
+      });
+
+      // Newest first — sorted client-side so no composite index is required.
+      orders.sort((a, b) => (b.timestamp ? b.timestamp.getTime() : 0) - (a.timestamp ? a.timestamp.getTime() : 0));
+      renderMyOrdersList(orders);
+    })
+    .catch((err) => {
+      console.error('[Portal] Could not load client orders:', err);
+      renderMyOrdersMessage(
+        'Could not load your orders',
+        'Please try again in a moment, or contact us on WhatsApp and we will look up your order for you.',
+        'Contact Us', 'contact.html'
+      );
+    });
+}
+
+function renderMyOrdersLoading(user) {
+  const list = document.getElementById('kprOrdersList');
+  if (!list) return;
+  list.innerHTML = '<div class="kpr-orders-message">Loading orders for '
+    + escapeHtml(user.email || 'your account') + '…</div>';
+}
+
+function renderMyOrdersMessage(title, body, ctaLabel, ctaHref) {
+  const list = document.getElementById('kprOrdersList');
+  if (!list) return;
+  const cta = (ctaLabel && ctaHref)
+    ? '<br><a class="kpr-orders-cta" href="' + ctaHref + '">' + escapeHtml(ctaLabel) + '</a>'
+    : '';
+  list.innerHTML = '<div class="kpr-orders-message"><strong>' + escapeHtml(title) + '</strong>'
+    + escapeHtml(body) + cta + '</div>';
+}
+
+function renderMyOrdersList(orders) {
+  const list = document.getElementById('kprOrdersList');
+  if (!list) return;
+
+  if (!orders || orders.length === 0) {
+    renderMyOrdersMessage(
+      'No orders yet',
+      'Orders you place while signed in appear here so you can track their status.',
+      'Browse Crackers', 'products.html'
+    );
+    return;
+  }
+
+  list.innerHTML = orders.map(renderMyOrderRow).join('');
+}
+
+function renderMyOrderRow(order) {
+  const status = String(order.status || 'new').toLowerCase().replace(/[^a-z]/g, '') || 'new';
+  const statusKey = (status === 'contacted' || status === 'resolved') ? status : 'new';
+  const placedOn = order.timestamp
+    ? order.timestamp.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : 'Date unavailable';
+  const total = Number(order.grandTotal || 0);
+
+  return '<div class="kpr-order-row">'
+    + '<div class="kpr-order-top">'
+    + '<span class="kpr-order-id">' + escapeHtml(order.orderId) + '</span>'
+    + '<span class="kpr-order-status status-' + statusKey + '">' + escapeHtml(status) + '</span>'
+    + '</div>'
+    + '<div class="kpr-order-meta">'
+    + '<span>Placed: <strong>' + escapeHtml(placedOn) + '</strong></span>'
+    + '<span>Items: <strong>' + escapeHtml(String(order.itemCount || 0)) + '</strong></span>'
+    + '<span>Grand Total: <strong>₹' + escapeHtml(total.toLocaleString('en-IN')) + '</strong></span>'
+    + '</div>'
+    + '</div>';
 }
 
 /** Sign the client out of the KPR Client Portal (cart contents are preserved). */
@@ -3401,7 +3721,8 @@ function kprSignOut() {
     .then(() => {
       window.currentKprUser = null;
       window.pendingOrderSubmit = null;
-      renderClientPortalStatus(null);
+      closeUserDropdown();
+      renderHeaderUserAccount(null);
       if (typeof showToast === 'function') showToast('You have signed out of the KPR Client Portal.', 'info');
     })
     .catch((err) => console.error('[Portal] Sign out failed:', err));
@@ -3413,18 +3734,29 @@ function initClientPortalAuth() {
   const auth = getKprAuth();
   if (!auth) return;
 
-  // Keep the drawer chip + pre-filled name in sync with the auth session.
+  // Keep the header account button + pre-filled name in sync with the session.
   auth.onAuthStateChanged((user) => {
     window.currentKprUser = user || null;
     hydrateEnquiryFormFromAuth(user);
-    renderClientPortalStatus(user);
+    renderHeaderUserAccount(user);
   });
 
-  // Escape closes the portal (keyboard accessibility)
+  // Escape closes whichever portal overlay is open (keyboard accessibility)
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    const modal = document.getElementById('kprAuthModal');
-    if (modal && !modal.classList.contains('hidden')) closeAuthModal();
+    closeUserDropdown();
+    if (!isPortalOverlayHidden('kprAuthModal')) closeAuthModal();
+    if (!isPortalOverlayHidden('kprOrdersModal')) closeMyOrdersModal();
+  });
+
+  // Any click outside the account button closes the profile dropdown.
+  // (Clicks inside #headerUserAccount are ignored so the button itself can
+  //  toggle the menu without immediately re-opening it.)
+  document.addEventListener('click', (event) => {
+    const wrap = document.getElementById('headerUserAccount');
+    if (!wrap) return;
+    if (event && event.target && wrap.contains(event.target)) return;
+    closeUserDropdown();
   });
 
   // Complete a redirect-based Google sign-in (popup-blocked fallback). The

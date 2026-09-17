@@ -263,7 +263,9 @@
       </div>
     </div>
 
-    ${kprAuthModalHTML()}`;
+    ${kprAuthModalHTML()}
+
+    ${kprOrdersModalHTML()}`;
   }
 
   /* ---------- KPR Client Portal (Sign In / Create Account Modal) ----------
@@ -329,6 +331,27 @@
           <div class="kpr-auth-ssl">
             <span class="kpr-auth-ssl-icon" aria-hidden="true">🛡</span> 256-Bit SSL Encrypted Firebase Authentication
           </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* ---------- My Orders Modal (header account dropdown -> 📦 My Orders) ----------
+     Lists the enquiries submitted by the signed-in client. The rows are rendered
+     by js/app.js -> openMyOrders() (Firestore query on customer.userId). */
+  function kprOrdersModalHTML() {
+    return `
+    <div id="kprOrdersModal" class="kpr-orders-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" onclick="handleOrdersModalBackdrop(event)">
+      <div class="kpr-orders-card">
+        <button type="button" onclick="closeMyOrdersModal()" class="kpr-auth-close" aria-label="Close My Orders">&times;</button>
+
+        <div class="kpr-orders-head">
+          <h2 class="kpr-orders-title">📦 My Orders</h2>
+          <p class="kpr-orders-subtitle">Enquiries placed with this KPR Client account</p>
+        </div>
+
+        <div id="kprOrdersList" class="kpr-orders-list">
+          <div class="kpr-orders-message">Loading your orders…</div>
         </div>
       </div>
     </div>`;

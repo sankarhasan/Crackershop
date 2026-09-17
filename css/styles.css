@@ -5688,7 +5688,11 @@ html.notice-modal-active {
    ========================================================================== */
 
 #kprAuthModal.hidden,
-.kpr-auth-field.hidden {
+#kprOrdersModal.hidden,
+.kpr-auth-field.hidden,
+.header-user-icon.hidden,
+.header-user-avatar.hidden,
+.user-dropdown.hidden {
   display: none !important;
 }
 
@@ -6003,37 +6007,196 @@ body.kpr-auth-open {
   z-index: 1000100;
 }
 
-/* Signed-in chip inside the cart drawer footer (rendered by app.js) */
-.portal-status-row {
-  margin-bottom: 10px;
+/* ==========================================================================
+   HEADER USER ACCOUNT (KPR Client Portal)
+   --------------------------------------------------------------------------
+   Circular account button placed in .header-actions strictly between the phone
+   contacts (.phone-box) and the green cart pill (.cart-widget).
+   Signed out -> deep-green disc with a gold ring and a white user glyph.
+   Signed in -> the Firebase avatar photo fills the disc and a green presence
+   dot appears. (The reference markup was Tailwind/amber-on-white; the site
+   header is a gold gradient, so the palette is adapted for contrast while
+   keeping the same size, position and behaviour.)
+   ========================================================================== */
+
+.header-user-account {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid rgba(10, 92, 54, 0.18);
-  border-radius: 10px;
-  background: rgba(10, 92, 54, 0.06);
-  font-size: 11px;
-  color: var(--deep-green-dark);
+  flex: 0 0 auto;
 }
 
-.portal-status-row .portal-status-user {
+.header-user-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px solid var(--golden-yellow);
+  border-radius: 50%;
+  background: var(--deep-green);
+  color: var(--white);
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(10, 92, 54, 0.25);
+  transition: var(--transition);
+}
+
+.header-user-btn:hover {
+  background: var(--deep-green-light);
+  border-color: var(--white);
+  transform: translateY(-1px) scale(1.05);
+}
+
+.header-user-btn:focus-visible {
+  outline: 2px solid var(--deep-green-dark);
+  outline-offset: 2px;
+}
+
+/* Presence dot — only rendered once a client is signed in */
+.header-user-btn.is-signed-in::after {
+  content: '';
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--white);
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.header-user-icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.header-user-avatar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---------- Signed-in profile dropdown ---------- */
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 1010;
+  min-width: 210px;
+  max-width: 260px;
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--white);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  animation: userDropdownPop 0.16s ease-out;
+}
+
+@keyframes userDropdownPop {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.user-dropdown-head {
+  padding: 8px 10px 10px 10px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.user-dropdown-name {
+  color: var(--text-dark);
+  font-size: 0.78rem;
   font-weight: 700;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.portal-status-row .portal-status-action {
-  flex-shrink: 0;
+.user-dropdown-email {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-dropdown-item {
+  width: 100%;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: var(--festive-red);
-  font-size: 11px;
-  font-weight: 700;
+  color: var(--text-dark);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-align: left;
   cursor: pointer;
-  text-decoration: underline;
+  transition: var(--transition);
+}
+
+.user-dropdown-item:hover {
+  background: rgba(10, 92, 54, 0.08);
+  color: var(--deep-green-dark);
+}
+
+.user-dropdown-item.user-dropdown-signout {
+  margin-top: 4px;
+  border-top: 1px solid var(--border-color);
+  border-radius: 0 0 8px 8px;
+  color: var(--festive-red);
+  font-weight: 700;
+}
+
+.user-dropdown-item.user-dropdown-signout:hover {
+  background: rgba(212, 33, 61, 0.08);
+  color: var(--festive-red-dark);
+}
+
+.user-dropdown-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+/* Mobile: keep the account button comfortably tappable next to the cart pill */
+@media (max-width: 768px) {
+  .header-user-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .header-user-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 400px) {
+  .header-user-btn {
+    width: 32px;
+    height: 32px;
+    border-width: 2px;
+  }
+
+  .header-user-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .user-dropdown {
+    min-width: 190px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -6059,6 +6222,12 @@ body.kpr-auth-open {
   text-align: left;
 }
 
+/* Hidden state — used by clearAuthNotice() so the box can be hidden by class
+   (matching showAuthNotice()'s classList.remove('hidden')) or by inline style. */
+.kpr-auth-error.hidden {
+  display: none !important;
+}
+
 /* Variants used by showAuthNotice(message, 'success' | 'info') */
 .kpr-auth-error.is-success {
   border-color: #bbf7d0;
@@ -6070,6 +6239,147 @@ body.kpr-auth-open {
   border-color: #bfdbfe;
   background: #eff6ff;
   color: #1d4ed8;
+}
+
+/* ==========================================================================
+   MY ORDERS MODAL (header account dropdown -> 📦 My Orders)
+   Lists the Firebase enquiries belonging to the signed-in client
+   (customer.userId === auth uid). Markup injected by js/components.js; the
+   list itself is rendered by app.js -> openMyOrders().
+   ========================================================================== */
+
+.kpr-orders-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.kpr-orders-card {
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--white);
+  border: 1px solid #f3f4f6;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  animation: kprAuthPop 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kpr-orders-head {
+  padding: 22px 24px 14px 24px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.kpr-orders-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.kpr-orders-subtitle {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.kpr-orders-list {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.kpr-order-row {
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--light-gray);
+}
+
+.kpr-order-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kpr-order-id {
+  color: var(--deep-green-dark);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.kpr-order-status {
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(10, 92, 54, 0.12);
+  color: var(--deep-green-dark);
+}
+
+.kpr-order-status.status-new { background: rgba(212, 33, 61, 0.12); color: var(--festive-red-dark); }
+.kpr-order-status.status-contacted { background: rgba(255, 215, 0, 0.28); color: #7a5c00; }
+.kpr-order-status.status-resolved { background: rgba(16, 185, 129, 0.18); color: #065f46; }
+
+.kpr-order-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.kpr-order-meta strong {
+  color: var(--text-dark);
+}
+
+.kpr-orders-message {
+  padding: 22px 18px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.kpr-orders-message strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-dark);
+  font-size: 0.86rem;
+}
+
+.kpr-orders-cta {
+  margin-top: 14px;
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  background: var(--deep-green);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.kpr-orders-cta:hover {
+  background: var(--deep-green-dark);
 }
 
 
