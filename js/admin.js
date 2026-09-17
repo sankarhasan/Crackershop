@@ -272,6 +272,7 @@ function onAdminAuthenticated() {
             const customer = d.customer || {};
             return {
               docId: doc.id,
+              orderId: d.orderId || '',
               name: customer.name || d.name || '',
               phone: customer.phone || d.phone || '',
               deliveryAddress: customer.deliveryAddress || d.deliveryAddress || customer.address || '',
@@ -525,9 +526,13 @@ function renderEnquiriesTable() {
       orderTotal = `₹${total.toLocaleString('en-IN')}`;
     }
     
+    // Display clean branded Order ID (KPR-2026-8492) when available,
+    // otherwise fall back to a short doc ID fragment for legacy records.
+    const displayOrderId = enq.orderId || ('#' + (enq.docId || '').substring(0, 6).toUpperCase());
+    
     tbody.innerHTML += `
       <tr>
-        <td>#${escapeHtml((enq.docId || '').substring(0, 6))}</td>
+        <td>#${escapeHtml(displayOrderId)}</td>
         <td>${formattedDate}</td>
         <td>
           <strong>${escapeHtml(enq.name || '')}</strong><br>
@@ -576,6 +581,7 @@ function listenToEnquiries() {
         const customer = d.customer || {};
         return {
           docId: doc.id,
+          orderId: d.orderId || '',
           name: customer.name || d.name || '',
           phone: customer.phone || d.phone || '',
           deliveryAddress: customer.deliveryAddress || d.deliveryAddress || customer.address || '',
@@ -747,9 +753,13 @@ function renderRecentEnquiriesMiniTable() {
       catName = match ? match.name : enq.category;
     }
     
+    // Display clean branded Order ID (KPR-2026-8492) when available,
+    // otherwise fall back to a short doc ID fragment for legacy records.
+    const displayOrderId = enq.orderId || ('#' + (enq.docId || '').substring(0, 6).toUpperCase());
+    
     tbody.innerHTML += `
       <tr>
-        <td>#${(enq.docId || '').substring(0, 6)}</td>
+        <td>#${escapeHtml(displayOrderId)}</td>
         <td><strong>${escapeHtml(enq.name)}</strong></td>
         <td><a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">📞 ${escapeHtml(enq.phone)}</a></td>
         <td>${catName}</td>
@@ -2262,6 +2272,11 @@ function openEnquiryModal(id) {
   }
 
   document.getElementById('enquiry-modal-id').value = enq.docId;
+  // Display clean branded Order ID (KPR-2026-8492) when available,
+  // otherwise fall back to a short doc ID fragment for legacy records.
+  const modalOrderId = enq.orderId || ('#' + (enq.docId || '').substring(0, 6).toUpperCase());
+  const orderIdEl = document.getElementById('enquiry-modal-order-id');
+  if (orderIdEl) orderIdEl.innerText = '#' + modalOrderId;
   document.getElementById('enquiry-modal-name').innerText = enq.name;
   document.getElementById('enquiry-modal-phone').innerHTML = `<a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">${enq.phone} 🚀 (Send WA Message)</a>`;
   document.getElementById('enquiry-modal-email').innerText = enq.deliveryAddress || 'N/A';

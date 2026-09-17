@@ -186,6 +186,19 @@ document.addEventListener('DOMContentLoaded', () => {
   initEnquiryForm();
   initWhatsAppWidget();
   initScrollAnimations();
+  
+  // CRITICAL FIX: Force scroll to top and dispatch synthetic scroll/resize
+  // events immediately after animations are initialized. This ensures AOS /
+  // IntersectionObserver-animated containers render instantly when navigating
+  // to this page via JS view switchers (e.g. clicking "Add to Cart" on the
+  // enquiry page) — without this, elements stay at opacity:0 until a manual
+  // scroll event fires.
+  setTimeout(() => {
+    forceRevealScrollReset();
+    // Reveal any fade-in-up elements that are ALREADY within the viewport
+    revealAllFadeInUp();
+  }, 50);
+  
   initNavbarScroll();
   loadCartFromStorage();
   initPreloader();
@@ -2138,9 +2151,20 @@ function resetCouponState() {
 /* ==========================================================================
    7. Enquiry Form submission
    ========================================================================== */
-function openSuccessModal() {
+function openSuccessModal(orderId) {
   const overlay = document.getElementById('success-modal-overlay');
   if (!overlay) return;
+
+  // Display the branded Order ID (e.g. KPR-2026-8492) in the success modal
+  const orderIdEl = document.getElementById('success-modal-order-id');
+  if (orderIdEl) {
+    if (orderId) {
+      orderIdEl.textContent = 'Your Order ID: ' + orderId;
+      orderIdEl.style.display = 'block';
+    } else {
+      orderIdEl.style.display = 'none';
+    }
+  }
 
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden', 'false');
@@ -2298,8 +2322,17 @@ function initEnquiryForm() {
         };
       });
       
+      // Generate a clean branded Order ID (e.g. KPR-2026-8492) for this enquiry.
+      // The same ID is passed to saveEnquiryToFirestore (which keeps it if present)
+      // and to the success modal so the customer sees their reference number.
+      const generatedOrderId = (typeof generateUniqueOrderId === 'function')
+        ? generateUniqueOrderId()
+        : ('KPR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000));
+      
       // Build the structured payload with ALL Order Summary fields
       const enquiryPayload = {
+        // Branded Order ID (e.g. KPR-2026-8492)
+        orderId: generatedOrderId,
         // Customer Details
         customer: {
           name,
@@ -2363,8 +2396,9 @@ function initEnquiryForm() {
           // Reset the Order Summary card to zero state after submission
           populateOrderSummaryFromCart();
           
-          // Trigger the existing Thank You pop-up (Success Modal)
-          openSuccessModal();
+          // Trigger the existing Thank You pop-up (Success Modal) with the
+          // branded Order ID so the customer sees their reference number.
+          openSuccessModal(generatedOrderId);
           
           // Trigger explosive festive confetti animation (fullscreen)
           triggerSuccessConfetti();
@@ -2428,10 +2462,18 @@ function initWhatsAppWidget() {
     const phone = document.getElementById('wa-phone').value;
     const msg = document.getElementById('wa-msg').value;
     
+    // Generate a clean branded Order ID (e.g. KPR-2026-8492) for this WhatsApp
+    // widget enquiry so it also appears with a clean reference in the admin panel.
+    const waOrderId = (typeof generateUniqueOrderId === 'function')
+      ? generateUniqueOrderId()
+      : ('KPR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000));
+    
     // Build a structured payload matching the admin panel's enquiry schema
     // (customer object + message). This lets WhatsApp Quick Widget enquiries
     // appear in the admin dashboard exactly like full checkout enquiries.
     const enquiryPayload = {
+      // Branded Order ID (e.g. KPR-2026-8492)
+      orderId: waOrderId,
       customer: {
         name,
         phone,
@@ -2626,6 +2668,31 @@ function highlightNavLink() {
 /* ==========================================================================
    11. Scroll Animations (IntersectionObserver)
    ========================================================================== */
+
+/**
+ * Force-reveal every element carrying the .fade-in-up class by adding
+ * .visible (opacity:1, transform:none). This is the CRITICAL fix for the
+ * "blank screen" bug when navigating to a page via JS link switches —
+ * without a real scroll event, the IntersectionObserver may never fire
+ * and elements stay hidden at opacity:0.
+ */
+function revealAllFadeInUp() {
+  document.querySelectorAll('.fade-in-up').forEach(el => el.classList.add('visible'));
+}
+
+/**
+ * Trigger a synthetic scroll + resize event so any lazy-loaders,
+ * IntersectionObservers, or scroll-triggered logic re-evaluate immediately.
+ * Also forces window.scrollTo(0,0) — matching the "instant" scroll reset.
+ */
+function forceRevealScrollReset() {
+  try { window.scrollTo(0, 0); } catch (e) {}
+  
+  // Dispatch synthetic events so observers/listeners re-run instantly
+  window.dispatchEvent(new Event('scroll'));
+  window.dispatchEvent(new Event('resize'));
+}
+
 function initScrollAnimations() {
   const animElements = document.querySelectorAll('.fade-in-up');
   
@@ -2640,10 +2707,69 @@ function initScrollAnimations() {
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
     
     animElements.forEach(el => observer.observe(el));
+
+    // IMMEDIATE FALLBACK #1: After the observer is set up, scan elements that
+    // are ALREADY within the viewport and reveal them right away. This prevents
+    // a blank screen when arriving at a page via JS navigation (e.g. clicking
+    // "Add to Cart" on the enquiry page → products.html) because the browser
+    // does NOT fire a scroll event during programmatic view switching.
+    setTimeout(() => {
+      const nowVisible = document.querySelectorAll('.fade-in-up:not(.visible)');
+      nowVisible.forEach(el => {
+        const rect = el.getBoundingClientRect();
+        const isInViewport = (
+          rect.top < (window.innerHeight - 50) &&
+          rect.bottom > 0
+        );
+        if (isInViewport) {
+          el.classList.add('visible');
+          observer.unobserve(el);
+        }
+      });
+      
+      // IMMEDIATE FALLBACK #2: Safety net — after the preloader's 2s minimum
+      // display + fade-out (700ms), force-reveal everything that is still
+      // hidden. This guarantees no section remains invisible even if the
+      // observer failed for any reason (layout shift, scroll restoration,
+      // preloader overlay interfering with IntersectionObserver, etc.).
+      setTimeout(() => {
+        revealAllFadeInUp();
+        // Also dispatch synthetic scroll + resize so any other lazy-loaded
+        // content (images, iframes) is triggered to load immediately.
+        forceRevealScrollReset();
+      }, 3200);
+    }, 100);
+    
+    // IMMEDIATE FALLBACK #3: On any manual scroll, immediately reveal any
+    // remaining hidden fade-in-up elements that enter the viewport. This
+    // covers the edge case where the observer's -50px rootMargin causes
+    // elements right at the bottom edge to stay hidden.
+    window.addEventListener('scroll', function onScrollReveal() {
+      document.querySelectorAll('.fade-in-up:not(.visible)').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        const isInViewport = (
+          rect.top < (window.innerHeight - 50) &&
+          rect.bottom > 0
+        );
+        if (isInViewport) {
+          el.classList.add('visible');
+          observer.unobserve(el);
+        }
+      });
+    }, { passive: true });
+    
   } else {
-    // Fallback
+    // Fallback for browsers without IntersectionObserver: reveal everything
     animElements.forEach(el => el.classList.add('visible'));
   }
+}
+
+// Expose animation helpers globally so they can be called from any inline
+// onclick handler or external script (e.g. after a JS view switcher shows
+// the products page, the caller can invoke window.forceRevealScrollReset()).
+if (typeof window !== 'undefined') {
+  window.revealAllFadeInUp = revealAllFadeInUp;
+  window.forceRevealScrollReset = forceRevealScrollReset;
 }
 
 /* ==========================================================================

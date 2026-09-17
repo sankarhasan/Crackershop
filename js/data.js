@@ -146,6 +146,24 @@ function saveEnquiries(enquiries) {
 }
 
 /**
+ * Generate a unique, branded, human-readable Order ID.
+ * Format: KPR-YYYY-NNNN (e.g. KPR-2026-8492)
+ * Uses timestamp + random digits to guarantee uniqueness across rapid submissions.
+ * @returns {string} - The generated order ID (e.g. "KPR-2026-8492")
+ */
+function generateUniqueOrderId() {
+  const prefix = 'KPR';
+  const year = new Date().getFullYear();
+  // Combine timestamp-based sequence + random digits for uniqueness
+  const timePart = String(Date.now()).slice(-4);
+  const randomPart = Math.floor(100 + Math.random() * 900); // 3-digit random
+  const randomNum = String(timePart).padStart(4, '0') + String(randomPart).padStart(3, '0');
+  // Take last 4 digits to keep it clean: KPR-2026-8492
+  const uniqueNum = randomNum.slice(-4);
+  return `${prefix}-${year}-${uniqueNum}`;
+}
+
+/**
  * Persist a customer enquiry directly to the Firestore "enquiries" collection.
  * Uses the shared compat-SDK handle (window.db) initialized in
  * firebase-config.js. A server-side timestamp is ALWAYS attached because the
@@ -162,15 +180,20 @@ function saveEnquiryToFirestore(enquiryData) {
     return Promise.reject(new Error('Firestore is not initialized.'));
   }
 
+  // Generate a clean branded Order ID (e.g. KPR-2026-8492) for every new enquiry.
+  // If the caller already provided an orderId (e.g. WhatsApp widget), keep it.
+  const orderId = enquiryData.orderId || generateUniqueOrderId();
+
   const payload = {
     ...enquiryData,
+    orderId: orderId,
     status: enquiryData.status || 'new',
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
 
   return window.db.collection('enquiries').add(payload)
     .then((docRef) => {
-      console.log('[Firestore] Enquiry saved with ID:', docRef.id);
+      console.log('[Firestore] Enquiry saved with ID:', docRef.id, 'Order ID:', orderId);
       return docRef.id;
     })
     .catch((error) => {
@@ -179,9 +202,10 @@ function saveEnquiryToFirestore(enquiryData) {
     });
 }
 
-// Expose the helper globally so it is reachable from app.js (classic scripts).
+// Expose the helpers globally so they are reachable from app.js (classic scripts).
 if (typeof window !== 'undefined') {
   window.saveEnquiryToFirestore = saveEnquiryToFirestore;
+  window.generateUniqueOrderId = generateUniqueOrderId;
 }
 
 // Helper to generate next unique ID

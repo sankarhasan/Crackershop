@@ -256,6 +256,7 @@
         <p class="success-modal-message">
           Your enquiry has been submitted successfully. Our team will contact you shortly.
         </p>
+        <div class="success-modal-order-id" id="success-modal-order-id" style="display: none; margin-top: 12px; padding: 10px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-weight: 700; color: #166534; font-size: 1.1rem;"></div>
         <button id="success-modal-ok" class="success-modal-ok-btn" type="button">
           OK
         </button>
@@ -272,7 +273,7 @@
           <!-- Empty cart notice: shown by updateCartUI() only when the cart has 0 items -->
           <div id="empty-cart-notice" class="empty-cart-notice" style="display: none;">
             <p class="empty-cart-notice-text"><img src="Icons/warning.png" alt="Warning" class="empty-cart-notice-warning-icon"> <span><strong>Please Note:</strong> You haven't added any crackers to your cart yet. Please add products to your cart before sending an enquiry!</span></p>
-            <a href="products.html" class="empty-cart-notice-btn">
+            <a href="products.html" class="empty-cart-notice-btn" onclick="forceRevealScrollReset()">
               <img src="Icons/Right arrow.png" alt="" class="empty-cart-notice-arrow">
               <span>Add to Cart</span>
             </a>
