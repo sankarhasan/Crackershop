@@ -530,10 +530,29 @@ function initCarousel() {
     const banner = banners[index];
     if (!banner) return;
 
-    // Tagline badge is intentionally hidden across ALL banner slides.
+    // Tagline badge: animated 4-point SVG sparkle prefix + the slide's tagline
+    // text. The SVG uses fill="currentColor" so it matches the badge text.
+    // Rendered on every slide that HAS a tagline; only hidden when the tagline
+    // is empty/whitespace (after stripping any leading emoji).
     if (slideBadge) {
-      slideBadge.innerHTML = '';
-      slideBadge.style.display = 'none';
+      const cleanTagline = (banner.tagline || '')
+        .replace(/^[\u2190-\u21FF\uD800-\uDFFF\u2600-\u27BF\uFE0F\s]+/, '')
+        .trim();
+      if (!cleanTagline) {
+        slideBadge.innerHTML = '';
+        slideBadge.style.display = 'none';
+      } else {
+        const sparkleSvg = '<svg class="hero-badge-sparkle" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false" style="flex-shrink:0;">' +
+          '<path d="M12 2L14.26 9.74L22 12L14.26 14.26L12 22L9.74 14.26L2 12L9.74 9.74L12 2Z"/></svg>';
+        // SVG above is a static literal (safe); tagline text is set via textContent.
+        slideBadge.innerHTML = sparkleSvg;
+        const tagText = document.createElement('span');
+        tagText.textContent = cleanTagline;
+        slideBadge.appendChild(tagText);
+        slideBadge.style.display = 'inline-flex';
+        slideBadge.style.alignItems = 'center';
+        slideBadge.style.gap = '6px';
+      }
     }
     if (slideTitle) slideTitle.textContent = banner.headingTitle || '';
     if (slideSubtitle) {
