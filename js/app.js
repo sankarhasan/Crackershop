@@ -506,10 +506,12 @@ function initCarousel() {
   }
 
   // Default unique background gradient per banner (keyed by 1-based banner number).
+  // Premium dark theme (no bright orange) so the yellow heading + emerald buttons
+  // keep high contrast.
   const bannerGradients = {
-    1: 'linear-gradient(135deg, #d94600 0%, #e65c00 50%, #f27100 100%)', // Orange Festive Glow
+    1: 'linear-gradient(to bottom, #0c0a09 0%, #450a0a 50%, #1c1917 100%)', // Stone -> deep red -> stone (premium dark)
     2: 'linear-gradient(135deg, #180938 0%, #290a59 50%, #1c063b 100%)', // Royal Purple Night
-    3: 'linear-gradient(135deg, #c20058 0%, #ea3800 50%, #f58200 100%)', // Magenta to Gold
+    3: 'linear-gradient(to right, #450a0a 0%, #171717 50%, #020617 100%)', // Ember red -> neutral -> slate (premium dark)
     4: 'linear-gradient(135deg, #4a090a 0%, #630c0e 50%, #3b0506 100%)'  // Deep Crimson Gold
   };
 

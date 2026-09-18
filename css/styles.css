@@ -846,7 +846,7 @@ section {
   height: 450px !important;   /* strict fixed uniform desktop height (beats legacy per-breakpoint heights) */
   overflow: hidden;
   /* Default = Banner 1 gradient; js/app.js swaps per slide via applyBannerBackground() */
-  background: linear-gradient(135deg, #d94600 0%, #e65c00 50%, #f27100 100%);
+  background: linear-gradient(to bottom, #0c0a09 0%, #450a0a 50%, #1c1917 100%);
   transition: background 0.7s ease-in-out;
   display: flex;
   align-items: center;
@@ -856,7 +856,7 @@ section {
   position: relative;
   width: 100%;
   height: 100%;           /* fill the fixed-height section */
-  background: linear-gradient(135deg, #d94600 0%, #e65c00 50%, #f27100 100%);
+  background: linear-gradient(to bottom, #0c0a09 0%, #450a0a 50%, #1c1917 100%);
   transition: background 0.7s ease-in-out;
   display: flex;
   align-items: center;
@@ -1209,7 +1209,7 @@ section {
 @media (max-width: 767px) {
   .hero-section {
     /* Strict fixed uniform height so EVERY slide renders identically */
-    height: 520px !important;   /* beats legacy per-breakpoint mobile heights */
+    height: 460px !important;   /* reduced by 50px from 510px (mobile only) */
     min-height: 0;
     max-height: none;
     overflow: visible;      /* was hidden on the base rule -> was cutting off the top text */
@@ -1222,14 +1222,14 @@ section {
     min-height: 0;
     max-height: none;
     overflow: visible;
-    padding: 40px 0 56px;   /* top clearance under sticky header + bottom clearance for dots */
+    padding: 24px 0 34px;   /* compact pt-6/pb: still reserves room so dots clear the buttons */
     box-sizing: border-box;
   }
 
   .hero-slides-grid {
     grid-template-columns: 1fr;
     gap: 0;
-    padding: 0 16px;
+    padding: 0 20px;        /* keep text clear of the left/right carousel arrows */
     min-height: auto;
     overflow: visible;
   }
@@ -1243,10 +1243,12 @@ section {
   .hero-slide-content {
     order: 1;
     align-items: center;
+    justify-content: center;  /* keep the block vertically centered inside the fixed frame */
     text-align: center;
-    gap: 16px;              /* gap-4 between badge, title, subtitle, description, buttons */
+    gap: 16px;              /* space-y-4: more generous rhythm between badge/title/desc/buttons */
     margin-top: 0;
-    padding-top: 8px;       /* keep the tagline badge clear of the header */
+    padding-top: 6px;       /* keep the tagline badge clear of the header */
+    padding-bottom: 6px;    /* balanced bottom breathing room */
   }
 
   .hero-badge {
@@ -1256,7 +1258,7 @@ section {
   }
 
   .hero-title {
-    font-size: 1.75rem;
+    font-size: 1.375rem;    /* compact, crisp heading on mobile */
   }
 
   .hero-subtitle {
@@ -1274,25 +1276,25 @@ section {
     flex-direction: column;   /* one below the other */
     align-items: stretch;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
     width: 100%;
     max-width: 320px;         /* max-w-xs */
     margin-left: auto;
     margin-right: auto;
-    margin-top: 8px;
-    padding-top: 20px;
+    margin-top: 6px;
+    padding-top: 12px;      /* extra separation above the buttons (pt-3) */
   }
 
   .hero-btn {
     flex: 0 0 auto;           /* natural height, no vertical stretching */
     width: 100%;              /* full width of the stacked column */
-    padding: 12px 18px;       /* identical height/padding for both buttons */
+    padding: 9px 16px;        /* compact button height */
     font-size: 0.8125rem;
   }
 
   /* Nudge pagination dots a touch lower so they never sit under the buttons */
   .carousel-indicators {
-    bottom: 18px;
+    bottom: 12px;
   }
 
   /* The "DIWALI BIG SALE" offer card sits right below the hero. This codebase has
