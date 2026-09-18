@@ -1,5 +1,20 @@
 // KPR Crackers - Storefront Logic (app.js)
 
+// Force Load Font Awesome 6 CDN dynamically if missing
+(function loadFontAwesome() {
+  if (document.getElementById('font-awesome-cdn')) return;
+  // Skip when a static <link> for Font Awesome is already present in <head>.
+  if (document.querySelector('link[href*="font-awesome"]')) return;
+  const link = document.createElement('link');
+  link.id = 'font-awesome-cdn';
+  link.rel = 'stylesheet';
+  link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
+  link.crossOrigin = 'anonymous';
+  link.referrerPolicy = 'no-referrer';
+  document.head.appendChild(link);
+  console.log("Font Awesome forced loaded successfully.");
+})();
+
 // Global State variables
 let cart = [];
 let activeCategory = 'all';
@@ -572,17 +587,17 @@ function renderCategoriesGrid() {
       
       // Create random or distinct gradient placeholders (fallback only)
       const emojiMap = {
-        'ground-chakkars': '🌀',
-        'flower-pots': '🌋',
-        'fancy-fountains': '⛲',
-        'pencils': '✏️',
-        'sparklers': '✨',
-        'atom-bombs': '💣',
-        'rockets': '🚀',
-        'bijili-crackers': '⚡',
-        'combo-packs': '🎁'
+        'ground-chakkars': '<i class="fa-solid fa-tornado"></i>',
+        'flower-pots': '<i class="fa-solid fa-volcano"></i>',
+        'fancy-fountains': '<i class="fa-solid fa-fountain"></i>',
+        'pencils': '<i class="fa-solid fa-pencil"></i>',
+        'sparklers': '<i class="fa-solid fa-wand-magic-sparkles"></i>',
+        'atom-bombs': '<i class="fa-solid fa-bomb"></i>',
+        'rockets': '<i class="fa-solid fa-rocket"></i>',
+        'bijili-crackers': '<i class="fa-solid fa-bolt"></i>',
+        'combo-packs': '<i class="fa-solid fa-gift"></i>'
       };
-      const emoji = emojiMap[cat.slug] || '🎆';
+      const emoji = emojiMap[cat.slug] || '<i class="fa-solid fa-fire"></i>';
       // Calculate bgClass using category letter position (A=1, B=2, etc.)
       const catLetter = String(cat.id).toUpperCase();
       const bgClass = `cat-g-${(catLetter.charCodeAt(0) - 64) % 9 + 1}`;
@@ -606,7 +621,7 @@ function renderCategoriesGrid() {
         <div class="category-overlay"></div>
         <div class="category-info">
           <h3 class="category-name">${escapeHtml(cat.name)}</h3>
-          <span class="category-link">View Collection ➔</span>
+          <span class="category-link">View Collection <i class="fa-solid fa-arrow-right"></i></span>
         </div>
       `;
       grid.appendChild(card);
@@ -845,7 +860,7 @@ function renderProductsCatalog() {
   if (filtered.length === 0) {
     grid.innerHTML = `
       <div class="product-card-placeholder">
-        🔍 No firecrackers match your search description. Try another keyword!
+        <i class="fa-solid fa-magnifying-glass"></i> No firecrackers match your search description. Try another keyword!
       </div>
     `;
     return;
@@ -858,8 +873,8 @@ function renderProductsCatalog() {
     // Category mapping for colorful placeholder background - use string letter position
     const catLetter = String(prod.categoryId).toUpperCase();
     const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1; // A=1, B=2, etc.
-    const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁', 10: '🌀', 11: '🌋', 12: '⛲' };
-    const emoji = emojiMap[bgIndex] || '🎆';
+    const emojiMap = { 1: '<i class="fa-solid fa-tornado"></i>', 2: '<i class="fa-solid fa-volcano"></i>', 3: '<i class="fa-solid fa-fountain"></i>', 4: '<i class="fa-solid fa-pencil"></i>', 5: '<i class="fa-solid fa-wand-magic-sparkles"></i>', 6: '<i class="fa-solid fa-bomb"></i>', 7: '<i class="fa-solid fa-rocket"></i>', 8: '<i class="fa-solid fa-bolt"></i>', 9: '<i class="fa-solid fa-gift"></i>', 10: '<i class="fa-solid fa-tornado"></i>', 11: '<i class="fa-solid fa-volcano"></i>', 12: '<i class="fa-solid fa-fountain"></i>' };
+    const emoji = emojiMap[bgIndex] || '<i class="fa-solid fa-fire"></i>';
     
     // Check quantity in cart
     const cartItem = cart.find(item => String(item.id) === String(prod.id));
@@ -877,6 +892,7 @@ function renderProductsCatalog() {
       <div class="card-img-container">
         ${cardImgContent}
         ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
+        ${getWishlistBtnHTML(prod.id)}
       </div>
       <div class="product-card-body">
         <h3 class="product-card-title">${prod.name}</h3>
@@ -1037,8 +1053,8 @@ function createMobileProductCard(prod, cartQty) {
   // Use string letter position for bgIndex (A=1, B=2, etc.)
   const catLetter = String(prod.categoryId).toUpperCase();
   const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1;
-  const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁', 10: '🌀', 11: '🌋', 12: '⛲' };
-  const emoji = emojiMap[bgIndex] || '🎆';
+  const emojiMap = { 1: '<i class="fa-solid fa-tornado"></i>', 2: '<i class="fa-solid fa-volcano"></i>', 3: '<i class="fa-solid fa-fountain"></i>', 4: '<i class="fa-solid fa-pencil"></i>', 5: '<i class="fa-solid fa-wand-magic-sparkles"></i>', 6: '<i class="fa-solid fa-bomb"></i>', 7: '<i class="fa-solid fa-rocket"></i>', 8: '<i class="fa-solid fa-bolt"></i>', 9: '<i class="fa-solid fa-gift"></i>', 10: '<i class="fa-solid fa-tornado"></i>', 11: '<i class="fa-solid fa-volcano"></i>', 12: '<i class="fa-solid fa-fountain"></i>' };
+  const emoji = emojiMap[bgIndex] || '<i class="fa-solid fa-fire"></i>';
 
   let cardImgContent = `<div class="card-placeholder-bg p-bg-${bgIndex}">${emoji}</div>`;
   if (prod.image) {
@@ -1052,6 +1068,7 @@ function createMobileProductCard(prod, cartQty) {
      <div class="card-img-container">
        ${cardImgContent}
        ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
+       ${getWishlistBtnHTML(prod.id)}
      </div>
      <div class="product-card-body">
       <h3 class="product-card-title">${prod.name}</h3>
@@ -1318,7 +1335,7 @@ function renderTestimonialsSlider() {
     // Stars
     let starsHtml = '';
     for (let i = 1; i <= 5; i++) {
-      starsHtml += i <= test.rating ? '★' : '☆';
+      starsHtml += i <= test.rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
     }
     
     card.innerHTML = `
@@ -1326,7 +1343,7 @@ function renderTestimonialsSlider() {
         <div class="avatar-circle">${initials}</div>
         <div class="avatar-info">
           <h4>${test.name}</h4>
-          <span>📍 ${test.location}</span>
+          <span><i class="fa-solid fa-location-dot"></i> ${test.location}</span>
         </div>
       </div>
       <div class="star-rating">${starsHtml}</div>
@@ -1502,7 +1519,7 @@ function updateCartUI() {
   if (cart.length === 0) {
     container.innerHTML = `
       <div class="empty-cart-message">
-        <span class="empty-cart-icon">🛒</span>
+        <span class="empty-cart-icon"><i class="fa-solid fa-cart-shopping"></i></span>
         <p>Your cart is empty!</p>
         <p class="sub-text">Add at least ₹${MINIMUM_ORDER_VALUE.toLocaleString()} worth of firecrackers to place an enquiry.</p>
         <button class="btn btn-primary" onclick="toggleCartDrawer()">Continue Shopping</button>
@@ -1529,8 +1546,8 @@ function updateCartUI() {
     itemRow.className = 'cart-item';
     
     const bgIndex = (getCartItemCategoryNumber(item.categoryId) % 9) + 1;
-    const emojiMap = { 1: '🌀', 2: '🌋', 3: '⛲', 4: '✏️', 5: '✨', 6: '💣', 7: '🚀', 8: '⚡', 9: '🎁' };
-    const emoji = emojiMap[bgIndex] || '🎆';
+    const emojiMap = { 1: '<i class="fa-solid fa-tornado"></i>', 2: '<i class="fa-solid fa-volcano"></i>', 3: '<i class="fa-solid fa-fountain"></i>', 4: '<i class="fa-solid fa-pencil"></i>', 5: '<i class="fa-solid fa-wand-magic-sparkles"></i>', 6: '<i class="fa-solid fa-bomb"></i>', 7: '<i class="fa-solid fa-rocket"></i>', 8: '<i class="fa-solid fa-bolt"></i>', 9: '<i class="fa-solid fa-gift"></i>' };
+    const emoji = emojiMap[bgIndex] || '<i class="fa-solid fa-fire"></i>';
     
 let cartImgContent = `<div class="cart-item-img-placeholder p-bg-${bgIndex}">${emoji}</div>`;
     if (item.image) {
@@ -1646,7 +1663,7 @@ function proceedToCheckoutFlow() {
   // Auto scroll to enquiry form
   const enquirySection = document.getElementById('quick-enquiry');
   if (enquirySection) enquirySection.scrollIntoView({ behavior: 'smooth' });
-  showToast('Please fill in your details below to complete the enquiry! 📝', 'info');
+  showToast('Please fill in your details below to complete the enquiry!', 'info');
 }
 
 /* ==========================================================================
@@ -2131,7 +2148,7 @@ function renderAppliedCouponsList() {
     item.className = 'coupon-stack-item';
     item.innerHTML = `
       <span class="coupon-code-name">${escapeHtml(coupon.code)}</span>
-      <span class="coupon-checkmark">✓</span>
+      <span class="coupon-checkmark"><i class="fa-solid fa-check"></i></span>
     `;
     container.appendChild(item);
   });
@@ -2296,8 +2313,10 @@ function initEnquiryForm() {
       const state = selectedStateName || "Tamil Nadu";
       // Optional enquiry message field
       const enquiryMessage = document.getElementById('enquiry-message')?.value.trim() || "";
-      
-      console.log('[Enquiry] Data:', { name, phone, address, pincode, state, enquiryMessage });
+      // Optional contact email (auto-filled from the signed-in KPR account)
+      const enquiryEmail = document.getElementById('enquiry-email')?.value.trim() || "";
+
+      console.log('[Enquiry] Data:', { name, phone, email: enquiryEmail, address, pincode, state, enquiryMessage });
     
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn ? submitBtn.innerText : '';
@@ -2321,7 +2340,7 @@ function initEnquiryForm() {
     if (!window.db) {
       clearTimeout(safetyTimeout);
       console.error('[Enquiry] ✗ window.db is NULL. Firestore not initialized.');
-      alert('❌ Sorry, the enquiry service is temporarily unavailable. Please reach us on WhatsApp.');
+      alert('Sorry, the enquiry service is temporarily unavailable. Please reach us on WhatsApp.');
       showToast('Enquiry service unavailable. Please try again later.', 'error');
       if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = originalBtnText; }
       return;
@@ -2376,7 +2395,9 @@ function initEnquiryForm() {
           state,
           // Firebase Auth identity of the signed-in client (mandatory at checkout)
           userId: authUser ? authUser.uid : '',
-          email: authUser ? (authUser.email || '') : ''
+          // Customer-typed email wins; otherwise the Firebase identity email
+          // (for mobile-number accounts this is the mapped <number>@kprcrackers.com)
+          email: enquiryEmail || (authUser ? (authUser.email || '') : '')
         },
         // Cart Items Array
         cartItems: cartItemsPayload,
@@ -2426,7 +2447,11 @@ function initEnquiryForm() {
           }
           
           form.reset();
-          
+
+          // Re-fill name / phone / email from the signed-in KPR account so the
+          // next enquiry is pre-populated again after the reset above.
+          hydrateEnquiryFormFromAuth(getKprAuthUser());
+
           // Reset coupon state along with cart and order summary
           resetCouponState();
           
@@ -2452,7 +2477,7 @@ function initEnquiryForm() {
           clearTimeout(safetyTimeout);
           console.error('[Enquiry] ✗ Firestore write FAILED:', err);
           console.error('[Enquiry] Error code:', err.code, 'Message:', err.message);
-          alert('❌ Sorry, something went wrong while submitting your enquiry. Please try again or contact us on WhatsApp.');
+          alert('Sorry, something went wrong while submitting your enquiry. Please try again or contact us on WhatsApp.');
           showToast('Could not submit enquiry. Please try again.', 'error');
           
           // Reset button explicitly in .catch()
@@ -2470,7 +2495,7 @@ function initEnquiryForm() {
       // was never created, so .then()/.catch() never fire.
       clearTimeout(safetyTimeout);
       console.error('[Enquiry] ✗ Synchronous error during payload construction:', syncErr);
-      alert('❌ Sorry, something went wrong while submitting your enquiry. Please try again or contact us on WhatsApp.');
+      alert('Sorry, something went wrong while submitting your enquiry. Please try again or contact us on WhatsApp.');
       showToast('Could not submit enquiry. Please try again.', 'error');
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -2569,7 +2594,7 @@ const textMsg = encodeURIComponent(`Hi KPR Crackers! My name is ${name} (${phone
     // Reset form & close
     popupForm.reset();
     toggleWhatsAppPopup();
-    showToast('Redirecting to WhatsApp chat... 🚀', 'success');
+    showToast('Redirecting to WhatsApp chat... <i class="fa-solid fa-rocket"></i>', 'success');
     
     // Open new tab
     setTimeout(() => {
@@ -2826,7 +2851,7 @@ function showToast(message, type = 'success') {
   
   toast.innerHTML = `
     <span>${message}</span>
-    <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+    <button class="toast-close" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
   `;
   
   container.appendChild(toast);
@@ -3024,6 +3049,89 @@ function getKprUserLabel(user) {
   return user.displayName || user.email || user.phoneNumber || 'KPR Client';
 }
 
+/* ---------- Email OR mobile-number sign-in mapping ----------
+   Firebase Email/Password auth only accepts an email identifier, so a customer
+   who types a 10-digit mobile number (e.g. 9876543210) is transparently mapped
+   to the synthetic address 9876543210@kprcrackers.com. The reverse mapping
+   (authEmailToPhone) lets the enquiry form be pre-filled with the WhatsApp
+   number for mobile-number accounts and detects them again for password reset. */
+const KPR_PHONE_AUTH_DOMAIN = 'kprcrackers.com';
+
+/** Strip spaces / dashes / +91 country code / leading 0 down to 10 digits. */
+function normalizePhoneDigits(value) {
+  let digits = String(value || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  return digits;
+}
+
+/** True when the value is a valid Indian mobile number (starts with 6-9). */
+function isKprPhoneNumber(value) {
+  return /^[6-9]\d{9}$/.test(normalizePhoneDigits(value));
+}
+
+/** 9876543210 -> 9876543210@kprcrackers.com (Firebase Email/Password identifier). */
+function phoneToAuthEmail(phone) {
+  return normalizePhoneDigits(phone) + '@' + KPR_PHONE_AUTH_DOMAIN;
+}
+
+/** 9876543210@kprcrackers.com -> 9876543210 (empty string for real emails). */
+function authEmailToPhone(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  const suffix = '@' + KPR_PHONE_AUTH_DOMAIN;
+  if (!normalized.endsWith(suffix)) return '';
+  const localPart = normalized.slice(0, -suffix.length);
+  return /^[6-9]\d{9}$/.test(localPart) ? localPart : '';
+}
+
+/** True when the Firebase email is the synthetic mobile-number address. */
+function isPhoneBasedAuthEmail(email) {
+  return !!authEmailToPhone(email);
+}
+
+/**
+ * Resolve the portal "Email or 10-digit Phone Number" input into the Firebase
+ * Email/Password identifier.
+ * @param {string} rawValue - Raw text typed into #authEmailOrPhone
+ * @returns {{email: string, phone: string, isPhone: boolean, valid: boolean, message: string}}
+ *   email   - identifier to hand to Firebase (mapped for phone numbers)
+ *   phone   - bare 10-digit number when isPhone, otherwise ''
+ *   isPhone - true when the customer signed in with a mobile number
+ *   valid   - false when the input is neither a valid email nor a 10-digit number
+ *   message - customer-friendly validation copy for the invalid case
+ */
+function resolveAuthIdentifier(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) {
+    return { email: '', phone: '', isPhone: false, valid: false, message: 'Please enter your email address or 10-digit mobile number.' };
+  }
+
+  if (raw.indexOf('@') !== -1) {
+    const email = raw.toLowerCase();
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    return {
+      email: valid ? email : '',
+      phone: '',
+      isPhone: false,
+      valid: valid,
+      message: valid ? '' : 'Please enter a valid email address (e.g. name@example.com).'
+    };
+  }
+
+  if (isKprPhoneNumber(raw)) {
+    const phone = normalizePhoneDigits(raw);
+    return { email: phoneToAuthEmail(phone), phone: phone, isPhone: true, valid: true, message: '' };
+  }
+
+  return {
+    email: '',
+    phone: '',
+    isPhone: false,
+    valid: false,
+    message: 'Please enter a valid email address or a 10-digit mobile number (e.g. 9876543210).'
+  };
+}
+
 /* ---------- Portal modal open / close ---------- */
 function openAuthModal() {
   const modal = document.getElementById('kprAuthModal');
@@ -3035,7 +3143,9 @@ function openAuthModal() {
   modal.setAttribute('aria-hidden', 'false');
   syncPortalScrollLock();
 
-  const emailInput = document.getElementById('authEmail');
+  // Combined "Email or 10-digit Phone Number" identifier field (the legacy
+  // #authEmail id is kept as a fallback for cached pages).
+  const emailInput = document.getElementById('authEmailOrPhone') || document.getElementById('authEmail');
   if (emailInput) setTimeout(() => emailInput.focus(), 60);
 }
 
@@ -3176,9 +3286,10 @@ function getPortalProviderFix(context) {
 function logPortalConfigHint(err, context) {
   const code = (err && err.code) ? err.code : '';
 
-  if (code === 'auth/unauthorized-domain') {
+  if (code === 'auth/unauthorized-domain' || code === 'auth/unauthorized-hosting-domain') {
     console.error('[Portal] Unauthorized domain. Add "' + getPortalCurrentDomain()
-      + '" under Firebase Console > Authentication > Settings > Authorized domains.');
+      + '" under Firebase Console > Authentication > Settings > Authorized domains.'
+      + ' For local previews also add "localhost" and "127.0.0.1".');
     return;
   }
 
@@ -3203,8 +3314,9 @@ function getFirebaseAuthErrorMessage(err, fallback, context) {
   switch (code) {
     /* ---- Firebase Console setup problems: actionable, project-level fixes ---- */
     case 'auth/unauthorized-domain':
-      return 'Domain unauthorized in Firebase Console. Please add "' + getPortalCurrentDomain()
-        + '" under Firebase Authentication > Settings > Authorized Domains.';
+    case 'auth/unauthorized-hosting-domain':
+      return 'This domain is not authorized for sign-in. Please add "' + getPortalCurrentDomain()
+        + '" under Firebase Authentication > Settings > Authorized Domains (add "localhost" too for local previews).';
     case 'auth/operation-not-allowed':
       return providerLabel + ' is not enabled. ' + getPortalProviderFix(context);
     // Raised instead of operation-not-allowed by newer SDK versions when the
@@ -3215,19 +3327,19 @@ function getFirebaseAuthErrorMessage(err, fallback, context) {
 
     /* ---- Customer-side errors ---- */
     case 'auth/invalid-email':
-      return 'Please enter a valid email address.';
+      return 'Please enter a valid email address (e.g. name@example.com) or a 10-digit mobile number.';
     case 'auth/missing-password':
       return 'Please enter your password.';
     case 'auth/user-disabled':
       return 'This account has been disabled. Please contact KPR Crackers support.';
     case 'auth/user-not-found':
-      return 'No account found for this email. Switch to "Create Account" to register.';
+      return 'No account found for this email or mobile number. Switch to "Create Account" to register.';
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
     case 'auth/invalid-login-credentials':
-      return 'Incorrect email or password. Please try again.';
+      return 'Incorrect email / mobile number or password. Please try again.';
     case 'auth/email-already-in-use':
-      return 'This email is already registered. Please sign in instead.';
+      return 'This email or mobile number is already registered. Please sign in instead.';
     case 'auth/weak-password':
       return 'Password is too weak — please use at least 6 characters.';
     case 'auth/too-many-requests':
@@ -3297,12 +3409,15 @@ function handleEmailAuth(event) {
     return;
   }
 
-  const emailInput = document.getElementById('authEmail');
+  // "Email or 10-digit Phone Number" — mobile numbers are mapped internally to
+  // <number>@kprcrackers.com so Firebase Email/Password auth stays compatible.
+  const identifierInput = document.getElementById('authEmailOrPhone') || document.getElementById('authEmail');
   const passwordInput = document.getElementById('authPassword');
   const nameInput = document.getElementById('authName');
   const submitBtn = document.getElementById('authSubmitBtn');
 
-  const email = (emailInput ? emailInput.value : '').trim();
+  const resolved = resolveAuthIdentifier(identifierInput ? identifierInput.value : '');
+  const email = resolved.email;
   const password = passwordInput ? passwordInput.value : '';
   const fullName = (nameInput ? nameInput.value : '').trim();
   const isSignup = (currentAuthTab === 'signup');
@@ -3310,8 +3425,14 @@ function handleEmailAuth(event) {
   const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
   clearAuthNotice();
 
-  if (!email || !password) {
-    showAuthNotice('Please enter both your email address and password.');
+  if (!resolved.valid) {
+    showAuthNotice(resolved.message || 'Please enter a valid email address or a 10-digit mobile number.');
+    if (identifierInput && typeof identifierInput.focus === 'function') identifierInput.focus();
+    return;
+  }
+
+  if (!password) {
+    showAuthNotice('Please enter your password.');
     return;
   }
 
@@ -3380,8 +3501,25 @@ function handleForgotPassword(event) {
     return;
   }
 
-  const emailInput = document.getElementById('authEmail');
+  const emailInput = document.getElementById('authEmailOrPhone') || document.getElementById('authEmail');
   let email = (emailInput ? emailInput.value : '').trim();
+
+  // Validate whatever the customer typed. Mobile-number accounts map to the
+  // synthetic <number>@kprcrackers.com address, which has no real mailbox — a
+  // reset link sent there could never be received, so guide those customers to
+  // WhatsApp support instead of silently firing an undeliverable email.
+  if (email) {
+    const resolved = resolveAuthIdentifier(email);
+    if (resolved.isPhone) {
+      showAuthNotice('Password reset works with email accounts only — mobile-number accounts cannot receive reset emails. Please WhatsApp us at +91 97894 32373 and we will help you reset your password.', 'info');
+      return;
+    }
+    if (!resolved.valid) {
+      showAuthNotice(resolved.message || 'Please enter a valid email address.');
+      return;
+    }
+    email = resolved.email;
+  }
 
   // Reuse the email the customer already typed; otherwise ask for it.
   if (!email) {
@@ -3453,14 +3591,43 @@ function onClientPortalSignedIn(user, method) {
     console.log('[Portal] Resuming the parked checkout action...');
     pending();
   }
+
+  // Save the item the visitor hearted while signed out (auto-save wishlist).
+  const pendingWish = window.pendingWishlistId;
+  window.pendingWishlistId = null;
+  if (pendingWish) toggleWishlistItem(pendingWish, user);
+
+  // Load the saved wishlist and paint every heart button on screen.
+  loadWishlistForUser(user);
 }
 
-/** Pre-fill the enquiry full-name field from the signed-in Firebase profile. */
+/**
+ * Pre-fill the Quick Enquiry form from the signed-in Firebase profile:
+ *   • Full Name       <- Firebase displayName
+ *   • WhatsApp Number <- the mobile number behind phone-mapped accounts
+ *                        (synthetic …@kprcrackers.com email)
+ *   • Email Address   <- the real account email (skipped for phone-mapped
+ *                        accounts, whose "email" is the synthetic address)
+ * Fields the customer has already typed are never overwritten.
+ */
 function hydrateEnquiryFormFromAuth(user) {
   if (!user) return;
+
   const nameInput = document.getElementById('enquiry-name');
   if (nameInput && !nameInput.value.trim() && user.displayName) {
     nameInput.value = user.displayName;
+  }
+
+  const phone = authEmailToPhone(user.email || '');
+  if (phone) {
+    const phoneInput = document.getElementById('enquiry-phone');
+    if (phoneInput && !phoneInput.value.trim()) phoneInput.value = phone;
+    return; // Phone-mapped account: the "email" is synthetic, so nothing to pre-fill there.
+  }
+
+  const emailInput = document.getElementById('enquiry-email');
+  if (emailInput && !emailInput.value.trim() && user.email) {
+    emailInput.value = user.email;
   }
 }
 
@@ -3544,18 +3711,19 @@ function toggleUserDropdown() {
 /**
  * Header user icon click (see index.html -> #userAccountBtn):
  *   • signed out -> KPR Client Portal modal (sign in / create account)
- *   • signed in  -> "My Account" dropdown (📦 My Orders / 🚪 Sign Out)
+ *   • signed in  -> DIRECTLY opens the Client Account Dashboard
+ *                   (#accountDashboardView via openMyOrders) — no dropdown menu.
  */
 function handleHeaderUserClick() {
   if (getKprAuthUser()) {
-    toggleUserDropdown();
+    openMyOrders();
     return;
   }
   openAuthModal();
   showAuthNotice('Sign in or create your KPR Client account to track orders and download receipts.', 'info');
 }
 
-/** Dropdown "🚪 Sign Out" — ends the Firebase session, keeps the cart intact. */
+/** Dropdown "[signout] Sign Out" — ends the Firebase session, keeps the cart intact. */
 function handleSignOut() {
   closeUserDropdown();
   kprSignOut();
@@ -3574,7 +3742,7 @@ function syncPortalScrollLock() {
   document.body.classList.toggle('kpr-auth-open', anyOpen);
 }
 
-/* ---------- My Orders modal (header account dropdown -> 📦 My Orders) ---------- */
+/* ---------- My Orders modal (header account dropdown -> [box] My Orders) ---------- */
 function openMyOrdersModal() {
   const modal = document.getElementById('kprOrdersModal');
   if (!modal) {
@@ -3603,6 +3771,11 @@ function handleOrdersModalBackdrop(event) {
  * List every enquiry this client submitted while signed in. Enquiries store the
  * Firebase identity in `customer.userId` / `customer.email` (written by the
  * enquiry form), so a single equality filter is enough — no composite index.
+ *
+ * Header dropdown -> [box] My Orders opens the dedicated CLIENT ACCOUNT DASHBOARD
+ * view (#accountDashboardView) rendered between the shared header and footer.
+ * Pages without the dashboard view (about / products / contact / …) simply
+ * deep-link to index.html#account, where the dashboard lives.
  */
 function openMyOrders() {
   closeUserDropdown();
@@ -3614,11 +3787,96 @@ function openMyOrders() {
     return;
   }
 
-  openMyOrdersModal();
-  renderMyOrdersLoading(user);
+  // Pages without the dashboard view redirect to the homepage anchor.
+  if (!document.getElementById('accountDashboardView')) {
+    try { sessionStorage.setItem('kpr_open_account_dashboard', '1'); } catch (e) {}
+    window.location.href = 'index.html#account';
+    return;
+  }
+
+  showAccountDashboard(user);
+  fetchUserOrders();
+}
+
+/* ---------- Client Account Dashboard (#accountDashboardView) ---------- */
+/** True while the full-page account dashboard is the visible "page". */
+function isAccountDashboardVisible() {
+  const view = document.getElementById('accountDashboardView');
+  return !!view && !view.classList.contains('hidden');
+}
+
+/**
+ * Reveal the dashboard view and hide every other homepage section
+ * (main gets the .account-view-active flag — see css/styles.css).
+ */
+function showAccountDashboard(user) {
+  const view = document.getElementById('accountDashboardView');
+  if (!view) return;
+
+  renderAccountDashboardProfile(user || getKprAuthUser());
+  view.classList.remove('hidden');
+
+  const main = view.closest('main');
+  if (main) main.classList.add('account-view-active');
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/** Hide the dashboard and restore the normal homepage sections. */
+function hideAccountDashboard() {
+  const view = document.getElementById('accountDashboardView');
+  if (view) view.classList.add('hidden');
+
+  const main = view ? view.closest('main') : document.querySelector('main');
+  if (main) main.classList.remove('account-view-active');
+}
+
+/** Paint the welcome banner (avatar initial, name, email / mobile identity). */
+function renderAccountDashboardProfile(user) {
+  const avatarEl = document.getElementById('dashAvatar');
+  const nameEl = document.getElementById('dashUserName');
+  const emailEl = document.getElementById('dashUserEmail');
+
+  if (!user) {
+    if (avatarEl) avatarEl.innerText = 'U';
+    if (nameEl) nameEl.innerText = 'User';
+    if (emailEl) emailEl.innerText = 'Not signed in';
+    return;
+  }
+
+  // Mobile-number accounts map to <number>@kprcrackers.com — show the phone.
+  const phone = authEmailToPhone(user.email || '');
+  const email = phone ? (phone + ' (Mobile Account)') : (user.email || user.phoneNumber || 'Signed in');
+  const name = getKprUserLabel(user) || 'User';
+
+  if (avatarEl) {
+    const initial = (user.displayName || name || 'U').trim().charAt(0).toUpperCase();
+    avatarEl.innerText = initial || 'U';
+  }
+  if (nameEl) nameEl.innerText = name;
+  if (emailEl) emailEl.innerText = email;
+}
+
+/**
+ * Load the signed-in client's orders from Firestore and render the dashboard
+ * order cards + the three stats cards (total orders / active shipments /
+ * saved address from the most recent order).
+ */
+function fetchUserOrders() {
+  const list = document.getElementById('userOrdersListContainer');
+  const user = getKprAuthUser();
+
+  if (!list) return;
+  if (!user) {
+    openAuthModal();
+    showAuthNotice('Please sign in to view your order history.', 'info');
+    return;
+  }
+
+  renderDashOrdersMessage('Loading your orders…', '');
 
   if (!window.db) {
-    renderMyOrdersMessage(
+    renderDashOrdersMessage(
       'Order history unavailable',
       'We could not reach the order service right now. Please call or WhatsApp us and we will share your order status.',
       'Contact Us', 'contact.html'
@@ -3628,29 +3886,45 @@ function openMyOrders() {
 
   window.db.collection('enquiries')
     .where('customer.userId', '==', user.uid)
-    .limit(25)
+    .limit(50)
     .get()
     .then((snapshot) => {
       const orders = snapshot.docs.map((doc) => {
         const d = doc.data() || {};
         const breakdown = d.financialBreakdown || {};
+        const customer = d.customer || {};
+        const placedOn = (d.timestamp && typeof d.timestamp.toDate === 'function')
+          ? d.timestamp.toDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+          : 'Recent';
+        const phone = authEmailToPhone(user.email || '');
         return {
           docId: doc.id,
+          id: doc.id,
           orderId: d.orderId || doc.id,
           status: d.status || 'new',
+          statusLabel: friendlyOrderStatus(d.status || 'new'),
+          date: placedOn,
           grandTotal: breakdown.grandTotal || 0,
           itemCount: (d.cartItems || []).reduce((sum, it) => sum + (it.quantity || 0), 0),
+          items: d.cartItems || [],
+          breakdown: breakdown,
+          userName: customer.name || user.displayName || 'Customer',
+          userPhone: customer.phone || phone || 'N/A',
+          address: customer.address || '',
+          pincode: customer.pincode || '',
+          state: customer.state || '',
           timestamp: (d.timestamp && typeof d.timestamp.toDate === 'function') ? d.timestamp.toDate() : null
         };
       });
 
       // Newest first — sorted client-side so no composite index is required.
       orders.sort((a, b) => (b.timestamp ? b.timestamp.getTime() : 0) - (a.timestamp ? a.timestamp.getTime() : 0));
-      renderMyOrdersList(orders);
+      renderUserOrdersList(orders);
+      renderDashboardStats(orders, user);
     })
     .catch((err) => {
       console.error('[Portal] Could not load client orders:', err);
-      renderMyOrdersMessage(
+      renderDashOrdersMessage(
         'Could not load your orders',
         'Please try again in a moment, or contact us on WhatsApp and we will look up your order for you.',
         'Contact Us', 'contact.html'
@@ -3658,58 +3932,474 @@ function openMyOrders() {
     });
 }
 
-function renderMyOrdersLoading(user) {
-  const list = document.getElementById('kprOrdersList');
-  if (!list) return;
-  list.innerHTML = '<div class="kpr-orders-message">Loading orders for '
-    + escapeHtml(user.email || 'your account') + '…</div>';
-}
-
-function renderMyOrdersMessage(title, body, ctaLabel, ctaHref) {
-  const list = document.getElementById('kprOrdersList');
+/** Inline status / empty / loading message inside the dashboard list. */
+function renderDashOrdersMessage(title, body, ctaLabel, ctaHref) {
+  const list = document.getElementById('userOrdersListContainer');
   if (!list) return;
   const cta = (ctaLabel && ctaHref)
-    ? '<br><a class="kpr-orders-cta" href="' + ctaHref + '">' + escapeHtml(ctaLabel) + '</a>'
+    ? '<br><a class="dash-orders-cta" href="' + ctaHref + '">' + escapeHtml(ctaLabel) + '</a>'
     : '';
-  list.innerHTML = '<div class="kpr-orders-message"><strong>' + escapeHtml(title) + '</strong>'
+  list.innerHTML = '<div class="dash-orders-message"><strong>' + escapeHtml(title) + '</strong>'
     + escapeHtml(body) + cta + '</div>';
 }
 
-function renderMyOrdersList(orders) {
-  const list = document.getElementById('kprOrdersList');
+/** Fill the three stats overview cards from the fetched orders. */
+function renderDashboardStats(orders, user) {
+  const totalEl = document.getElementById('statTotalOrders');
+  const activeEl = document.getElementById('statActiveOrders');
+  const addressEl = document.getElementById('statAddress');
+
+  // "Active" = not yet resolved (delivered/closed) — new + contacted statuses.
+  const active = orders.filter((o) => {
+    const s = String(o.status || 'new').toLowerCase();
+    return s !== 'resolved' && s !== 'delivered' && s !== 'cancelled';
+  }).length;
+
+  if (totalEl) totalEl.innerText = String(orders.length);
+  if (activeEl) activeEl.innerText = String(active);
+
+  if (addressEl) {
+    const latestWithAddress = orders.find((o) => o.address);
+    if (latestWithAddress) {
+      const parts = [latestWithAddress.address];
+      if (latestWithAddress.pincode) parts.push('PIN: ' + latestWithAddress.pincode);
+      if (latestWithAddress.state) parts.push(latestWithAddress.state);
+      addressEl.innerText = parts.join(', ');
+      addressEl.title = parts.join(', ');
+    } else {
+      addressEl.innerText = 'Not Set Yet';
+      addressEl.title = 'Your delivery address from the latest order appears here';
+    }
+  }
+}
+
+/** Render every order card (with the receipt / PDF action) into the dashboard. */
+function renderUserOrdersList(orders) {
+  const list = document.getElementById('userOrdersListContainer');
   if (!list) return;
 
   if (!orders || orders.length === 0) {
-    renderMyOrdersMessage(
+    renderDashOrdersMessage(
       'No orders yet',
-      'Orders you place while signed in appear here so you can track their status.',
+      'Orders you place while signed in appear here so you can track their status and download receipts.',
       'Browse Crackers', 'products.html'
     );
     return;
   }
 
-  list.innerHTML = orders.map(renderMyOrderRow).join('');
+  if (!window.dashOrdersCache) window.dashOrdersCache = {};
+  orders.forEach((o) => { window.dashOrdersCache[o.docId] = o; });
+
+  list.innerHTML = orders.map(renderOrderCard).join('');
 }
 
-function renderMyOrderRow(order) {
-  const status = String(order.status || 'new').toLowerCase().replace(/[^a-z]/g, '') || 'new';
-  const statusKey = (status === 'contacted' || status === 'resolved') ? status : 'new';
+/** Map the raw Firestore enquiry status to a customer-friendly badge label. */
+function friendlyOrderStatus(status) {
+  const s = String(status || 'new').toLowerCase().replace(/[^a-z]/g, '') || 'new';
+  if (s === 'contacted') return 'Processing';
+  if (s === 'resolved') return 'Completed';
+  if (s === 'delivered') return 'Delivered';
+  if (s === 'cancelled') return 'Cancelled';
+  return 'Pending';
+}
+
+/**
+ * One FULL DETAILED dashboard order card (amber accent border, products
+ * table and footer summary). The fetched order is cached in
+ * window.dashOrdersCache so "Download PDF Receipt" can print a complete
+ * receipt without another Firestore read.
+ */
+function renderOrderCard(order) {
+  const items = (order.items || []).map((it) => ({
+    name: it.productName || it.name || it.title || 'Item',
+    qty: Number(it.quantity || it.qty || 0),
+    price: Number(it.unitPrice || it.price || 0)
+  }));
+
+  const itemsTableRows = items.map((item) => `
+    <tr class="border-b border-gray-100/80 text-xs text-gray-800">
+      <td class="py-3 px-4 font-bold uppercase tracking-wide text-gray-900">${escapeHtml(item.name)}</td>
+      <td class="py-3 px-4 font-bold text-gray-700">${item.qty} Pcs</td>
+      <td class="py-3 px-4 font-semibold text-gray-500">₹${item.price.toLocaleString('en-IN')}</td>
+      <td class="py-3 px-4 font-extrabold text-emerald-700 text-right">₹${(item.price * item.qty).toLocaleString('en-IN')}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="bg-white rounded-2xl border-2 border-amber-300/80 p-5 shadow-sm space-y-4 mb-5">
+      <!-- HEADER ROW -->
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+        <div class="flex items-center gap-3">
+          <span class="bg-gray-100 text-gray-800 font-extrabold text-xs px-2.5 py-1 rounded-md">#${escapeHtml(order.orderId || order.id)}</span>
+          <span class="text-xs font-semibold text-gray-400">${escapeHtml(order.date || 'Recent')}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="bg-amber-100 text-amber-800 font-bold text-xs px-3 py-1 rounded-full">${escapeHtml(order.statusLabel || friendlyOrderStatus(order.status))}</span>
+          <button onclick="downloadReceipt('${order.id}')" class="bg-amber-400 hover:bg-amber-500 text-gray-900 font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF Receipt
+          </button>
+        </div>
+      </div>
+
+      <!-- DELIVER TO DETAILS -->
+      <p class="text-xs font-bold text-gray-700">
+        Deliver To: <span class="font-extrabold text-gray-900">${escapeHtml(order.userName || order.customerName || 'Customer')} (${escapeHtml(order.userPhone || order.mobile || 'N/A')})</span>
+      </p>
+
+      <!-- PRODUCTS TABLE -->
+      <div class="overflow-x-auto rounded-xl border border-gray-100">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider border-b border-gray-200">
+              <th class="py-2.5 px-4">ITEM NAME</th>
+              <th class="py-2.5 px-4">QTY</th>
+              <th class="py-2.5 px-4">PRICE</th>
+              <th class="py-2.5 px-4 text-right">SUBTOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsTableRows || '<tr><td colspan="4" class="py-3 px-4 text-xs text-gray-500 text-center">Item details not available for this order</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- FOOTER SUMMARY -->
+      <div class="bg-slate-50/80 rounded-xl p-3.5 flex items-center justify-between text-xs font-bold text-gray-600 border border-gray-100">
+        <div>Product Items Count: <span class="text-gray-900 font-extrabold">${items.length}</span></div>
+        <div class="text-sm">Grand Total: <span class="text-emerald-700 font-extrabold text-base ml-1">₹${Number(order.totalAmount || order.grandTotal || 0).toLocaleString('en-IN')}</span></div>
+      </div>
+    </div>
+  `;
+}
+
+/** Receipt button on the detailed order card -> print-ready receipt window. */
+function downloadReceipt(docId) {
+  downloadOrderReceipt(docId);
+}
+
+/* ==========================================================================
+   WISHLIST — saved products per KPR Client (Firestore: wishlists/{uid})
+   Stores an array of product ids in the `productIds` field. Anonymous visitors
+   get the KPR Client Portal modal and the pending product id is saved
+   automatically right after a successful sign-in.
+   ========================================================================== */
+
+window.pendingWishlistId = null;   // product parked while the visitor signs in
+window.userWishlist = [];          // cached saved product ids (wishlists/{uid})
+
+/** Escape a product id for safe single-quoted inline onclick handlers. */
+function wishlistJsId(productId) {
+  return String(productId).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+// Function to generate Heart Button for Product Cards
+function getWishlistBtnHTML(productId) {
+  const isWishlisted = window.userWishlist && window.userWishlist.indexOf(String(productId)) !== -1;
+  return `
+    <button type="button" onclick="toggleWishlist('${wishlistJsId(productId)}')" data-wishlist-btn data-product-id="${productId}" class="card-wishlist-btn p-2 rounded-full transition-all${isWishlisted ? ' wishlist-active' : ''}" title="Save to Wishlist" aria-label="Save to Wishlist">
+      <i class="${isWishlisted ? 'fa-solid fa-heart text-red-500' : 'fa-regular fa-heart text-gray-400 hover:text-red-500'} text-lg"></i>
+    </button>
+  `;
+}
+
+/** Public wishlist toggle (used by the inline onclick handlers). */
+function toggleWishlist(productId) {
+  handleWishlistClick(productId);
+}
+
+/** Heart click — anonymous visitors must sign in first (then we auto-save). */
+function handleWishlistClick(productId) {
+  const user = getKprAuthUser();
+  if (!user) {
+    window.pendingWishlistId = String(productId);
+    openAuthModal();
+    switchAuthTab('signin');
+    showAuthNotice('Please sign in to save this item to your KPR Wishlist.', 'info');
+    return;
+  }
+  toggleWishlistItem(String(productId), user);
+}
+
+/** Add/remove a product id in wishlists/{uid} via arrayUnion / arrayRemove. */
+function toggleWishlistItem(productId, user) {
+  const authUser = user || getKprAuthUser();
+  if (!window.db || !authUser) {
+    if (typeof showToast === 'function') showToast('Wishlist is unavailable right now. Please try again.', 'error');
+    return;
+  }
+
+  const saved = (window.userWishlist || []).indexOf(String(productId)) !== -1;
+  const fieldOp = saved
+    ? firebase.firestore.FieldValue.arrayRemove(String(productId))
+    : firebase.firestore.FieldValue.arrayUnion(String(productId));
+
+  window.db.collection('wishlists').doc(authUser.uid)
+    // `items` is the canonical field; `productIds` is kept as a legacy mirror.
+    .set({
+      items: fieldOp,
+      productIds: fieldOp,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+    .then(() => {
+      const ids = window.userWishlist || [];
+      const idx = ids.indexOf(String(productId));
+      if (!saved && idx === -1) ids.push(String(productId));
+      if (saved && idx !== -1) ids.splice(idx, 1);
+      window.userWishlist = ids;
+
+      updateWishlistUI();
+      if (typeof showToast === 'function') {
+        showToast(saved ? 'Removed from your wishlist.' : 'Saved to your wishlist!', 'success');
+      }
+    })
+    .catch((err) => {
+      // Non-fatal: a locked-down wishlist must never break the shopping flow.
+      console.warn('Wishlist permission note: Ensure Firestore rules allow read/write for wishlists collection.', err);
+      if (typeof showToast === 'function') showToast('Could not update your wishlist. Please try again.', 'error');
+    });
+}
+
+/**
+ * Fetch the signed-in client's wishlist (Firestore: wishlists/{uid}) WITHOUT
+ * breaking the app when the read is blocked by Firestore rules or connectivity:
+ * the failure is logged as a non-fatal warning and the wishlist simply renders
+ * empty. Docs written with either the `items` field or the legacy `productIds`
+ * mirror are accepted.
+ * @param {string} uid - Firebase Auth uid of the signed-in client
+ * @param {Function} [callback] - Optional callback fired after a successful load
+ */
+function fetchUserWishlist(uid, callback) {
+  if (!uid) return;
+
+  if (!window.db) {
+    console.warn('[Wishlist] Firestore unavailable — skipping wishlist fetch.');
+    window.userWishlist = [];
+    updateWishlistUI();
+    return;
+  }
+
+  window.db.collection('wishlists').doc(uid).get()
+    .then((doc) => {
+      const data = doc.exists ? (doc.data() || {}) : {};
+      const saved = Array.isArray(data.items)
+        ? data.items
+        : (Array.isArray(data.productIds) ? data.productIds : []);
+      window.userWishlist = saved.map(String);
+      updateWishlistUI();
+      if (typeof callback === 'function') callback();
+    })
+    .catch((err) => {
+      console.warn('Wishlist permission note: Ensure Firestore rules allow read/write for wishlists collection.', err);
+      window.userWishlist = [];
+      updateWishlistUI();
+    });
+}
+
+/**
+ * Central repaint after any wishlist data change: refreshes every heart button
+ * on screen and the dashboard wishlist grid when it is visible.
+ */
+function updateWishlistUI() {
+  syncWishlistHearts();
+  const wishSection = document.getElementById('wishlistSection');
+  if (isAccountDashboardVisible() && wishSection && !wishSection.classList.contains('hidden')) {
+    renderWishlistSection();
+  }
+}
+
+/** Load the wishlist for the current auth session (kept for existing callers). */
+function loadWishlistForUser(user) {
+  if (!user) {
+    window.userWishlist = [];
+    updateWishlistUI();
+    return;
+  }
+  fetchUserWishlist(user.uid);
+}
+
+/** Sync every visible heart button with the cached wishlist ids. */
+function syncWishlistHearts() {
+  document.querySelectorAll('[data-wishlist-btn]').forEach((btn) => {
+    const saved = (window.userWishlist || []).indexOf(String(btn.getAttribute('data-product-id'))) !== -1;
+    btn.classList.toggle('wishlist-active', saved);
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = saved ? 'fa-solid fa-heart text-red-500 text-lg' : 'fa-regular fa-heart text-gray-400 text-lg';
+  });
+}
+
+/* ---------- Dashboard "My Wishlist" tab ---------- */
+
+/** Switch the account dashboard between the Orders and Wishlist tabs. */
+function showDashboardTab(tab) {
+  const ordersTab = document.getElementById('dashTabOrders');
+  const wishTab = document.getElementById('dashTabWishlist');
+  const ordersSection = document.getElementById('ordersHistorySection');
+  const wishSection = document.getElementById('wishlistSection');
+  const showWish = (tab === 'wishlist');
+
+  if (ordersTab) ordersTab.classList.toggle('active', !showWish);
+  if (wishTab) wishTab.classList.toggle('active', showWish);
+  if (ordersSection) ordersSection.classList.toggle('hidden', showWish);
+  if (wishSection) wishSection.classList.toggle('hidden', !showWish);
+
+  if (showWish) renderWishlistSection();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/** Render the saved wishlist items (with Add to Cart / Remove actions). */
+function renderWishlistSection() {
+  const grid = document.getElementById('wishlistItemsGrid');
+  if (!grid) return;
+
+  const user = getKprAuthUser();
+  if (!user) {
+    grid.innerHTML = '<div class="dash-orders-message"><strong>Please sign in to view your wishlist.</strong></div>';
+    return;
+  }
+
+  const ids = window.userWishlist || [];
+  if (!ids.length) {
+    grid.innerHTML = '<div class="dash-orders-message"><strong>Your wishlist is empty</strong>Tap the heart icon on any product card to save it here for later.</div>';
+    return;
+  }
+
+  const catalog = (typeof getProducts === 'function') ? getProducts() : [];
+  const cards = [];
+  ids.forEach((id) => {
+    const prod = catalog.find((p) => String(p.id) === String(id));
+    if (!prod) return; // product was removed from the catalog
+
+    const catLetter = String(prod.categoryId).toUpperCase();
+    const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1;
+    let imgContent = `<div class="card-placeholder-bg p-bg-${bgIndex}"><i class="fa-solid fa-fire"></i></div>`;
+    if (prod.image) {
+      imgContent = `<img src="${prod.image}" alt="${prod.name}" class="wishlist-item-img">`;
+    }
+
+    cards.push(`
+      <div class="wishlist-item-card${!prod.inStock ? ' out-of-stock' : ''}">
+        <div class="wishlist-item-imgwrap">${imgContent}</div>
+        <div class="wishlist-item-body">
+          <h3 class="wishlist-item-name">${prod.name}</h3>
+          <span class="wishlist-item-qty">${prod.qty || ''}</span>
+          <p class="wishlist-item-price">₹${prod.price}</p>
+          <div class="wishlist-item-actions">
+            <button type="button" class="wishlist-btn-cart" onclick="wishlistAddToCart('${wishlistJsId(prod.id)}')"${!prod.inStock ? ' disabled' : ''}>
+              <i class="fa-solid fa-cart-shopping"></i> Add to Cart
+            </button>
+            <button type="button" class="wishlist-btn-remove" onclick="handleWishlistClick('${wishlistJsId(prod.id)}')">
+              <i class="fa-solid fa-trash-can"></i> Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    `);
+  });
+
+  grid.innerHTML = cards.length
+    ? cards.join('')
+    : '<div class="dash-orders-message"><strong>Your wishlist is empty</strong>Saved items are no longer available in the catalog.</div>';
+}
+
+/** "Add to Cart" from the wishlist — reuses the shared cart quantity logic. */
+function wishlistAddToCart(prodId) {
+  const prod = (typeof getProducts === 'function' ? getProducts() : []).find((p) => String(p.id) === String(prodId));
+  if (!prod || !prod.inStock) {
+    if (typeof showToast === 'function') showToast('This item is currently out of stock.', 'error');
+    return;
+  }
+  updateCartItemQuantity(prodId, getCartQty(prodId) + 1);
+  if (typeof showToast === 'function') showToast('Added to your cart from the wishlist.', 'success');
+}
+
+/**
+ * [receipt] Download Receipt — opens a print-ready receipt window (items, financial
+ * breakdown, order details) generated from the cached dashboard order.
+ * "Save as PDF" in the browser print dialog produces the downloadable file.
+ * @param {string} docId - Firestore doc id of the order (from the order card).
+ */
+function downloadOrderReceipt(docId) {
+  const order = window.dashOrdersCache ? window.dashOrdersCache[docId] : null;
+  if (!order) {
+    if (typeof showToast === 'function') showToast('Receipt data not found. Please refresh your orders and try again.', 'error');
+    return;
+  }
+
+  const user = getKprAuthUser();
   const placedOn = order.timestamp
-    ? order.timestamp.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    ? order.timestamp.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : 'Date unavailable';
   const total = Number(order.grandTotal || 0);
+  const breakdown = order.breakdown || {};
+  const items = Array.isArray(order.items) ? order.items : [];
 
-  return '<div class="kpr-order-row">'
-    + '<div class="kpr-order-top">'
-    + '<span class="kpr-order-id">' + escapeHtml(order.orderId) + '</span>'
-    + '<span class="kpr-order-status status-' + statusKey + '">' + escapeHtml(status) + '</span>'
-    + '</div>'
-    + '<div class="kpr-order-meta">'
-    + '<span>Placed: <strong>' + escapeHtml(placedOn) + '</strong></span>'
-    + '<span>Items: <strong>' + escapeHtml(String(order.itemCount || 0)) + '</strong></span>'
-    + '<span>Grand Total: <strong>₹' + escapeHtml(total.toLocaleString('en-IN')) + '</strong></span>'
-    + '</div>'
-    + '</div>';
+  const itemRows = items.length
+    ? items.map((it) => {
+        const qty = Number(it.quantity || 0);
+        const unit = Number(it.unitPrice || 0);
+        const lineTotal = Number(it.totalPrice || (qty * unit));
+        return '<tr><td>' + escapeHtml(it.productName || 'Item') + '</td>'
+          + '<td style="text-align:center;">' + qty + '</td>'
+          + '<td style="text-align:right;">₹' + escapeHtml(unit.toLocaleString('en-IN')) + '</td>'
+          + '<td style="text-align:right;">₹' + escapeHtml(lineTotal.toLocaleString('en-IN')) + '</td></tr>';
+      }).join('')
+    : '<tr><td colspan="4" style="text-align:center;">Item details not available for this order</td></tr>';
+
+  const moneyRow = (label, value) => (value === undefined || value === null)
+    ? ''
+    : '<tr><td colspan="3" style="text-align:right;">' + escapeHtml(label) + '</td>'
+      + '<td style="text-align:right;">₹' + escapeHtml(Number(value || 0).toLocaleString('en-IN')) + '</td></tr>';
+
+  const breakdownRows = moneyRow('Total (original)', breakdown.totalOriginal)
+    + moneyRow('Discounted Total', breakdown.totalDiscounted)
+    + moneyRow('Coupon Discount', breakdown.couponDiscount)
+    + moneyRow('Spin Wheel Discount', breakdown.spinWheelDiscount)
+    + moneyRow('Non-Discounted Items', breakdown.nonDiscountedTotal);
+
+  const win = window.open('', '_blank', 'width=820,height=940');
+  if (!win) {
+    if (typeof showToast === 'function') showToast('Please allow pop-ups for this site to download receipts.', 'error');
+    return;
+  }
+
+  win.document.write(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt ' + escapeHtml(order.orderId) + ' — KPR Crackers</title>'
+    + '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">'
+    + '<style>body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:32px;}'
+    + 'h1{font-size:20px;margin:0 0 2px;}h2{font-size:14px;margin:18px 0 8px;}'
+    + '.muted{color:#6b7280;font-size:12px;margin:0 0 10px;}'
+    + 'table{width:100%;border-collapse:collapse;font-size:12px;}'
+    + 'th,td{border:1px solid #e5e7eb;padding:7px 9px;}th{background:#f3f4f6;text-align:left;}'
+    + '.grand td{font-weight:bold;background:#f0fdf4;}'
+    + '@media print{.no-print{display:none;}}</style></head><body>'
+    + '<h1>KPR Crackers — Order Receipt</h1>'
+    + '<p class="muted">Premium Sivakasi Firecrackers · Sivakasi, Tamil Nadu · +91 97894 32373</p>'
+    + '<p class="muted"><strong>Order ID:</strong> ' + escapeHtml(order.orderId)
+    + ' &nbsp;·&nbsp; <strong>Placed:</strong> ' + escapeHtml(placedOn)
+    + ' &nbsp;·&nbsp; <strong>Status:</strong> ' + escapeHtml(String(order.status || 'new')) + '</p>'
+    + '<p class="muted"><strong>Client:</strong> ' + escapeHtml((user && (user.displayName || user.email)) || 'KPR Client') + '</p>'
+    + '<h2>Items</h2>'
+    + '<table><thead><tr><th>Product</th><th style="text-align:center;">Qty</th>'
+    + '<th style="text-align:right;">Unit Price</th><th style="text-align:right;">Total</th></tr></thead>'
+    + '<tbody>' + itemRows + '</tbody></table>'
+    + '<h2>Payment Summary</h2>'
+    + '<table><tbody>' + breakdownRows
+    + '<tr class="grand"><td colspan="3" style="text-align:right;">GRAND TOTAL</td>'
+    + '<td style="text-align:right;">₹' + escapeHtml(total.toLocaleString('en-IN')) + '</td></tr>'
+    + '</tbody></table>'
+    + '<p class="muted" style="margin-top:18px;">This is a computer-generated receipt for your enquiry order with KPR Crackers.</p>'
+    + '<button class="no-print" onclick="window.print()" style="padding:10px 18px;border:none;border-radius:8px;background:#0f172a;color:#fff;font-weight:bold;cursor:pointer;margin-top:12px;"><i class="fa-solid fa-print"></i> Print / Save as PDF</button>'
+    + '</body></html>'
+  );
+  win.document.close();
+  win.focus();
+  setTimeout(() => { try { win.print(); } catch (e) {} }, 400);
+}
+
+/** Dashboard "[cart] Place New Order" — close the view and go to the catalog. */
+function showProductsPage() {
+  hideAccountDashboard();
+  window.location.href = 'products.html';
 }
 
 /** Sign the client out of the KPR Client Portal (cart contents are preserved). */
@@ -3721,8 +4411,13 @@ function kprSignOut() {
     .then(() => {
       window.currentKprUser = null;
       window.pendingOrderSubmit = null;
+      window.pendingWishlistId = null;
+      window.userWishlist = [];
+      window.dashOrdersCache = {};
       closeUserDropdown();
+      hideAccountDashboard();
       renderHeaderUserAccount(null);
+      syncWishlistHearts();
       if (typeof showToast === 'function') showToast('You have signed out of the KPR Client Portal.', 'info');
     })
     .catch((err) => console.error('[Portal] Sign out failed:', err));
@@ -3739,7 +4434,26 @@ function initClientPortalAuth() {
     window.currentKprUser = user || null;
     hydrateEnquiryFormFromAuth(user);
     renderHeaderUserAccount(user);
+    loadWishlistForUser(user);
   });
+
+  // Deep-link / post-redirect open of the account dashboard:
+  //  • index.html#account            -> open immediately (or after sign-in)
+  //  • kpr_open_account_dashboard    -> set by openMyOrders() on other pages
+  //                                     right before redirecting to index.html
+  const wantsDashboard = (window.location.hash === '#account')
+    || (() => { try { return !!sessionStorage.getItem('kpr_open_account_dashboard'); } catch (e) { return false; } })();
+  if (wantsDashboard) {
+    try { sessionStorage.removeItem('kpr_open_account_dashboard'); } catch (e) {}
+    if (typeof history !== 'undefined' && history.replaceState) history.replaceState(null, '', window.location.pathname + window.location.search);
+    if (user) {
+      showAccountDashboard(user);
+      fetchUserOrders();
+    } else {
+      openAuthModal();
+      showAuthNotice('Please sign in to view your order history.', 'info');
+    }
+  }
 
   // Escape closes whichever portal overlay is open (keyboard accessibility)
   document.addEventListener('keydown', (event) => {
@@ -3778,6 +4492,18 @@ function initClientPortalAuth() {
         .catch((err) => {
           try { sessionStorage.removeItem(KPR_PORTAL_PENDING_ACTION_KEY); } catch (e) {}
           console.warn('[Portal] getRedirectResult failed:', err);
+
+          // Surface project-configuration failures (e.g. unauthorized domain)
+          // so the customer is not silently dropped back with no explanation.
+          const code = (err && err.code) ? err.code : '';
+          if (code === 'auth/unauthorized-domain' || code === 'auth/unauthorized-hosting-domain'
+            || code === 'auth/operation-not-allowed' || code === 'auth/configuration-not-found'
+            || code === 'auth/admin-restricted-operation') {
+            logPortalConfigHint(err, 'google');
+            openAuthModal();
+            switchAuthTab('signin');
+            showAuthNotice(getFirebaseAuthErrorMessage(err, 'Google Sign-In Failed:', 'google'));
+          }
         });
     }
   } catch (e) {

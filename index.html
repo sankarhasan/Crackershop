@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Content Security Policy: allow Firebase, fonts, Lottie player scripts + JSON assets, and confetti CDN. Mirrors the header in vercel.json. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.gstatic.com https://unpkg.com https://cdn.jsdelivr.net; connect-src 'self' https://www.gstatic.com https://*.gstatic.com https://*.firestore.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://lottie.host https://*.lottie.host https://*.lottiefiles.com https://assets*.lottiefiles.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; worker-src 'self' blob:; frame-src https://accounts.google.com https://*.firebaseapp.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.gstatic.com https://unpkg.com https://cdn.jsdelivr.net; connect-src 'self' https://www.gstatic.com https://*.gstatic.com https://*.firestore.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://lottie.host https://*.lottie.host https://*.lottiefiles.com https://assets*.lottiefiles.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; worker-src 'self' blob:; frame-src https://accounts.google.com https://*.firebaseapp.com;">
   <title>KPR Crackers | Premium Sivakasi Firecrackers Online Shop</title>
   <meta name="description" content="Welcome to KPR Crackers. Buy premium quality Sivakasi firecrackers online at best prices. Minimum order ₹3000. Quick delivery & safe shopping.">
 
@@ -12,6 +12,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="css/styles.css">
@@ -34,19 +37,19 @@
         <div class="ticker-content">
           <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
           <span class="ticker-spacer"></span>
-          <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-item"><i class="fa-solid fa-handshake"></i> Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
           <span class="ticker-spacer"></span>
           <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
           <span class="ticker-spacer"></span>
-          <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-item"><i class="fa-solid fa-handshake"></i> Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
           <span class="ticker-spacer"></span>
           <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
           <span class="ticker-spacer"></span>
-          <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-item" aria-hidden="true"><i class="fa-solid fa-handshake"></i> Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
           <span class="ticker-spacer"></span>
           <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
           <span class="ticker-spacer"></span>
-          <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-item" aria-hidden="true"><i class="fa-solid fa-handshake"></i> Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
           <span class="ticker-spacer"></span>
         </div>
       </div>
@@ -72,8 +75,8 @@
         <div class="header-actions">
           <div class="phone-box">
             <span class="phone-label">Call to Order:</span>
-            <a href="tel:+919789432373" class="phone-number">📞 +91 97894 32373</a>
-            <a href="tel:+916385651757" class="phone-number">📞 +91 63856 51757</a>
+            <a href="tel:+919789432373" class="phone-number"><i class="fa-solid fa-phone"></i> +91 97894 32373</a>
+            <a href="tel:+916385651757" class="phone-number"><i class="fa-solid fa-phone"></i> +91 63856 51757</a>
           </div>
 
           <!-- KPR Client Portal: user account button (between the phone contacts and the cart) -->
@@ -91,13 +94,13 @@
                 <p id="dropdownUserName" class="user-dropdown-name">KPR Client</p>
                 <p id="dropdownUserEmail" class="user-dropdown-email">Not signed in</p>
               </div>
-              <button type="button" class="user-dropdown-item" role="menuitem" onclick="openMyOrders()"><span class="user-dropdown-icon">📦</span> My Orders</button>
-              <button type="button" class="user-dropdown-item user-dropdown-signout" role="menuitem" onclick="handleSignOut()"><span class="user-dropdown-icon">🚪</span> Sign Out</button>
+              <button type="button" class="user-dropdown-item" role="menuitem" onclick="openMyOrders()"><span class="user-dropdown-icon"><i class="fa-solid fa-box"></i></span> My Orders</button>
+              <button type="button" class="user-dropdown-item user-dropdown-signout" role="menuitem" onclick="handleSignOut()"><span class="user-dropdown-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Sign Out</button>
             </div>
           </div>
 
           <div class="cart-widget" id="cart-toggle" onclick="toggleCartDrawer()">
-            <span class="cart-icon">🛒</span>
+            <span class="cart-icon"><i class="fa-solid fa-cart-shopping"></i></span>
             <span class="cart-count" id="cart-count">0</span>
             <span class="cart-total" id="cart-total">₹0</span>
           </div>
@@ -146,8 +149,8 @@
         <div id="hero-slides"></div>
 
         <!-- Carousel Navigation -->
-        <button class="carousel-arrow prev" id="carousel-prev" aria-label="Previous Slide">❮</button>
-        <button class="carousel-arrow next" id="carousel-next" aria-label="Next Slide">❯</button>
+        <button class="carousel-arrow prev" id="carousel-prev" aria-label="Previous Slide"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="carousel-arrow next" id="carousel-next" aria-label="Next Slide"><i class="fa-solid fa-chevron-right"></i></button>
 
         <!-- Carousel Indicators -->
         <div class="carousel-indicators" id="carousel-indicators">
@@ -164,7 +167,7 @@
         <div class="promo-card">
           <div class="promo-bg-glow"></div>
           <div class="promo-content">
-            <span class="promo-badge" id="promo-tag">🎉 FESTIVAL EXTRAVAGANZA</span>
+            <span class="promo-badge" id="promo-tag"><i class="fa-solid fa-champagne-glasses"></i> FESTIVAL EXTRAVAGANZA</span>
             <h2 class="promo-title" id="promo-title">DIWALI BIG SALE</h2>
             <h3 class="promo-subtitle" id="promo-subtitle">Get Flat 10% Extra Discount on orders above ₹10,000</h3>
             <p class="promo-desc" id="promo-desc">Stock up early for your community celebrations. Free delivery across major cities. Offer valid till Diwali eve!</p>
@@ -219,7 +222,7 @@
     <section class="legal-notice-section fade-in-up">
       <div class="container">
         <div class="legal-notice-card">
-          <h3 class="legal-notice-title">⚖️ Legal Notice &amp; Compliance Directive</h3>
+          <h3 class="legal-notice-title"><i class="fa-solid fa-scale-balanced"></i>️ Legal Notice &amp; Compliance Directive</h3>
           <p class="legal-notice-intro">
             The <strong>Supreme Court of India</strong> has imposed a <strong>complete ban</strong> on the online sale of firecrackers via e-commerce platforms such as Flipkart and Amazon, a directive that High Courts actively enforce.
           </p>
@@ -232,6 +235,87 @@
         </div>
       </div>
     </section>
+
+    <!-- CLIENT ACCOUNT DASHBOARD VIEW (Hidden by default — opened by openMyOrders() from the header profile dropdown) -->
+    <div id="accountDashboardView" class="account-dashboard-view hidden">
+      <div class="dash-container">
+
+        <!-- USER WELCOME BANNER CARD -->
+        <div class="dash-welcome-card">
+          <div class="dash-welcome-left">
+            <div id="dashAvatar" class="dash-avatar">U</div>
+            <div class="dash-welcome-id">
+              <div class="dash-welcome-name-row">
+                <h1 class="dash-welcome-title">Welcome, <span id="dashUserName">User</span></h1>
+                <span class="dash-verified-badge">Verified Client</span>
+              </div>
+              <p id="dashUserEmail" class="dash-user-email">user@kprcrackers.com</p>
+            </div>
+          </div>
+
+          <div class="dash-welcome-actions">
+            <button type="button" onclick="showProductsPage()" class="dash-btn dash-btn-primary"><i class="fa-solid fa-cart-shopping"></i> Place New Order</button>
+            <button type="button" onclick="handleSignOut()" class="dash-btn dash-btn-ghost"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
+          </div>
+        </div>
+
+        <!-- STATS OVERVIEW CARDS -->
+        <div class="dash-stats-grid">
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon dash-stat-icon-purple"><i class="fa-solid fa-box"></i></div>
+            <div>
+              <p class="dash-stat-label">TOTAL ORDERS PLACED</p>
+              <p id="statTotalOrders" class="dash-stat-value">0</p>
+            </div>
+          </div>
+
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon dash-stat-icon-emerald"><i class="fa-solid fa-truck-fast"></i></div>
+            <div>
+              <p class="dash-stat-label">ACTIVE SHIPMENTS</p>
+              <p id="statActiveOrders" class="dash-stat-value">0</p>
+            </div>
+          </div>
+
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon dash-stat-icon-amber"><i class="fa-solid fa-location-dot"></i></div>
+            <div>
+              <p class="dash-stat-label">SAVED ADDRESS</p>
+              <p id="statAddress" class="dash-stat-address">Not Set Yet</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- DASHBOARD TABS -->
+        <div class="dash-tabs">
+          <button type="button" id="dashTabOrders" class="dash-tab active" onclick="showDashboardTab('orders')"><i class="fa-solid fa-box"></i> My Orders &amp; Receipts</button>
+          <button type="button" id="dashTabWishlist" class="dash-tab" onclick="showDashboardTab('wishlist')"><i class="fa-solid fa-heart"></i> My Wishlist</button>
+        </div>
+
+        <!-- ORDER HISTORY SECTION -->
+        <div id="ordersHistorySection" class="dash-history">
+          <div class="dash-history-head">
+            <h2 class="dash-history-title">Order History &amp; Downloadable Receipts</h2>
+            <button type="button" onclick="fetchUserOrders()" class="dash-btn dash-btn-refresh"><i class="fa-solid fa-arrows-rotate"></i> Refresh Orders</button>
+          </div>
+
+          <!-- ORDERS LIST CONTAINER (rendered dynamically by js/app.js -> fetchUserOrders()) -->
+          <div id="userOrdersListContainer" class="dash-orders-list"></div>
+        </div>
+
+        <!-- WISHLIST SECTION (rendered dynamically by js/app.js -> renderWishlistSection()) -->
+        <div id="wishlistSection" class="dash-history hidden">
+          <div class="dash-history-head">
+            <h2 class="dash-history-title">My Saved Crackers</h2>
+            <button type="button" onclick="renderWishlistSection()" class="dash-btn dash-btn-refresh"><i class="fa-solid fa-arrows-rotate"></i> Refresh Wishlist</button>
+          </div>
+
+          <!-- WISHLIST ITEMS GRID (rendered dynamically by js/app.js) -->
+          <div id="wishlistItemsGrid" class="wishlist-grid"></div>
+        </div>
+
+      </div>
+    </div>
 
   </main>
 

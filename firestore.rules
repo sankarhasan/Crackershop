@@ -37,5 +37,11 @@ service cloud.firestore {
     match /stateRules/{stateRuleId} {
       allow read, write: if true;
     }
+
+    // Wishlists collection: one doc per KPR Client (user.uid) storing the
+    // saved product ids in the `productIds` array field
+    match /wishlists/{userId} {
+      allow read, write: if true;
+    }
   }
 }

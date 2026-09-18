@@ -54,12 +54,12 @@
     <div class="cart-drawer" id="cart-drawer">
       <div class="cart-drawer-header">
         <h3>Shopping Cart</h3>
-        <button class="close-drawer-btn" onclick="toggleCartDrawer()">✕</button>
+        <button class="close-drawer-btn" onclick="toggleCartDrawer()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="cart-drawer-body" id="cart-items-container">
         <div class="empty-cart-message">
-          <span class="empty-cart-icon">🛒</span>
+          <span class="empty-cart-icon"><i class="fa-solid fa-cart-shopping"></i></span>
           <p>Your cart is empty!</p>
           <p class="sub-text">Add items to your cart to place an enquiry.</p>
           <button class="btn btn-primary" onclick="toggleCartDrawer()">Continue Shopping</button>
@@ -103,7 +103,7 @@
             <a href="#" class="social-icon fb" aria-label="Facebook">FB</a>
             <a href="#" class="social-icon insta" aria-label="Instagram">IG</a>
             <a href="#" class="social-icon wa" aria-label="WhatsApp">WA</a>
-            <a href="#" class="social-icon mail" aria-label="Email">✉️</a>
+            <a href="#" class="social-icon mail" aria-label="Email"><i class="fa-solid fa-envelope"></i></a>
             <a href="#" class="social-icon jd" aria-label="JustDial">JD</a>
           </div>
         </div>
@@ -133,22 +133,22 @@
           <h3>Reach Us</h3>
           <ul class="footer-contact">
             <li>
-              <span class="contact-icon">📍</span>
+              <span class="contact-icon"><i class="fa-solid fa-location-dot"></i></span>
               <span class="contact-details">Bypass Road, Sivakasi, Tamil Nadu, 626123</span>
             </li>
             <li>
-              <span class="contact-icon">📞</span>
+              <span class="contact-icon"><i class="fa-solid fa-phone"></i></span>
               <span class="contact-details">
                 <a href="tel:+919789432373">+91 97894 32373</a><br>
                 <a href="tel:+916385651757">+91 63856 51757</a>
               </span>
             </li>
             <li>
-              <span class="contact-icon">✉️</span>
+              <span class="contact-icon"><i class="fa-solid fa-envelope"></i></span>
               <span class="contact-details"><a href="mailto:info@kprcrackers.com">info@kprcrackers.com</a></span>
             </li>
             <li>
-              <span class="contact-icon">🕒</span>
+              <span class="contact-icon"><i class="fa-solid fa-clock"></i></span>
               <span class="contact-details">Open Everyday: 8:00 AM - 10:00 PM</span>
             </li>
           </ul>
@@ -173,28 +173,28 @@
     return `
     <div class="whatsapp-widget" id="whatsapp-widget">
       <div class="whatsapp-btn" onclick="toggleWhatsAppPopup()" id="wa-btn" aria-label="Quick Enquiry Popup">
-        <span class="wa-icon">💬</span>
+        <span class="wa-icon"><i class="fa-solid fa-comment-dots"></i></span>
         <span class="wa-badge">1</span>
       </div>
 
       <div class="whatsapp-popup" id="whatsapp-popup">
         <div class="wa-popup-header">
-          <div class="wa-agent-avatar">👤</div>
+          <div class="wa-agent-avatar"><i class="fa-solid fa-user"></i></div>
           <div class="wa-agent-info">
             <h4>KPR Support Assistant</h4>
             <p class="status-online">● Online | Replies in 5 mins</p>
           </div>
-          <button class="wa-close-btn" onclick="toggleWhatsAppPopup()">✕</button>
+          <button class="wa-close-btn" onclick="toggleWhatsAppPopup()"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
         <div class="wa-popup-body">
-          <p class="wa-message-bubble">Hello there! Happy Diwali! How can I help you order your firecrackers today? 🎇</p>
+          <p class="wa-message-bubble">Hello there! Happy Diwali! How can I help you order your firecrackers today? <i class="fa-solid fa-wand-magic-sparkles"></i></p>
 
           <form id="whatsapp-quick-form" class="wa-quick-form">
             <input type="text" id="wa-name" placeholder="Your Name" required class="wa-input">
             <input type="tel" id="wa-phone" placeholder="WhatsApp Number" pattern="[6789][0-9]{9}" required class="wa-input">
             <textarea id="wa-msg" placeholder="What products are you looking for? (e.g. Ground Chakkars, Sparklers)" rows="2" required class="wa-input wa-textarea"></textarea>
-            <button type="submit" class="wa-submit-btn">Start WhatsApp Chat 🚀</button>
+            <button type="submit" class="wa-submit-btn">Start WhatsApp Chat <i class="fa-solid fa-rocket"></i></button>
           </form>
         </div>
       </div>
@@ -208,7 +208,7 @@
       <div class="notice-modal-card">
         <div class="notice-modal-header">
           <div class="notice-header-content flex items-center justify-center gap-2">
-            <span class="notice-modal-icon">📢</span>
+            <span class="notice-modal-icon"><i class="fa-solid fa-bullhorn"></i></span>
             <h2 class="notice-modal-title" id="notice-modal-title">Important Notice</h2>
           </div>
         </div>
@@ -251,7 +251,7 @@
 
     <div id="success-modal-overlay" class="success-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
       <div class="success-modal">
-        <div class="success-modal-icon" aria-hidden="true">🎉</div>
+        <div class="success-modal-icon" aria-hidden="true"><i class="fa-solid fa-champagne-glasses"></i></div>
         <h2 class="success-modal-title">Thank you!</h2>
         <p class="success-modal-message">
           Your enquiry has been submitted successfully. Our team will contact you shortly.
@@ -279,7 +279,7 @@
         <button type="button" onclick="closeAuthModal()" class="kpr-auth-close" aria-label="Close Client Portal">&times;</button>
 
         <div class="kpr-auth-body">
-          <div class="kpr-auth-crown" aria-hidden="true">👑</div>
+          <div class="kpr-auth-crown" aria-hidden="true"><i class="fa-solid fa-crown"></i></div>
           <h2 class="kpr-auth-title">KPR Client Portal</h2>
           <p class="kpr-auth-subtitle">Sign in to manage delivery addresses, track orders &amp; download receipts</p>
 
@@ -293,7 +293,7 @@
             Continue with Google
           </button>
 
-          <div class="kpr-auth-divider"><span>OR EMAIL</span></div>
+          <div class="kpr-auth-divider"><span>OR EMAIL / PHONE</span></div>
 
           <div id="authErrorMsg" class="kpr-auth-error" style="display: none;"></div>
 
@@ -304,17 +304,17 @@
             </div>
 
             <div class="kpr-auth-field">
-              <label class="kpr-auth-label" for="authEmail">EMAIL ADDRESS</label>
+              <label class="kpr-auth-label" for="authEmailOrPhone">EMAIL OR PHONE NUMBER</label>
               <div class="kpr-auth-input-wrap">
-                <span class="kpr-auth-input-icon" aria-hidden="true">✉</span>
-                <input type="email" id="authEmail" required placeholder="name@example.com" class="kpr-auth-input has-icon" autocomplete="email">
+                <span class="kpr-auth-input-icon" aria-hidden="true"><i class="fa-solid fa-mobile-screen"></i></span>
+                <input type="text" id="authEmailOrPhone" required placeholder="Email or 10-digit Phone Number" class="kpr-auth-input has-icon" autocomplete="username" inputmode="email">
               </div>
             </div>
 
             <div class="kpr-auth-field">
               <label class="kpr-auth-label" for="authPassword">PASSWORD</label>
               <div class="kpr-auth-input-wrap">
-                <span class="kpr-auth-input-icon" aria-hidden="true">🔒</span>
+                <span class="kpr-auth-input-icon" aria-hidden="true"><i class="fa-solid fa-lock"></i></span>
                 <input type="password" id="authPassword" required placeholder="••••••••" class="kpr-auth-input has-icon" autocomplete="current-password">
               </div>
             </div>
@@ -324,19 +324,19 @@
             </div>
 
             <button type="submit" id="authSubmitBtn" class="kpr-auth-submit">
-              Sign In to Portal <span class="kpr-auth-arrow">→</span>
+              Sign In to Portal <span class="kpr-auth-arrow"><i class="fa-solid fa-arrow-right"></i></span>
             </button>
           </form>
 
           <div class="kpr-auth-ssl">
-            <span class="kpr-auth-ssl-icon" aria-hidden="true">🛡</span> 256-Bit SSL Encrypted Firebase Authentication
+            <span class="kpr-auth-ssl-icon" aria-hidden="true"><i class="fa-solid fa-shield-halved"></i></span> 256-Bit SSL Encrypted Firebase Authentication
           </div>
         </div>
       </div>
     </div>`;
   }
 
-  /* ---------- My Orders Modal (header account dropdown -> 📦 My Orders) ----------
+  /* ---------- My Orders Modal (header account dropdown -> <i class="fa-solid fa-box"></i> My Orders) ----------
      Lists the enquiries submitted by the signed-in client. The rows are rendered
      by js/app.js -> openMyOrders() (Firestore query on customer.userId). */
   function kprOrdersModalHTML() {
@@ -346,7 +346,7 @@
         <button type="button" onclick="closeMyOrdersModal()" class="kpr-auth-close" aria-label="Close My Orders">&times;</button>
 
         <div class="kpr-orders-head">
-          <h2 class="kpr-orders-title">📦 My Orders</h2>
+          <h2 class="kpr-orders-title"><i class="fa-solid fa-box"></i> My Orders</h2>
           <p class="kpr-orders-subtitle">Enquiries placed with this KPR Client account</p>
         </div>
 
@@ -391,6 +391,11 @@
 
             <div class="form-grid-container">
               <div class="form-grid-left">
+                <!-- Optional email: auto-filled from the signed-in KPR Client account -->
+                <div class="form-group">
+                  <label for="enquiry-email"><span class="label-text">EMAIL ADDRESS</span> <span class="message-label-subtext">(Optional — auto-filled from your KPR account)</span></label>
+                  <input type="email" id="enquiry-email" name="email" class="form-control" placeholder="e.g. name@example.com" autocomplete="email">
+                </div>
                 <div class="form-group">
                   <label for="enquiry-delivery-address">DELIVERY ADDRESS <span class="required">*</span></label>
                   <textarea id="enquiry-delivery-address" name="address" class="form-control" placeholder="Enter your full delivery address" rows="3" required></textarea>

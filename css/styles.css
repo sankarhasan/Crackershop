@@ -6382,4 +6382,692 @@ body.kpr-auth-open {
   background: var(--deep-green-dark);
 }
 
+/* ==========================================================================
+   CLIENT ACCOUNT DASHBOARD VIEW (index.html -> #accountDashboardView)
+   --------------------------------------------------------------------------
+   Full-page "My Orders" dashboard opened from the header profile dropdown
+   (app.js -> openMyOrders). While visible, main.account-view-active hides
+   every other homepage section so the dashboard renders seamlessly between
+   the shared header and footer.
+   ========================================================================== */
+
+main.account-view-active > section {
+  display: none !important;
+}
+
+#accountDashboardView.hidden {
+  display: none !important;
+}
+
+.account-dashboard-view {
+  padding: 32px 16px;
+  background: #f1f5f9;
+  min-height: 60vh;
+}
+
+.dash-container {
+  max-width: 1152px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---- Welcome banner card ---- */
+.dash-welcome-card {
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .dash-welcome-card {
+    flex-direction: row;
+  }
+}
+
+.dash-welcome-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dash-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background: #f59e0b;
+  color: #0f172a;
+  font-weight: 900;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.dash-welcome-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dash-welcome-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .dash-welcome-title {
+    font-size: 24px;
+  }
+}
+
+.dash-verified-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  white-space: nowrap;
+}
+
+.dash-user-email {
+  color: #9ca3af;
+  font-size: 12px;
+  margin: 4px 0 0;
+  word-break: break-all;
+}
+
+.dash-welcome-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ---- Buttons ---- */
+.dash-btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-btn-primary {
+  background: #f59e0b;
+  color: #020617;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dash-btn-primary:hover {
+  background: #fbbf24;
+}
+
+.dash-btn-ghost {
+  background: #1e293b;
+  color: #d1d5db;
+  border: 1px solid #334155;
+  font-weight: 600;
+}
+
+.dash-btn-ghost:hover {
+  background: #334155;
+}
+
+.dash-btn-refresh {
+  background: #fef3c7;
+  color: #78350f;
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+
+.dash-btn-refresh:hover {
+  background: #fde68a;
+}
+
+.dash-btn-receipt {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  padding: 9px 14px;
+  white-space: nowrap;
+}
+
+.dash-btn-receipt:hover {
+  background: #d1fae5;
+}
+
+/* ---- Stats overview cards ---- */
+.dash-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .dash-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.dash-stat-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dash-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dash-stat-icon-purple { background: #f3e8ff; color: #9333ea; }
+.dash-stat-icon-emerald { background: #d1fae5; color: #059669; }
+.dash-stat-icon-amber { background: #fef3c7; color: #d97706; }
+
+.dash-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #9ca3af;
+  margin: 0 0 2px;
+}
+
+.dash-stat-value {
+  font-size: 24px;
+  font-weight: 900;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.dash-stat-address {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+/* ---- Dashboard tabs ---- */
+.dash-tabs {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  display: flex;
+  gap: 8px;
+}
+
+.dash-tab {
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  cursor: default;
+  font-family: inherit;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* ---- Order history section ---- */
+.dash-history {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dash-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dash-history-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.dash-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dash-orders-message {
+  background: #ffffff;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 14px;
+  padding: 24px 18px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dash-orders-message strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #111827;
+  font-size: 14px;
+}
+
+.dash-orders-cta {
+  margin-top: 14px;
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  background: var(--deep-green);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.dash-orders-cta:hover {
+  background: var(--deep-green-dark);
+}
+
+/* ---- Individual order card ---- */
+.dash-order-card {
+  background: #ffffff;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .dash-order-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.dash-order-id-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dash-order-id {
+  font-weight: 800;
+  color: #111827;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.dash-order-status {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.dash-order-status.status-new { background: rgba(245, 158, 11, 0.15); color: #92400e; }
+.dash-order-status.status-contacted { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
+.dash-order-status.status-resolved { background: rgba(16, 185, 129, 0.15); color: #065f46; }
+
+.dash-order-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.dash-order-meta strong {
+  color: #111827;
+}
+
+.dash-order-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- Mobile tweaks ---- */
+@media (max-width: 640px) {
+  .account-dashboard-view {
+    padding: 20px 12px;
+  }
+  .dash-welcome-card {
+    padding: 20px 16px;
+  }
+}
+
+
+
+/* ==========================================================================
+   KPR CLIENT PORTAL UPGRADES
+   1) Generic .hidden visibility helper
+   2) Order-card utility classes (Tailwind-equivalent design tokens used by
+      js/app.js -> renderOrderCard — the site ships without Tailwind)
+   3) Wishlist: product-card heart button + dashboard wishlist tab & grid
+   ========================================================================== */
+
+/* ---- 1) Generic visibility helper --------------------------------------- */
+.hidden {
+  display: none !important;
+}
+
+/* ---- 2) Order-card utility classes -------------------------------------- */
+/* Layout & spacing */
+.flex-wrap { flex-wrap: wrap; }
+.justify-between { justify-content: space-between; }
+.gap-3 { gap: 0.75rem; }
+.gap-1\.5 { gap: 0.375rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.mb-5 { margin-bottom: 1.25rem; }
+.ml-1 { margin-left: 0.25rem; }
+.p-5 { padding: 1.25rem; }
+.p-3\.5 { padding: 0.875rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.pb-3 { padding-bottom: 0.75rem; }
+
+/* Borders — widths first, colors after so the color wins the cascade */
+.rounded-2xl { border-radius: 1rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-md { border-radius: 0.375rem; }
+.rounded-full { border-radius: 9999px; }
+.border-2 { border: 2px solid transparent; }
+.border { border: 1px solid transparent; }
+.border-b { border-bottom: 1px solid transparent; }
+.border-collapse { border-collapse: collapse; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-200 { border-color: #e5e7eb; }
+.border-amber-300\/80 { border-color: rgba(252, 211, 77, 0.8); }
+.border-gray-100\/80 { border-bottom-color: rgba(243, 244, 246, 0.8); }
+
+/* Surfaces & shadows */
+.bg-white { background-color: #ffffff; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-amber-100 { background-color: #fef3c7; }
+.bg-amber-400 { background-color: #fbbf24; }
+.bg-amber-400:hover { background-color: #f59e0b; }
+.bg-slate-50 { background-color: #f8fafc; }
+.bg-slate-50\/80 { background-color: rgba(248, 250, 252, 0.8); }
+.shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); }
+.transition-all { transition: all 0.2s ease; }
+
+/* Typography */
+.text-xs { font-size: 0.75rem; line-height: 1.5; }
+.text-sm { font-size: 0.875rem; line-height: 1.5; }
+.text-base { font-size: 1rem; line-height: 1.4; }
+.text-\[11px\] { font-size: 11px; line-height: 1.5; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+.uppercase { text-transform: uppercase; }
+.tracking-wide { letter-spacing: 0.025em; }
+.tracking-wider { letter-spacing: 0.05em; }
+.text-gray-900 { color: #111827; }
+.text-gray-800 { color: #1f2937; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-amber-800 { color: #92400e; }
+.text-emerald-700 { color: #047857; }
+
+/* Tables & misc */
+.w-full { width: 100%; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+.overflow-x-auto { overflow-x: auto; }
+
+
+/* ---- 3) Wishlist --------------------------------------------------------- */
+/* Heart button on every product card */
+.card-wishlist-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  color: #9ca3af;
+  font-size: 15px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.card-wishlist-btn:hover {
+  color: #e11d48;
+  transform: scale(1.1);
+}
+
+.card-wishlist-btn.wishlist-active {
+  color: #e11d48;
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+/* Dashboard wishlist grid */
+.wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.wishlist-item-card {
+  background: #ffffff;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.wishlist-item-card.out-of-stock {
+  opacity: 0.6;
+}
+
+.wishlist-item-imgwrap {
+  height: 150px;
+  overflow: hidden;
+  position: relative;
+  background: #f8fafc;
+}
+
+.wishlist-item-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wishlist-item-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.wishlist-item-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.wishlist-item-qty {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.wishlist-item-price {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #047857;
+}
+
+/* Tailwind-equivalent helpers used by getWishlistBtnHTML() */
+.p-2 { padding: 0.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1; }
+.text-red-500 { color: #ef4444; }
+.text-gray-400 { color: #9ca3af; }
+.hover\:text-red-500:hover { color: #ef4444; }
+
+.wishlist-item-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.wishlist-btn-cart,
+.wishlist-btn-remove {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.wishlist-btn-cart {
+  background: var(--deep-green, #14532d);
+  color: #ffffff;
+}
+
+.wishlist-btn-cart:hover {
+  background: var(--deep-green-dark, #0f3d21);
+}
+
+.wishlist-btn-cart:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wishlist-btn-remove {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.wishlist-btn-remove:hover {
+  background: #fecaca;
+}
+
+/* Dashboard tabs: the inactive tab becomes a clearly clickable secondary pill */
+.dash-tab {
+  cursor: pointer;
+}
+
+.dash-tab:not(.active) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.dash-tab:not(.active):hover {
+  background: #e2e8f0;
+}
+
+/* Font Awesome icons inherit the color of the icon wrappers they live in */
+.user-dropdown-icon i,
+.cart-icon i,
+.dash-stat-icon i,
+.dash-btn i,
+.contact-icon i,
+.wa-icon i {
+  pointer-events: none;
+}
+
+
+/* ==========================================================================
+   FONT AWESOME GLYPH RESTORE
+   The global reset above ("* { font-family: 'Poppins', sans-serif !important; }")
+   clobbers the font-family that Font Awesome assigns to its icon elements,
+   which renders every <i class="fa-..."> as a blank glyph. These rules win
+   back the cascade (same !important strength, but class specificity beats
+   the universal selector) so the icon webfont is applied again.
+   ========================================================================== */
+.fa-solid,
+.fa-regular {
+  font-family: "Font Awesome 6 Free" !important;
+}
+
+.fa-brands {
+  font-family: "Font Awesome 6 Brands" !important;
+}
 

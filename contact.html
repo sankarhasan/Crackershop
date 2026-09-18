@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Content Security Policy: allow Firebase, fonts, Lottie player scripts + JSON assets, and confetti CDN. Mirrors the header in vercel.json. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.gstatic.com https://unpkg.com https://cdn.jsdelivr.net; connect-src 'self' https://www.gstatic.com https://*.gstatic.com https://*.firestore.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://lottie.host https://*.lottie.host https://*.lottiefiles.com https://assets*.lottiefiles.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; worker-src 'self' blob:; frame-src https://accounts.google.com https://*.firebaseapp.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.gstatic.com https://unpkg.com https://cdn.jsdelivr.net; connect-src 'self' https://www.gstatic.com https://*.gstatic.com https://*.firestore.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://unpkg.com https://cdn.jsdelivr.net https://lottie.host https://*.lottie.host https://*.lottiefiles.com https://assets*.lottiefiles.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; worker-src 'self' blob:; frame-src https://accounts.google.com https://*.firebaseapp.com;">
   <title>Contact Us | KPR Crackers - Sivakasi Store Coordinates</title>
   <meta name="description" content="Contact KPR Crackers in Sivakasi. Find our warehouse location, phone numbers, email and business hours, or send a quick enquiry directly.">
 
@@ -12,6 +12,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="css/styles.css">
@@ -34,19 +37,19 @@
         <div class="ticker-content">
           <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
           <span class="ticker-spacer"></span>
-          <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-item"><i class="fa-solid fa-handshake"></i> Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
           <span class="ticker-spacer"></span>
           <span class="ticker-item"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
           <span class="ticker-spacer"></span>
-          <span class="ticker-item">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-item"><i class="fa-solid fa-handshake"></i> Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
           <span class="ticker-spacer"></span>
           <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
           <span class="ticker-spacer"></span>
-          <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-item" aria-hidden="true"><i class="fa-solid fa-handshake"></i> Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
           <span class="ticker-spacer"></span>
           <span class="ticker-item" aria-hidden="true"><span class="minimum-order-pill">MINIMUM ORDER ₹3,000</span></span>
           <span class="ticker-spacer"></span>
-          <span class="ticker-item" aria-hidden="true">🤝 Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
+          <span class="ticker-item" aria-hidden="true"><i class="fa-solid fa-handshake"></i> Dealers at: <strong style="color: #facc15;">Supreme Fireworks</strong></span>
           <span class="ticker-spacer"></span>
         </div>
       </div>
@@ -72,8 +75,8 @@
         <div class="header-actions">
           <div class="phone-box">
             <span class="phone-label">Call to Order:</span>
-            <a href="tel:+919789432373" class="phone-number">📞 +91 97894 32373</a>
-            <a href="tel:+916385651757" class="phone-number">📞 +91 63856 51757</a>
+            <a href="tel:+919789432373" class="phone-number"><i class="fa-solid fa-phone"></i> +91 97894 32373</a>
+            <a href="tel:+916385651757" class="phone-number"><i class="fa-solid fa-phone"></i> +91 63856 51757</a>
           </div>
 
           <!-- KPR Client Portal: user account button (between the phone contacts and the cart) -->
@@ -91,13 +94,13 @@
                 <p id="dropdownUserName" class="user-dropdown-name">KPR Client</p>
                 <p id="dropdownUserEmail" class="user-dropdown-email">Not signed in</p>
               </div>
-              <button type="button" class="user-dropdown-item" role="menuitem" onclick="openMyOrders()"><span class="user-dropdown-icon">📦</span> My Orders</button>
-              <button type="button" class="user-dropdown-item user-dropdown-signout" role="menuitem" onclick="handleSignOut()"><span class="user-dropdown-icon">🚪</span> Sign Out</button>
+              <button type="button" class="user-dropdown-item" role="menuitem" onclick="openMyOrders()"><span class="user-dropdown-icon"><i class="fa-solid fa-box"></i></span> My Orders</button>
+              <button type="button" class="user-dropdown-item user-dropdown-signout" role="menuitem" onclick="handleSignOut()"><span class="user-dropdown-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Sign Out</button>
             </div>
           </div>
 
           <div class="cart-widget" id="cart-toggle" onclick="toggleCartDrawer()">
-            <span class="cart-icon">🛒</span>
+            <span class="cart-icon"><i class="fa-solid fa-cart-shopping"></i></span>
             <span class="cart-count" id="cart-count">0</span>
             <span class="cart-total" id="cart-total">₹0</span>
           </div>
@@ -150,7 +153,7 @@
           <div class="contact-info-cards">
             <!-- Card 1: Warehouse Location -->
             <div class="contact-card-info">
-              <div class="icon-wrapper">📍</div>
+              <div class="icon-wrapper"><i class="fa-solid fa-location-dot"></i></div>
               <div class="content-stack">
                 <h3 class="heading">Our Warehouse Location</h3>
                 <p class="text">KPR Crackers, 24/B-1, Bypass Road, Near Supreme Fireworks, Sivakasi, Tamil Nadu - 626123</p>
@@ -159,7 +162,7 @@
 
             <!-- Card 2: Contact Phone Numbers -->
             <div class="contact-card-info">
-              <div class="icon-wrapper">📞</div>
+              <div class="icon-wrapper"><i class="fa-solid fa-phone"></i></div>
               <div class="content-stack">
                 <h3 class="heading">Contact Phone Numbers</h3>
                 <p class="text"><a href="tel:+919789432373">+91 97894 32373</a></p>
@@ -169,7 +172,7 @@
 
             <!-- Card 3: Official Email Address -->
             <div class="contact-card-info">
-              <div class="icon-wrapper">✉️</div>
+              <div class="icon-wrapper"><i class="fa-solid fa-envelope"></i></div>
               <div class="content-stack">
                 <h3 class="heading">Official Email Address</h3>
                 <p class="text"><a href="mailto:info@kprcrackers.com">info@kprcrackers.com</a></p>
@@ -179,7 +182,7 @@
 
             <!-- Card 4: Business Hours -->
             <div class="contact-card-info">
-              <div class="icon-wrapper">🕒</div>
+              <div class="icon-wrapper"><i class="fa-solid fa-clock"></i></div>
               <div class="content-stack">
                 <h3 class="heading">Business Hours</h3>
                 <p class="text">Open Everyday: 8:00 AM - 10:00 PM</p>
@@ -191,7 +194,7 @@
             <!-- Map Placeholder Box - Styled inside CSS to represent an elegant dark UI map with geolocation pins -->
             <div class="styled-map-placeholder">
               <div class="map-glow-radar"></div>
-              <span class="map-icon">📍</span>
+              <span class="map-icon"><i class="fa-solid fa-location-dot"></i></span>
               <h4>KPR Crackers Depot</h4>
               <h4>Sivakasi Bypass Road, Tamil Nadu</h4>
               <div class="coordinates-overlay">Lat: 9.4533° N, Lon: 77.8024° E</div>
