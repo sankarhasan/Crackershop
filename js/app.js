@@ -4222,7 +4222,16 @@ function syncWishlistHearts() {
   document.querySelectorAll('[data-wishlist-btn]').forEach((btn) => {
     const saved = (window.userWishlist || []).indexOf(String(btn.getAttribute('data-product-id'))) !== -1;
     btn.classList.toggle('wishlist-active', saved);
-    const icon = btn.querySelector('i');
+    // The FA SVG/JS kit replaces <i> elements with <svg> on production, so
+    // re-inject the correct <i> markup when it is no longer present (the kit's
+    // MutationObserver re-renders it automatically).
+    let icon = btn.querySelector('i');
+    if (!icon) {
+      btn.innerHTML = saved
+        ? '<i class="fa-solid fa-heart text-red-500 text-lg"></i>'
+        : '<i class="fa-regular fa-heart text-gray-400 text-lg"></i>';
+      icon = btn.querySelector('i');
+    }
     if (icon) icon.className = saved ? 'fa-solid fa-heart text-red-500 text-lg' : 'fa-regular fa-heart text-gray-400 text-lg';
   });
 }
