@@ -753,6 +753,7 @@ function normalizeBanners(arr) {
   return arr.map(item => ({
     tagline: (item?.tagline ?? '').toString(),
     headingTitle: (item?.headingTitle ?? '').toString(),
+    subtitle: (item?.subtitle ?? '').toString(),
     description: (item?.description ?? '').toString(),
     imageBase64: (item?.imageBase64 ?? '').toString()
   }));
@@ -1599,12 +1600,16 @@ function listenBannersRealtime() {
       }
 
       const normalized = normalizeBanners(banners);
+      const freshJson = JSON.stringify(normalized);
+      const previousJson = localStorage.getItem('bannersData');
 
-      // Always update localStorage
-      localStorage.setItem('bannersData', JSON.stringify(normalized));
+      // Always update the localStorage cache (single source for instant render)
+      localStorage.setItem('bannersData', freshJson);
 
-      // Re-initialize the carousel with updated banners
-      if (typeof initCarousel === 'function') {
+      // Only re-render when the data actually changed. The carousel is already
+      // rendered from the cache on DOMContentLoaded, so an identical snapshot
+      // must NOT re-init (that re-init is what caused the reload flicker).
+      if (freshJson !== previousJson && typeof initCarousel === 'function') {
         initCarousel();
       }
 

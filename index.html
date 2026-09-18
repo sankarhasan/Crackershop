@@ -11,7 +11,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Font Awesome 6.5.1 Primary CSS (Webfont) + SVG JS Fallback -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -145,13 +145,39 @@
   </div>
 
   <main>
-    <!-- Hero Carousel Section -->
+    <!-- Hero Carousel Section (2-column compact split layout) -->
     <section id="home" class="hero-section">
       <div class="carousel-container" id="hero-carousel">
-        <!-- Slides will be dynamically rendered from localStorage.bannersData by js/app.js -->
-        <div id="hero-slides"></div>
+        <!-- 2-column split: left text + buttons, right image card -->
+        <div id="hero-slides" class="hero-slides-grid">
+          <!-- LEFT COLUMN: Badge, Title, Subtitle, Description, Action Buttons -->
+          <!-- Text intentionally left empty; js/app.js renders instantly from the
+               localStorage cache (bannersData) to avoid hardcoded-content flicker. -->
+          <div class="hero-slide-content">
+            <span id="slide-badge" class="hero-badge"></span>
+            <h1 id="slide-title" class="hero-title"></h1>
+            <h2 id="slide-subtitle" class="hero-subtitle"></h2>
+            <p id="slide-description" class="hero-description"></p>
+            <div class="hero-buttons">
+              <a href="#products" id="slide-primary-btn" class="hero-btn hero-btn-primary">
+                <span>Explore Products</span>
+                <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+              <a href="tel:+919789432373" class="hero-btn hero-btn-secondary">
+                <svg class="hero-btn-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
+                <span>Call Wholesale Rep</span>
+              </a>
+            </div>
+          </div>
+          <!-- RIGHT COLUMN: Featured Image Card (skeleton until js sets a real src) -->
+          <div class="hero-slide-image">
+            <div class="hero-image-card is-skeleton">
+              <img id="slide-card-image" alt="Featured Offer">
+            </div>
+          </div>
+        </div>
 
-        <!-- Carousel Navigation -->
+        <!-- Carousel Navigation (still functional for cycling through 4 banners) -->
         <button class="carousel-arrow prev" id="carousel-prev" aria-label="Previous Slide"><i class="fa-solid fa-chevron-left"></i></button>
         <button class="carousel-arrow next" id="carousel-next" aria-label="Next Slide"><i class="fa-solid fa-chevron-right"></i></button>
 
@@ -160,6 +186,7 @@
           <span class="indicator active" data-slide="0"></span>
           <span class="indicator" data-slide="1"></span>
           <span class="indicator" data-slide="2"></span>
+          <span class="indicator" data-slide="3"></span>
         </div>
       </div>
     </section>

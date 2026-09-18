@@ -658,7 +658,7 @@ function showDashboardSection(sectionName) {
   } else if (sectionName === 'enquiries') {
     renderEnquiriesTable();
   } else if (sectionName === 'banners') {
-    renderBannersTable();
+    renderBannersGrid();
   } else if (sectionName === 'offers') {
     loadOfferForm();
   } else if (sectionName === 'coupons') {
@@ -2515,7 +2515,7 @@ function executePendingDelete() {
           });
       }
       showAdminToast('Banner deleted successfully.', 'info');
-      renderBannersTable();
+      renderBannersGrid();
     }
   } else if (deleteTargetType === 'coupon') {
     if (!window.db) {
@@ -2795,63 +2795,54 @@ function saveBannersData(banners) {
   localStorage.setItem(key, JSON.stringify(normalized));
 }
 
-function renderBannersTable() {
-  const tbody = document.getElementById('banners-table-body');
-  if (!tbody) return;
-
+function renderBannersGrid() {
+  // Update the 4 fixed banner edit cards with current data
   const banners = getBannersData();
 
-  tbody.innerHTML = '';
+  // Ensure we have exactly 4 slots (pad with defaults if needed)
+  const paddedBanners = [...banners];
+  while (paddedBanners.length < 4) {
+    paddedBanners.push({
+      tagline: '',
+      headingTitle: '',
+      subtitle: '',
+      description: '',
+      imageBase64: ''
+    });
+  }
 
-  banners.forEach((b, i) => {
-    const bannerNum = `Banner #${i + 1}`;
-    const imgHtml = b.imageBase64
-      ? `<img src="${b.imageBase64}" alt="${escapeHtml(bannerNum)}" style="width:60px;height:40px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--admin-border);" />`
-      : `<span style="color:var(--admin-text-muted);font-size:0.85rem;">No image</span>`;
+  for (let i = 0; i < 4; i++) {
+    // Update card label
+    const labelEl = document.querySelector(`.banner-edit-card[data-banner-index="${i}"] .banner-edit-label`);
+    if (labelEl) {
+      labelEl.textContent = `Banner ${i + 1}${paddedBanners[i].headingTitle ? ' — ' + paddedBanners[i].headingTitle.substring(0, 20) : ''}`;
+    }
 
-    tbody.innerHTML += `
-      <tr>
-        <td>${bannerNum}</td>
-        <td>${imgHtml}</td>
-        <td>${escapeHtml(b.tagline || '')}</td>
-        <td>${escapeHtml(b.headingTitle || '')}</td>
-        <td>
-          <div class="table-actions">
-            <button class="btn-admin btn-admin-secondary" onclick="openBannerEditModal(${i})" title="Edit">Edit</button>
-            <button class="btn-admin btn-admin-danger" onclick="confirmDelete('banner', ${i})" title="Delete Banner">🗑️ Delete</button>
-          </div>
-        </td>
-      </tr>
-    `;
-  });
+    // Update field values
+    const taglineEl = document.getElementById(`banner-tagline-${i}`);
+    const headingEl = document.getElementById(`banner-heading-${i}`);
+    const previewImg = document.querySelector(`#banner-preview-${i} img`);
+    const placeholderEl = document.querySelector(`#banner-preview-${i} .banner-preview-placeholder`);
 
-  if (banners.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No banners added yet.</td></tr>';
+    if (taglineEl) taglineEl.textContent = paddedBanners[i].tagline || '-';
+    if (headingEl) headingEl.textContent = paddedBanners[i].headingTitle || '-';
+
+    if (previewImg) {
+      if (paddedBanners[i].imageBase64) {
+        previewImg.src = paddedBanners[i].imageBase64;
+        previewImg.style.display = 'block';
+      } else {
+        previewImg.src = '';
+        previewImg.style.display = 'none';
+      }
+    }
+    if (placeholderEl) {
+      placeholderEl.style.display = paddedBanners[i].imageBase64 ? 'none' : 'flex';
+    }
   }
 }
 
-function openBannerAddModal() {
-  document.getElementById('banner-modal-title').innerText = 'Add New Banner';
-  document.getElementById('banner-modal-index').value = '';
-
-  document.getElementById('banner-modal-tagline').value = '';
-  document.getElementById('banner-modal-heading').value = '';
-  document.getElementById('banner-modal-description').value = '';
-  document.getElementById('banner-modal-image-data').value = '';
-
-  const previewImg = document.getElementById('banner-image-preview');
-  const placeholder = document.getElementById('banner-image-placeholder');
-  previewImg.src = '';
-  previewImg.style.display = 'none';
-  placeholder.style.display = 'flex';
-
-  const fileInput = document.getElementById('banner-image-file');
-  if (fileInput) fileInput.value = '';
-
-  document.getElementById('banner-modal').style.display = 'flex';
-}
-
-function openBannerEditModal(index) {
+function openBannerEditOnlyModal(index) {
   const banners = getBannersData();
   const banner = banners[index];
   if (!banner) return;
@@ -2911,7 +2902,11 @@ function saveBannerEdit() {
   };
 
   if (idx === null || isNaN(idx)) {
-    // Add mode
+    // Add mode — not used anymore (fixed 4 banners), but keep for safety
+    if (banners.length >= 4) {
+      showAdminToast('Maximum 4 banners allowed. Edit an existing banner instead.', 'error');
+      return;
+    }
     banners.push(payload);
     saveBannersData(banners);
     if (!window.db) {
@@ -2926,7 +2921,7 @@ function saveBannerEdit() {
         });
     }
     closeBannerModal();
-    renderBannersTable();
+    renderBannersGrid();
     showAdminToast('New banner added successfully.', 'success');
     return;
   }
@@ -2948,41 +2943,106 @@ function saveBannerEdit() {
       });
   }
   closeBannerModal();
-  renderBannersTable();
+  renderBannersGrid();
   showAdminToast('Banner updated successfully.', 'success');
 }
 
-// Image file -> base64 conversion for banner modal
+// Compress an image File to a Base64 data URL via HTML Canvas so it stays
+// under Firestore's ~1MB single-field limit (raw base64 can exceed 1048487 bytes).
+function compressImage(file, maxWidth = 1000, quality = 0.75) {
+  // Firestore caps a single string field at 1048576 bytes; keep a safety margin.
+  const BYTE_LIMIT = 900000;
+
+  const encode = (img, targetWidth, targetQuality, forceJpeg) => {
+    const canvas = document.createElement('canvas');
+    let width = img.width;
+    let height = img.height;
+
+    // Resize proportionally if width exceeds targetWidth
+    if (width > targetWidth) {
+      height = Math.round((height * targetWidth) / width);
+      width = targetWidth;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // Preserve transparency for PNGs, otherwise encode as JPEG
+    const outputType = (file.type === 'image/png' && !forceJpeg) ? 'image/png' : 'image/jpeg';
+    return canvas.toDataURL(outputType, targetQuality);
+  };
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          let dataUrl = encode(img, maxWidth, quality, false);
+
+          // If still too large, re-compress more aggressively as JPEG
+          if (dataUrl.length > BYTE_LIMIT) {
+            dataUrl = encode(img, 800, 0.55, true);
+          }
+          if (dataUrl.length > BYTE_LIMIT) {
+            dataUrl = encode(img, 600, 0.4, true);
+          }
+
+          resolve(dataUrl);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = (error) => reject(error);
+      img.src = event.target.result;
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+}
+
+// Image file -> compressed base64 conversion for banner modal
 (function wireBannerModalUploadOnce() {
   document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('banner-image-file');
 
     if (!fileInput) return;
 
-    fileInput.addEventListener('change', (e) => {
+    fileInput.addEventListener('change', async (e) => {
       const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+      const dataInput = document.getElementById('banner-modal-image-data');
+      const previewImg = document.getElementById('banner-image-preview');
+      const placeholder = document.getElementById('banner-image-placeholder');
+
       if (!file) {
-        document.getElementById('banner-modal-image-data').value = '';
-        const previewImg = document.getElementById('banner-image-preview');
-        const placeholder = document.getElementById('banner-image-placeholder');
+        dataInput.value = '';
         previewImg.src = '';
         previewImg.style.display = 'none';
         placeholder.style.display = 'flex';
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target.result;
-        document.getElementById('banner-modal-image-data').value = dataUrl;
+      try {
+        // Compress image before storing to keep Firestore document under 1MB
+        const compressedDataUrl = await compressImage(file, 1000, 0.75);
+        dataInput.value = compressedDataUrl;
 
-        const previewImg = document.getElementById('banner-image-preview');
-        const placeholder = document.getElementById('banner-image-placeholder');
-        previewImg.src = dataUrl;
+        previewImg.src = compressedDataUrl;
         previewImg.style.display = 'block';
         placeholder.style.display = 'none';
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error('[Admin] Error compressing banner image:', err);
+        showAdminToast('Failed to process image. Please try a smaller image.', 'error');
+        // Reset so the invalid/oversized image is not submitted
+        fileInput.value = '';
+        dataInput.value = '';
+        previewImg.src = '';
+        previewImg.style.display = 'none';
+        placeholder.style.display = 'flex';
+      }
     });
   });
 })();
@@ -3403,9 +3463,8 @@ window.closeEnquiryModal = closeEnquiryModal;
 window.saveEnquiryStatus = saveEnquiryStatus;
 
 // Banners
-window.renderBannersTable = renderBannersTable;
-window.openBannerAddModal = openBannerAddModal;
-window.openBannerEditModal = openBannerEditModal;
+window.renderBannersGrid = renderBannersGrid;
+window.openBannerEditOnlyModal = openBannerEditOnlyModal;
 window.closeBannerModal = closeBannerModal;
 window.saveBannerEdit = saveBannerEdit;
 

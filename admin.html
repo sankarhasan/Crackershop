@@ -9,7 +9,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Admin Stylesheet -->
   <link rel="stylesheet" href="css/admin.css">
@@ -315,33 +315,97 @@
       <!-- Section E: Banners Manager -->
       <section id="section-banners" class="dashboard-section animate-fade" style="display: none;">
         <div class="actions-panel justify-end">
-          <div class="text-right">
-            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
-              <button class="btn-admin btn-admin-primary" type="button" onclick="openBannerAddModal()">
-                <span class="btn-icon-admin">+</span> Add New Banner
-              </button>
-              <div>
-                <div style="font-weight:700;color:var(--admin-text);">Manage Homepage Banners</div>
+          <div style="font-weight:700;color:var(--admin-text);">Manage Homepage Banners (4 Fixed Slots)</div>
+        </div>
+
+        <div class="banners-grid-4">
+          <!-- Banner 1 -->
+          <div class="banner-edit-card" data-banner-index="0">
+            <div class="banner-edit-header">
+              <span class="banner-edit-label">Banner 1</span>
+              <button class="btn-admin btn-admin-secondary btn-admin-sm" onclick="openBannerEditOnlyModal(0)">Edit</button>
+            </div>
+            <div class="banner-edit-preview" id="banner-preview-0">
+              <img src="" alt="Banner 1 Preview" style="width:100%;height:auto;display:none;border-radius:8px;border:1px solid var(--admin-border);">
+              <div class="banner-preview-placeholder" style="height:100px;display:flex;align-items:center;justify-content:center;color:var(--admin-text-muted);">No Image</div>
+            </div>
+            <div class="banner-edit-fields">
+              <div class="banner-edit-field">
+                <label>Tagline</label>
+                <span class="banner-edit-value" id="banner-tagline-0">-</span>
+              </div>
+              <div class="banner-edit-field">
+                <label>Heading Title</label>
+                <span class="banner-edit-value" id="banner-heading-0">-</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="table-responsive">
-          <table class="table-admin">
-            <thead>
-              <tr>
-                <th>Banner</th>
-                <th>Image Preview</th>
-                <th>Tagline</th>
-                <th>Heading Title</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="banners-table-body">
-              <tr><td colspan="5" class="text-center">Loading banners...</td></tr>
-            </tbody>
-          </table>
+          <!-- Banner 2 -->
+          <div class="banner-edit-card" data-banner-index="1">
+            <div class="banner-edit-header">
+              <span class="banner-edit-label">Banner 2</span>
+              <button class="btn-admin btn-admin-secondary btn-admin-sm" onclick="openBannerEditOnlyModal(1)">Edit</button>
+            </div>
+            <div class="banner-edit-preview" id="banner-preview-1">
+              <img src="" alt="Banner 2 Preview" style="width:100%;height:auto;display:none;border-radius:8px;border:1px solid var(--admin-border);">
+              <div class="banner-preview-placeholder" style="height:100px;display:flex;align-items:center;justify-content:center;color:var(--admin-text-muted);">No Image</div>
+            </div>
+            <div class="banner-edit-fields">
+              <div class="banner-edit-field">
+                <label>Tagline</label>
+                <span class="banner-edit-value" id="banner-tagline-1">-</span>
+              </div>
+              <div class="banner-edit-field">
+                <label>Heading Title</label>
+                <span class="banner-edit-value" id="banner-heading-1">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Banner 3 -->
+          <div class="banner-edit-card" data-banner-index="2">
+            <div class="banner-edit-header">
+              <span class="banner-edit-label">Banner 3</span>
+              <button class="btn-admin btn-admin-secondary btn-admin-sm" onclick="openBannerEditOnlyModal(2)">Edit</button>
+            </div>
+            <div class="banner-edit-preview" id="banner-preview-2">
+              <img src="" alt="Banner 3 Preview" style="width:100%;height:auto;display:none;border-radius:8px;border:1px solid var(--admin-border);">
+              <div class="banner-preview-placeholder" style="height:100px;display:flex;align-items:center;justify-content:center;color:var(--admin-text-muted);">No Image</div>
+            </div>
+            <div class="banner-edit-fields">
+              <div class="banner-edit-field">
+                <label>Tagline</label>
+                <span class="banner-edit-value" id="banner-tagline-2">-</span>
+              </div>
+              <div class="banner-edit-field">
+                <label>Heading Title</label>
+                <span class="banner-edit-value" id="banner-heading-2">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Banner 4 -->
+          <div class="banner-edit-card" data-banner-index="3">
+            <div class="banner-edit-header">
+              <span class="banner-edit-label">Banner 4</span>
+              <button class="btn-admin btn-admin-secondary btn-admin-sm" onclick="openBannerEditOnlyModal(3)">Edit</button>
+            </div>
+            <div class="banner-edit-preview" id="banner-preview-3">
+              <img src="" alt="Banner 4 Preview" style="width:100%;height:auto;display:none;border-radius:8px;border:1px solid var(--admin-border);">
+              <div class="banner-preview-placeholder" style="height:100px;display:flex;align-items:center;justify-content:center;color:var(--admin-text-muted);">No Image</div>
+            </div>
+            <div class="banner-edit-fields">
+              <div class="banner-edit-field">
+                <label>Tagline</label>
+                <span class="banner-edit-value" id="banner-tagline-3">-</span>
+              </div>
+              <div class="banner-edit-field">
+                <label>Heading Title</label>
+                <span class="banner-edit-value" id="banner-heading-3">-</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -787,7 +851,7 @@
             <input type="hidden" id="banner-modal-image-data" value="" />
 
             <div class="banner-image-preview-container" id="banner-image-preview-container">
-              <div class="banner-size-indicator" id="banner-size-indicator" style="font-size:0.8rem;color:var(--admin-text-muted);font-weight:700;margin-bottom:8px;">Recommended Size: 1920x800 px</div>
+              <div class="banner-size-indicator" id="banner-size-indicator" style="font-size:0.8rem;color:var(--admin-text-muted);font-weight:700;margin-bottom:8px;">Recommended Size: 1376x768 px</div>
 
               <img id="banner-image-preview" src="" alt="Banner Preview" style="max-height: 160px; max-width: 100%; border: 1px solid var(--admin-border); border-radius: var(--radius-sm); display: none; object-fit: contain;" />
               <div id="banner-image-placeholder" style="height: 160px; border: 1px dashed var(--admin-border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--admin-text-muted); font-size: 0.9rem;">

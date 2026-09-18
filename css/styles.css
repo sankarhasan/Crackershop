@@ -840,176 +840,301 @@ section {
   transform: translateY(0);
 }
 
-/* --- Hero Carousel Section --- */
+/* --- Hero Carousel Section (2-column compact split layout) --- */
 .hero-section {
   padding: 0;
-  height: 600px;
+  height: 450px !important;   /* strict fixed uniform desktop height (beats legacy per-breakpoint heights) */
   overflow: hidden;
-  background: var(--hero-gradient); /* deep maroon / burgundy festive base */
+  /* Default = Banner 1 gradient; js/app.js swaps per slide via applyBannerBackground() */
+  background: linear-gradient(135deg, #d94600 0%, #e65c00 50%, #f27100 100%);
+  transition: background 0.7s ease-in-out;
+  display: flex;
+  align-items: center;
 }
 
 .carousel-container {
   position: relative;
   width: 100%;
-  height: 100%;
-  background: var(--hero-gradient);
-}
-
-.carousel-slide {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 1s ease-in-out, visibility 1s ease-in-out;
+  height: 100%;           /* fill the fixed-height section */
+  background: linear-gradient(135deg, #d94600 0%, #e65c00 50%, #f27100 100%);
+  transition: background 0.7s ease-in-out;
   display: flex;
   align-items: center;
 }
 
-.carousel-slide.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-.slide-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
+/* 2-column grid: left content (7/12) + right image (5/12) */
+.hero-slides-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
   width: 100%;
-  height: 100%;
-  background-size: cover;
-  background-position: center;
-  z-index: 1;
-}
-
-/* Premium gradient placeholders in lieu of actual images (user quota bypass)
-   Deep maroon / burgundy festive gradient — matches the hero theme. */
-.placeholder-gradient-1 {
-  background: var(--hero-gradient);
-  position: relative;
-}
-.placeholder-gradient-1::before {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    radial-gradient(circle at 20% 30%, rgba(255, 183, 0, 0.15) 1px, transparent 1px),
-    radial-gradient(circle at 75% 40%, rgba(255, 80, 80, 0.2) 2px, transparent 2px),
-    radial-gradient(circle at 50% 80%, rgba(255, 183, 0, 0.2) 3px, transparent 3px);
-  background-size: 100px 100px;
-}
-
-.placeholder-gradient-2 {
-  background: linear-gradient(135deg, #420b0d 0%, #631417 50%, #2a0708 100%);
-}
-
-.placeholder-gradient-3 {
-  background: linear-gradient(135deg, #75171b 0%, #5a1215 60%, #2e0708 120%);
-}
-
-.slide-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to right, rgba(66,11,13,0.88) 0%, rgba(117,23,27,0.5) 60%, rgba(42,7,8,0.85) 100%);
-  z-index: 2;
-}
-
-.slide-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
   position: relative;
   z-index: 3;
-  color: var(--white);
-  max-width: 750px;
+  min-height: 360px;
 }
 
-/* Dynamic alternating banner alignment: 1st/3rd/5th → right, 2nd/4th → left */
-.slide-content.slide-align-right {
-  margin-left: auto;
-  text-align: right;
+@media (min-width: 768px) {
+  .hero-slides-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    padding: 0 40px;
+  }
 }
 
-.slide-content.slide-align-right .slide-buttons {
-  justify-content: flex-end;
+@media (min-width: 1024px) {
+  .hero-slides-grid {
+    grid-template-columns: 1.4fr 1fr;
+    gap: 64px;
+    padding: 0 60px;
+  }
 }
 
-.slide-content.slide-align-left {
-  margin-right: auto;
-  text-align: left;
-}
-
-.slide-content.slide-align-left .slide-buttons {
-  justify-content: flex-start;
-}
-
-.slide-subtitle {
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 4px;
-  color: var(--golden-yellow);
-  margin-bottom: 16px;
-}
-
-.text-glow {
-  text-shadow: 0 0 10px rgba(255, 183, 0, 0.6);
-}
-
-.slide-title {
-  font-size: 3.5rem;
-  line-height: 1.15;
-  margin-bottom: 24px;
-  font-weight: 800;
-}
-
-.text-highlight {
-  color: var(--golden-yellow);
-  background: linear-gradient(to right, #ffb700, #ffa900);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  display: inline-block;
-}
-
-.slide-desc {
-  font-size: 1.1rem;
-  margin-bottom: 40px;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 300;
-}
-
-.slide-buttons {
+/* LEFT COLUMN: Badge, Title, Subtitle, Description, Buttons */
+.hero-slide-content {
   display: flex;
+  flex-direction: column;
   gap: 16px;
-  flex-wrap: wrap;
-}
-
-/* ==========================================================================
-   Dynamic Alternating Banner Content Alignment
-   Odd slides (1st, 3rd, 5th...) → content RIGHT
-   Even slides (2nd, 4th, 6th...) → content LEFT
-   Automatically applies to admin-added banners via CSS :nth-child
-   ========================================================================== */
-.carousel-slide:nth-child(odd) .slide-content {
-  margin-left: auto;
-  margin-right: 0;
-  text-align: right;
-}
-
-.carousel-slide:nth-child(odd) .slide-buttons {
-  justify-content: flex-end;
-}
-
-.carousel-slide:nth-child(even) .slide-content {
-  margin-left: 0;
-  margin-right: auto;
+  color: var(--white);
+  position: relative;
+  z-index: 3;
   text-align: left;
 }
 
-.carousel-slide:nth-child(even) .slide-buttons {
-  justify-content: flex-start;
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: #facc15;          /* bright yellow-400 solid badge */
+  color: #0f172a;               /* dark crisp slate-900 text */
+  box-shadow: none;             /* clean, no outer glow */
+  width: fit-content;
+}
+
+/* Animated sparkle prefix inside the tagline badge */
+.hero-badge-sparkle {
+  display: inline-block;
+  animation: hero-badge-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes hero-badge-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.82); }
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #facc15;               /* bright yellow heading (yellow-400) */
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* Pacifico branding on the hero heading title (synced with Admin) */
+#slide-title {
+  font-family: 'Pacifico', cursive !important;
+  font-weight: 400; /* Pacifico only ships a regular weight */
+  letter-spacing: 0;
+}
+
+@media (min-width: 768px) {
+  .hero-title {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-title {
+    font-size: 3.5rem;
+  }
+}
+
+.hero-subtitle {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--white);
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 768px) {
+  .hero-subtitle {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-subtitle {
+    font-size: 2.25rem;
+  }
+}
+
+.hero-description {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--amber-500);
+  opacity: 0.9;
+  margin: 0;
+  max-width: 520px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .hero-description {
+    font-size: 1.125rem;
+  }
+}
+
+/* Action Buttons */
+.hero-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hero-btn {
+  display: inline-flex;
+  flex: 1 1 0;               /* equal widths for both buttons (mobile + desktop) */
+  min-width: 0;
+  align-items: center;
+  justify-content: center;    /* center icon + text horizontally */
+  text-align: center;         /* center any wrapped text */
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  line-height: 1;
+}
+
+.hero-btn-primary {
+  background: #facc15;            /* bright yellow / gold fill */
+  color: #000000;                 /* black bold text */
+  font-weight: 700;
+  border: 2px solid transparent;  /* reserve space so hover border causes no shift */
+  box-shadow: none;               /* no glowing shadow */
+}
+
+.hero-btn-primary:hover {
+  background: #facc15;
+  border-color: #ffffff;          /* clean white hover border */
+  transform: translateY(-2px);
+  box-shadow: none;
+}
+
+.hero-btn-secondary {
+  background: var(--btn-green);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 135, 68, 0.3);
+}
+
+.hero-btn-secondary:hover {
+  background: var(--btn-green-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 135, 68, 0.4);
+}
+
+.hero-btn-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* RIGHT COLUMN: Image Card with Golden Glowing Frame */
+.hero-slide-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.hero-image-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 1376 / 768;     /* strict banner frame ratio */
+  border-radius: 16px;
+  overflow: hidden;
+  border: 3px solid #facc15;    /* solid bright yellow frame */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  background: rgba(10, 15, 20, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hero-image-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 14px 30px -5px rgba(0, 0, 0, 0.5);
+}
+
+.hero-slide-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.hero-image-card:hover img {
+  transform: scale(1.05);
+}
+
+/* Skeleton shimmer shown over the image card until a real banner is rendered.
+   Prevents the broken-image / empty-frame flash on first paint. */
+.hero-image-card.is-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(100deg,
+    rgba(255, 255, 255, 0.04) 30%,
+    rgba(255, 255, 255, 0.16) 50%,
+    rgba(255, 255, 255, 0.04) 70%);
+  background-size: 200% 100%;
+  animation: hero-skeleton-shimmer 1.3s ease-in-out infinite;
+}
+
+@keyframes hero-skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Fade the banner image in only once it has decoded (no broken-image flash) */
+#slide-card-image {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+#slide-card-image.img-loaded {
+  opacity: 1;
+}
+
+/* Keep the badge from showing an empty pill before content is rendered */
+.hero-badge:empty {
+  display: none;
 }
 
 /* Carousel controls */
@@ -1020,11 +1145,11 @@ section {
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(5px);
   color: var(--white);
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.2);
-  font-size: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 1.2rem;
   cursor: pointer;
   z-index: 4;
   display: flex;
@@ -1040,22 +1165,32 @@ section {
   transform: translateY(-50%) scale(1.1);
 }
 
-.carousel-arrow.prev { left: 30px; }
-.carousel-arrow.next { right: 30px; }
+.carousel-arrow.prev { left: 16px; }
+.carousel-arrow.next { right: 16px; }
+
+@media (min-width: 768px) {
+  .carousel-arrow {
+    width: 56px;
+    height: 56px;
+    font-size: 1.4rem;
+  }
+  .carousel-arrow.prev { left: 24px; }
+  .carousel-arrow.next { right: 24px; }
+}
 
 .carousel-indicators {
   position: absolute;
-  bottom: 30px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 12px;
+  gap: 10px;
   z-index: 4;
 }
 
 .carousel-indicators .indicator {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background-color: rgba(255, 255, 255, 0.3);
   cursor: pointer;
@@ -1065,9 +1200,125 @@ section {
 
 .carousel-indicators .indicator.active {
   background-color: var(--golden-yellow);
-  width: 30px;
+  width: 28px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(255, 183, 0, 0.8);
+}
+
+/* Mobile: stack columns vertically */
+@media (max-width: 767px) {
+  .hero-section {
+    /* Strict fixed uniform height so EVERY slide renders identically */
+    height: 520px !important;   /* beats legacy per-breakpoint mobile heights */
+    min-height: 0;
+    max-height: none;
+    overflow: visible;      /* was hidden on the base rule -> was cutting off the top text */
+    padding: 0;
+    align-items: center;
+  }
+
+  .carousel-container {
+    height: 100%;           /* match the fixed-height section */
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    padding: 40px 0 56px;   /* top clearance under sticky header + bottom clearance for dots */
+    box-sizing: border-box;
+  }
+
+  .hero-slides-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0 16px;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  /* Hide the banner image entirely on mobile */
+  .hero-slide-image {
+    display: none;
+  }
+
+  /* Center + breathe between the single-column content blocks */
+  .hero-slide-content {
+    order: 1;
+    align-items: center;
+    text-align: center;
+    gap: 16px;              /* gap-4 between badge, title, subtitle, description, buttons */
+    margin-top: 0;
+    padding-top: 8px;       /* keep the tagline badge clear of the header */
+  }
+
+  .hero-badge {
+    margin: 8px auto 0;     /* top spacing so the badge is fully visible */
+    font-size: 0.75rem;
+    padding: 6px 14px;
+  }
+
+  .hero-title {
+    font-size: 1.75rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.25rem;
+  }
+
+  .hero-description {
+    font-size: 0.9375rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Buttons: stacked vertically, full width, centered text (mobile) */
+  .hero-buttons {
+    flex-direction: column;   /* one below the other */
+    align-items: stretch;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;         /* max-w-xs */
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 8px;
+    padding-top: 20px;
+  }
+
+  .hero-btn {
+    flex: 0 0 auto;           /* natural height, no vertical stretching */
+    width: 100%;              /* full width of the stacked column */
+    padding: 12px 18px;       /* identical height/padding for both buttons */
+    font-size: 0.8125rem;
+  }
+
+  /* Nudge pagination dots a touch lower so they never sit under the buttons */
+  .carousel-indicators {
+    bottom: 18px;
+  }
+
+  /* The "DIWALI BIG SALE" offer card sits right below the hero. This codebase has
+     no negative top margin (it uses positive padding), but we enforce a clean,
+     explicit positive gap so it can never overlap the taller mobile hero. */
+  .promo-banner-section {
+    margin-top: 24px;
+    padding-top: 8px;
+  }
+}
+
+/* Remove legacy slide-based carousel styles (no longer used) */
+.carousel-slide,
+.slide-bg,
+.slide-overlay,
+.slide-content,
+.slide-subtitle,
+.slide-title,
+.slide-desc,
+.slide-buttons,
+.text-glow,
+.text-highlight,
+.placeholder-gradient-1,
+.placeholder-gradient-2,
+.placeholder-gradient-3 {
+  display: none;
 }
 
 /* --- About Us Section --- */
@@ -3844,7 +4095,7 @@ select.form-control {
   }
 
   .nav-link.active {
-    color: #0f172a !important; /* slate text on the golden pill */
+    color: var(--text-dark) !important; /* slate text on the golden pill */
     background-color: var(--golden-yellow) !important;
     border-right-color: var(--golden-yellow);
   }

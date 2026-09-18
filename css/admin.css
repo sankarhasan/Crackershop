@@ -1522,6 +1522,115 @@ textarea.form-control-admin {
 /* Animate fades sections */
 .animate-fade {
   animation: sectionFade 0.3s ease-out;
+
+/* ==========================================================================
+   BANNER GRID - 4 FIXED EDIT-ONLY SLOTS
+   ========================================================================== */
+
+.banners-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 1200px) {
+  .banners-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .banners-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.banner-edit-card {
+  background-color: var(--admin-card);
+  border: 2px solid var(--golden-yellow, #ffb700);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+}
+
+.banner-edit-card:hover {
+  border-color: var(--golden-dark, #cc9200);
+  box-shadow: 0 0 16px rgba(255, 183, 0, 0.15);
+}
+
+.banner-edit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--admin-sidebar) 0%, var(--admin-card) 100%);
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.banner-edit-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--golden-yellow, #ffb700);
+  letter-spacing: 0.3px;
+}
+
+/* Pacifico branding for Banner Heading Titles (input + card previews) */
+#banner-modal-heading,
+#banner-heading-0,
+#banner-heading-1,
+#banner-heading-2,
+#banner-heading-3 {
+  font-family: 'Pacifico', cursive !important;
+  font-weight: 400; /* Pacifico only ships a regular weight */
+}
+
+.banner-edit-preview {
+  padding: 12px 16px;
+  min-height: 100px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.banner-edit-preview img {
+  max-width: 100%;
+  max-height: 160px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.banner-preview-placeholder {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--admin-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--admin-text-muted);
+}
+
+.banner-edit-fields {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.banner-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.banner-edit-field label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 }
 
 @keyframes sectionFade {

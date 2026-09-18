@@ -381,10 +381,6 @@ function initCarousel() {
   const heroCarousel = document.getElementById('hero-carousel');
   if (!heroCarousel) return;
 
-  // Avoid errors when there are no banners yet
-  let currentSlideSafe = 0;
-
-
   // Ensure hero slides container exists
   let slidesContainer = document.getElementById('hero-slides');
   if (!slidesContainer) {
@@ -393,88 +389,77 @@ function initCarousel() {
     heroCarousel.insertBefore(slidesContainer, heroCarousel.firstChild);
   }
 
-  // Load banners from localStorage (admin updates this key)
-  const banners = (function getBannersFromStorage() {
-    const key = 'bannersData';
-    const raw = localStorage.getItem(key);
-
-    // First run defaults: keep the previous behavior (UI not empty), but still allow variable length.
-    if (!raw) {
-      const defaults = [
-        { tagline: 'FESTIVAL OF LIGHTS', headingTitle: 'KPR Crackers', description: 'Explore premium Sivakasi firecrackers with safe delivery and unbeatable offers!', imageBase64: '' },
-        { tagline: 'SUPER VALUE OFFER', headingTitle: 'Up To 40% OFF on Combo Packs', description: 'Grab curated combos packed with safety, brightness, and joy.', imageBase64: '' },
-        { tagline: 'TRUST & SAFETY', headingTitle: '100% Quality & Safe Delivery', description: 'Sourced from top manufacturers in Sivakasi. Tested for safety and packaged securely.', imageBase64: '' }
-      ];
-      localStorage.setItem(key, JSON.stringify(defaults));
-      return defaults;
-    }
-
-    try {
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) throw new Error('not array');
-
-      const normalized = parsed.map(item => ({
-        tagline: (item?.tagline ?? '').toString(),
-        headingTitle: (item?.headingTitle ?? '').toString(),
-        description: (item?.description ?? '').toString(),
-        imageBase64: (item?.imageBase64 ?? '').toString()
-      }));
-
-      localStorage.setItem(key, JSON.stringify(normalized));
-      return normalized;
-    } catch (e) {
-      localStorage.removeItem(key);
-      return getBannersFromStorage();
-    }
-  })();
-
-
-  const indicatorsWrap = heroCarousel.querySelector('.carousel-indicators');
-  const prevBtn = document.getElementById('carousel-prev');
-  const nextBtn = document.getElementById('carousel-next');
-
-  // Render slides (dynamic length)
-  slidesContainer.innerHTML = '';
-
-  banners.forEach((b, i) => {
-    const slide = document.createElement('div');
-    slide.className = `carousel-slide ${i === 0 ? 'active' : ''}`;
-    slide.setAttribute('data-slide', String(i));
-
-    // Keep existing design layers
-    const bgHtml = b.imageBase64
-      ? `<div class="slide-bg" style="background-image:url('${b.imageBase64}'); background-size:cover; background-position:center;"></div>`
-      : `<div class="slide-bg placeholder-gradient-${(i % 9) + 1}"></div>`;
-
-    const overlay = `<div class="slide-overlay"></div>`;
-
-    // Alternate banner content alignment: odd-indexed (1st, 3rd, 5th…) → right, even-indexed → left
-    const alignClass = (i % 2 === 0) ? 'slide-align-right' : 'slide-align-left';
-
-    const content = `
-      <div class="container slide-content ${alignClass}">
-        <h4 class="slide-subtitle text-glow">${escapeHtml(b.tagline || '')}</h4>
-        <h1 class="slide-title">${escapeHtml(b.headingTitle || '')}</h1>
-        <p class="slide-desc">${escapeHtml(b.description || '')}</p>
-        <div class="slide-buttons">
-          <a href="#products" class="btn btn-primary btn-lg">Shop Products Now</a>
-          <a href="#quick-enquiry" class="btn btn-outline btn-lg">Quick Enquiry</a>
-        </div>
-      </div>
-    `;
-
-    slide.innerHTML = `${bgHtml}${overlay}${content}`;
-    slidesContainer.appendChild(slide);
+  // --- Normalize banners to exactly 4 with the 2-column shape ---
+  // Expected shape: { tagline, headingTitle, subtitle, description, imageBase64 }
+  // `subtitle` renders strictly from banner.subtitle; we never synthesize/duplicate
+  // headingTitle into it. If empty, the subtitle stays empty (rendered hidden).
+  const normalizeBanner = (item) => ({
+    tagline:      (item?.tagline ?? '').toString(),
+    headingTitle: (item?.headingTitle ?? '').toString(),
+    subtitle:     (item?.subtitle ?? '').toString(),
+    description:  (item?.description ?? '').toString(),
+    imageBase64:  (item?.imageBase64 ?? '').toString()
   });
 
-  // If no banners exist, stop early
-  if (banners.length === 0) return;
+  const ensureFourBanners = (parsed) => {
+    if (!Array.isArray(parsed)) throw new Error('not array');
+    const mapped = parsed.map(normalizeBanner);
+    // Pad to 4
+    while (mapped.length < 4) {
+      const idx = mapped.length + 1;
+      mapped.push({
+        tagline:      `Banner ${idx}`,
+        headingTitle: `Offer ${idx}`,
+        subtitle:     'Limited Time',
+        description:  'Check out our latest festive offers on premium firecrackers.',
+        imageBase64:  ''
+      });
+    }
+    // Truncate to 4
+    return mapped.slice(0, 4);
+  };
+
+  // --- Load + normalize banners (always exactly 4) ---
+  const raw = localStorage.getItem('bannersData');
+  let banners;
+  if (!raw) {
+    const defaults = [
+      { tagline: 'MINIMUM ORDER ₹2000', headingTitle: 'Biggest Diwali Sale', subtitle: 'Upto 60% OFF', description: 'Order authentic Sivakasi crackers directly from Supreme Fireworks wholesale & retail dealers. Guaranteed safe transport across India!', imageBase64: '' },
+      { tagline: 'SUPER VALUE OFFER', headingTitle: 'Up To 40% OFF on Combo Packs', subtitle: 'Best Deals This Season', description: 'Grab curated combos packed with safety, brightness, and joy.', imageBase64: '' },
+      { tagline: 'TRUST & SAFETY', headingTitle: '100% Quality & Safe Delivery', subtitle: 'Tested & Certified', description: 'Sourced from top manufacturers in Sivakasi. Tested for safety and packaged securely.', imageBase64: '' },
+      { tagline: 'PREMIUM SELECTION', headingTitle: 'Top Rated Firecrackers', subtitle: 'Customer Favorite', description: 'Highest-rated products from our collection. Trusted by thousands of happy customers.', imageBase64: '' }
+    ];
+    localStorage.setItem('bannersData', JSON.stringify(defaults));
+    banners = defaults;
+  } else {
+    try {
+      const parsed = JSON.parse(raw);
+      banners = ensureFourBanners(parsed);
+      localStorage.setItem('bannersData', JSON.stringify(banners));
+    } catch (e) {
+      localStorage.removeItem('bannersData');
+      banners = ensureFourBanners([
+        { tagline: 'FESTIVAL SALE', headingTitle: 'Festive Special Offers', subtitle: 'Limited Time', description: 'Check out our latest festive offers on premium firecrackers.', imageBase64: '' }
+      ]);
+      localStorage.setItem('bannersData', JSON.stringify(banners));
+    }
+  }
+
+  // --- DOM lookups for the fixed 2-column layout ---
+  const slideBadge = document.getElementById('slide-badge');
+  const slideTitle = document.getElementById('slide-title');
+  const slideSubtitle = document.getElementById('slide-subtitle');
+  const slideDescription = document.getElementById('slide-description');
+  const slideCardImage = document.getElementById('slide-card-image');
+  const prevBtn = document.getElementById('carousel-prev');
+  const nextBtn = document.getElementById('carousel-next');
+  const indicatorsWrap = document.getElementById('carousel-indicators');
 
 
-  // Render indicators (dynamic)
+  // Static 4 indicators only (fixed 4-banner layout)
   if (indicatorsWrap) {
     indicatorsWrap.innerHTML = '';
-    for (let i = 0; i < banners.length; i++) {
+    for (let i = 0; i < 4; i++) {
       const ind = document.createElement('span');
       ind.className = `indicator ${i === 0 ? 'active' : ''}`;
       ind.setAttribute('data-slide', String(i));
@@ -482,23 +467,134 @@ function initCarousel() {
     }
   }
 
-
-  const slides = heroCarousel.querySelectorAll('.carousel-slide');
   const indicators = heroCarousel.querySelectorAll('.carousel-indicators .indicator');
+  let currentSlide = 0;
 
-  const showSlide = (index) => {
-    if (!slides || slides.length === 0) return;
-
-    slides.forEach(s => s.classList.remove('active'));
-    indicators.forEach(i => i.classList.remove('active'));
-
-    currentSlide = (index + slides.length) % slides.length;
-    slides[currentSlide].classList.add('active');
-    if (indicators[currentSlide]) indicators[currentSlide].classList.add('active');
+  // Per-slide primary button config (keyed by 1-based banner number).
+  // Icons reuse the project's .hero-btn-icon sizing class (no Tailwind).
+  const slidePrimaryButtons = {
+    1: {
+      text: 'Explore Products',
+      href: '#products',
+      icon: '<svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>'
+    },
+    2: {
+      text: 'Lucky Spin Wheel',
+      href: '#spin-wheel',
+      icon: '<svg class="hero-btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 14.93V18a1 1 0 11-2 0v-1.07A6.002 6.002 0 016.07 13H5a1 1 0 110-2h1.07A6.002 6.002 0 0111 6.07V5a1 1 0 112 0v1.07A6.002 6.002 0 0117.93 11H19a1 1 0 110 2h-1.07A6.002 6.002 0 0113 16.93z"/></svg>'
+    },
+    3: {
+      text: 'View Combos',
+      href: '#combos',
+      icon: '<svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>'
+    },
+    4: {
+      text: 'Enquiry Now',
+      href: '#quick-enquiry',
+      icon: '<svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>'
+    }
   };
 
+  // Update the primary action button for the active slide (0-based index).
+  function updateBannerButtons(slideIndex) {
+    const btnConfig = slidePrimaryButtons[slideIndex + 1] || slidePrimaryButtons[1];
+    const primaryBtn = document.getElementById('slide-primary-btn');
+    if (primaryBtn && btnConfig) {
+      primaryBtn.href = btnConfig.href;
+      primaryBtn.innerHTML = `<span>${btnConfig.text}</span> ${btnConfig.icon}`;
+    }
+  }
+
+  // Default unique background gradient per banner (keyed by 1-based banner number).
+  const bannerGradients = {
+    1: 'linear-gradient(135deg, #d94600 0%, #e65c00 50%, #f27100 100%)', // Orange Festive Glow
+    2: 'linear-gradient(135deg, #180938 0%, #290a59 50%, #1c063b 100%)', // Royal Purple Night
+    3: 'linear-gradient(135deg, #c20058 0%, #ea3800 50%, #f58200 100%)', // Magenta to Gold
+    4: 'linear-gradient(135deg, #4a090a 0%, #630c0e 50%, #3b0506 100%)'  // Deep Crimson Gold
+  };
+
+  // Apply the assigned hero background for the active slide (0-based index).
+  function applyBannerBackground(slideIndex) {
+    const gradient = bannerGradients[slideIndex + 1] || bannerGradients[1];
+    // #hero-carousel paints over #home; set both so the full hero area updates.
+    ['hero-carousel', 'home'].forEach((elId) => {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.style.transition = 'background 0.7s ease-in-out';
+      el.style.background = gradient;
+    });
+  }
+
+  // Update the displayed banner content in the fixed 2-column DOM
+  function updateSlide(index) {
+    const banner = banners[index];
+    if (!banner) return;
+
+    // Tagline badge is intentionally hidden across ALL banner slides.
+    if (slideBadge) {
+      slideBadge.innerHTML = '';
+      slideBadge.style.display = 'none';
+    }
+    if (slideTitle) slideTitle.textContent = banner.headingTitle || '';
+    if (slideSubtitle) {
+      // Strictly render banner.subtitle; hide the element entirely when empty so we
+      // never duplicate/truncate the heading title.
+      slideSubtitle.textContent = banner.subtitle || '';
+      slideSubtitle.style.display = banner.subtitle ? '' : 'none';
+    }
+    if (slideDescription) slideDescription.textContent = banner.description || '';
+
+    // Set image — use Base64 if available, otherwise gradient placeholder.
+    // The card starts in an `is-skeleton` state (see index.html); we drop it as
+    // soon as real content is available and fade the image in to avoid a flash.
+    const imageCard = slideCardImage ? slideCardImage.closest('.hero-image-card') : null;
+    if (slideCardImage) {
+      if (banner.imageBase64) {
+        slideCardImage.classList.remove('img-loaded');
+        slideCardImage.onload = () => slideCardImage.classList.add('img-loaded');
+        slideCardImage.src = banner.imageBase64;
+        slideCardImage.style.background = 'none';
+        slideCardImage.style.objectFit = 'cover';
+      } else {
+        const gradients = [
+          'linear-gradient(135deg, #5a1215 0%, #75171b 50%, #420b0d 100%)',
+          'linear-gradient(135deg, #420b0d 0%, #631417 50%, #2a0708 100%)',
+          'linear-gradient(135deg, #75171b 0%, #5a1215 60%, #2e0708 120%)',
+          'linear-gradient(135deg, #631417 0%, #5a1215 50%, #3a090c 100%)'
+        ];
+        slideCardImage.onload = null;
+        slideCardImage.removeAttribute('src');
+        slideCardImage.style.background = gradients[index] || gradients[0];
+        slideCardImage.style.objectFit = 'none';
+        // Gradient placeholder is intentionally visible immediately
+        slideCardImage.classList.add('img-loaded');
+      }
+      if (imageCard) imageCard.classList.remove('is-skeleton');
+    }
+
+    // Update indicators
+    indicators.forEach((ind, i) => {
+      ind.classList.toggle('active', i === index);
+    });
+
+    // Sync the per-slide primary action button (secondary stays fixed)
+    updateBannerButtons(index);
+
+    // Smoothly transition the hero background to this banner's gradient
+    applyBannerBackground(index);
+
+    currentSlide = index;
+  }
+
+  // Show a specific slide (normalized to 0-3)
+  function showSlide(index) {
+    const len = banners.length || 4;
+    const target = ((index % len) + len) % len;
+    updateSlide(target);
+  }
 
   const nextSlide = () => showSlide(currentSlide + 1);
+  const prevSlide = () => showSlide(currentSlide - 1);
 
   const startAutoplay = () => {
     stopAutoplay();
@@ -533,6 +629,13 @@ function initCarousel() {
     heroSection.addEventListener('mouseenter', stopAutoplay);
     heroSection.addEventListener('mouseleave', startAutoplay);
   }
+
+  // --- Force an immediate, synchronous render of Slide 0 BEFORE starting the
+  // auto-slide timer. Without this, the carousel only painted on the first
+  // interval tick (nextSlide -> slide 1), so slide 1 stayed blank until the
+  // cycle wrapped all the way back around. ---
+  currentSlide = 0;
+  showSlide(0);
 
   startAutoplay();
 }
@@ -4622,6 +4725,7 @@ function attemptPendingDashboardOpen(knownUser) {
       setTimeout(function () { attemptPendingDashboardOpen(); }, 250);
     } else {
       try { sessionStorage.removeItem('kpr_pending_dashboard_open'); } catch (e) {}
+      try { sessionStorage.removeItem('kpr_dash_user_waiting'); } catch (e) {}
       if (typeof unmaskHomeForDashboard === 'function') unmaskHomeForDashboard();
       if (typeof openAuthModal === 'function') openAuthModal();
       if (typeof showAuthNotice === 'function') showAuthNotice('Please sign in to view your order history.', 'info');
@@ -4630,6 +4734,7 @@ function attemptPendingDashboardOpen(knownUser) {
   }
 
   try { sessionStorage.removeItem('kpr_pending_dashboard_open'); } catch (e) {}
+  try { sessionStorage.removeItem('kpr_dash_user_waiting'); } catch (e) {}
   window._kprPendingDashRetries = 0;
 
   if (user) {
@@ -4646,6 +4751,24 @@ function attemptPendingDashboardOpen(knownUser) {
 function initClientPortalAuth() {
   const auth = getKprAuth();
   if (!auth) return;
+
+  // A plain visit to the Home page (index.html) must NEVER resurrect the Client
+  // Dashboard. Any dashboard-pending markers still in sessionStorage are stale
+  // leftovers — e.g. 'kpr_dash_user_waiting' parked on dashboard.html but left
+  // behind when the user clicked "Home" before its 8s cleanup fired — which
+  // would otherwise make app.js re-open the dashboard the instant Home mounts
+  // (the reported "Home redirects back to Dashboard" bug). Consume them here so
+  // authenticated users can browse Home freely. The dashboard is only ever
+  // opened by an explicit action: clicking the profile / "My Orders" (which
+  // navigates straight to dashboard.html) or an old #account deep-link, handled
+  // by the forward branch below (which we intentionally leave untouched here).
+  if (!isDashboardPage() && window.location.hash !== '#account') {
+    try {
+      sessionStorage.removeItem('kpr_dash_user_waiting');
+      sessionStorage.removeItem('kpr_pending_dashboard_open');
+      sessionStorage.removeItem('kpr_open_account_dashboard');
+    } catch (e) {}
+  }
 
   // Keep the header account button + pre-filled name in sync with the session.
   auth.onAuthStateChanged((user) => {
