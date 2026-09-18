@@ -2644,6 +2644,11 @@ function initPreloader() {
 
   const hide = () => {
     if (hidden) return;
+    // A parked dashboard arrival holds the loader via data-dashboard-mask
+    // until the dashboard paints — never let the normal timer release it.
+    try {
+      if (preloader.getAttribute('data-dashboard-mask') === '1') return;
+    } catch (e) {}
     hidden = true;
     const elapsed = Date.now() - start;
     const wait = Math.max(0, MIN_DISPLAY_MS - elapsed);
@@ -2714,6 +2719,12 @@ function initNavbarScroll() {
 }
 
 function highlightNavLink() {
+  // While the Client Dashboard owns the page, the profile icon (not Home)
+  // is the "active" marker — never let scroll-spy re-light the Home pill.
+  if (typeof isAccountDashboardVisible === 'function' && isAccountDashboardVisible()) {
+    return;
+  }
+
   const sections = document.querySelectorAll('section[id]');
   const scrollY = window.pageYOffset;
   
@@ -3709,18 +3720,72 @@ function toggleUserDropdown() {
 }
 
 /**
- * Header user icon click (see index.html -> #userAccountBtn):
- *   • signed out -> KPR Client Portal modal (sign in / create account)
- *   • signed in  -> DIRECTLY opens the Client Account Dashboard
- *                   (#accountDashboardView via openMyOrders) — no dropdown menu.
+ * Header user icon click (every page -> #userAccountBtn):
+ *   • signed out        -> KPR Client Portal modal (sign in / create account)
+ *   • signed in, dashboard.html present -> go straight to dashboard.html
+ *                          (single click from ANY page — no hash tricks, no
+ *                          intermediate Home render, no double click).
+ *   • signed in, already ON dashboard.html -> open the My Orders view
+ *                          directly (no-op navigation, just reveal + load).
+ *
+ * @param {Event} [event] - forwarded by the inline onclick handler so any
+ *                          ancestor router/hash listener can be neutralised
+ *                          before we navigate.
  */
-function handleHeaderUserClick() {
+function handleHeaderUserClick(event) {
+  // Inline markup calls handleHeaderUserClick() with NO argument, so fall
+  // back to the implicit window.event — otherwise the defensive
+  // stopPropagation below would never run. (The button is type="button",
+  // so there is no default navigation to prevent; this only neutralises a
+  // hypothetical outer click-router / hash listener.)
+  if (!event && typeof window !== 'undefined' && window.event) {
+    try { event = window.event; } catch (e) {}
+  }
+  // Neutralise any outer click router / hash listener that would otherwise
+  // hijack this tap and render Home first.
+  if (event && typeof event.stopPropagation === 'function') {
+    try { event.stopPropagation(); } catch (e) {}
+  }
+  if (event && typeof event.stopImmediatePropagation === 'function') {
+    try { event.stopImmediatePropagation(); } catch (e) {}
+  }
+
   if (getKprAuthUser()) {
-    openMyOrders();
+    openClientDashboard();
     return;
   }
   openAuthModal();
   showAuthNotice('Sign in or create your KPR Client account to track orders and download receipts.', 'info');
+}
+
+/**
+ * SINGLE-CLICK direct navigation to the dedicated Client Dashboard page
+ * (dashboard.html) from ANY page. Already there? Just reveal the view.
+ */
+function openClientDashboard() {
+  if (isDashboardPage()) {
+    const user = (typeof getKprAuthUser === 'function') ? getKprAuthUser() : null;
+    if (user) {
+      if (typeof showAccountDashboard === 'function') showAccountDashboard(user);
+      if (typeof fetchUserOrders === 'function') fetchUserOrders();
+      return;
+    }
+  }
+  window.location.href = 'dashboard.html';
+}
+
+/** True when the current document IS the dedicated dashboard page. */
+function isDashboardPage() {
+  try {
+    const path = (window.location.pathname || '').toLowerCase();
+    const file = path.substring(path.lastIndexOf('/') + 1);
+    if (file === 'dashboard.html') return true;
+    const header = document.getElementById('site-header');
+    if (header && header.getAttribute('data-dashboard-page') === '1') return true;
+    return !!document.querySelector('#accountDashboardView:not([data-dashboard-legacy])');
+  } catch (e) {
+    return false;
+  }
 }
 
 /** Dropdown "[signout] Sign Out" — ends the Firebase session, keeps the cart intact. */
@@ -3772,10 +3837,11 @@ function handleOrdersModalBackdrop(event) {
  * Firebase identity in `customer.userId` / `customer.email` (written by the
  * enquiry form), so a single equality filter is enough — no composite index.
  *
- * Header dropdown -> [box] My Orders opens the dedicated CLIENT ACCOUNT DASHBOARD
- * view (#accountDashboardView) rendered between the shared header and footer.
- * Pages without the dashboard view (about / products / contact / …) simply
- * deep-link to index.html#account, where the dashboard lives.
+ * Header dropdown -> [box] My Orders opens the dedicated CLIENT ACCOUNT
+ * DASHBOARD page (dashboard.html). From any other page this navigates
+ * straight there; on dashboard.html itself it just reveals + loads the view.
+ * (index.html keeps a legacy in-page view for old #account deep-links, which
+ * are now forwarded to dashboard.html — see initClientPortalAuth below.)
  */
 function openMyOrders() {
   closeUserDropdown();
@@ -3787,10 +3853,9 @@ function openMyOrders() {
     return;
   }
 
-  // Pages without the dashboard view redirect to the homepage anchor.
-  if (!document.getElementById('accountDashboardView')) {
+  if (!isDashboardPage()) {
     try { sessionStorage.setItem('kpr_open_account_dashboard', '1'); } catch (e) {}
-    window.location.href = 'index.html#account';
+    window.location.href = 'dashboard.html';
     return;
   }
 
@@ -3806,8 +3871,11 @@ function isAccountDashboardVisible() {
 }
 
 /**
- * Reveal the dashboard view and hide every other homepage section
- * (main gets the .account-view-active flag — see css/styles.css).
+ * Reveal the dashboard view and (on index.html) hide every other homepage
+ * section (main gets the .account-view-active flag — see css/styles.css).
+ * On the dedicated dashboard.html the view is the whole page, so this just
+ * paints the profile + flips the navbar highlight: Home loses its pill, the
+ * profile icon gains the white-ring "selected" state.
  */
 function showAccountDashboard(user) {
   const view = document.getElementById('accountDashboardView');
@@ -3819,16 +3887,49 @@ function showAccountDashboard(user) {
   const main = view.closest('main');
   if (main) main.classList.add('account-view-active');
 
+  setDashboardNavState(true);
+
+  // Arrival from another page was masked behind the preloader — now that the
+  // dashboard has painted, release the mask so it fades straight onto it.
+  if (typeof unmaskHomeForDashboard === 'function') unmaskHomeForDashboard();
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/** Hide the dashboard and restore the normal homepage sections. */
+/** Hide the dashboard (legacy index.html in-page view) and restore the normal homepage sections. */
 function hideAccountDashboard() {
   const view = document.getElementById('accountDashboardView');
   if (view) view.classList.add('hidden');
 
   const main = view ? view.closest('main') : document.querySelector('main');
   if (main) main.classList.remove('account-view-active');
+
+  setDashboardNavState(false);
+}
+
+/**
+ * Unified active-navbar toggler for the two header "views":
+ *   dashboard open  -> Home pill cleared, profile icon ringed (gold + white ring)
+ *   dashboard closed -> profile ring cleared, Home pill restored
+ * (Desktop + mobile links share the same .nav-link markup / .active class,
+ *  so one pass covers both. Scroll-spy re-highlights on the next scroll.)
+ */
+function setDashboardNavState(dashboardOpen) {
+  const userBtn = document.getElementById('userAccountBtn');
+  if (userBtn) userBtn.classList.toggle('is-dashboard-active', !!dashboardOpen);
+
+  const homeLinks = document.querySelectorAll('.nav-link[href="index.html"], .nav-link[href="./index.html"], .nav-link[href="index.html#home"], .nav-link[href="#home"]');
+  homeLinks.forEach(function (link) {
+    if (dashboardOpen) {
+      link.classList.remove('active');
+    } else if (!document.querySelector('.nav-link.active')) {
+      link.classList.add('active');
+    }
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('kpr-dashboard-view-change', { detail: { dashboardOpen: !!dashboardOpen } }));
+  }
 }
 
 /** Paint the welcome banner (avatar initial, name, email / mobile identity). */
@@ -4433,6 +4534,114 @@ function kprSignOut() {
 }
 
 /* ---------- Portal bootstrap ---------- */
+/**
+ * During a parked-dashboard arrival (profile-icon click on another page ->
+ * index.html#account), the plain homepage would otherwise paint first and
+ * then visibly "jump" to the dashboard once Firebase restores the session
+ * (the reported redirect flicker/glitch). Masking the page behind the
+ * full-screen preloader — which photo-covers everything until it fades —
+ * keeps the transition a clean loader -> dashboard, with Home never shown.
+ * No-op on every normal visit (no pending marker).
+ */
+function maskHomeUntilDashboard() {
+  let pending = false;
+  try {
+    pending = !!sessionStorage.getItem('kpr_pending_dashboard_open')
+      || !!sessionStorage.getItem('kpr_open_account_dashboard')
+      || window.location.hash === '#account';
+  } catch (e) { pending = (window.location.hash === '#account'); }
+  if (!pending) return;
+  if (!document.getElementById('accountDashboardView')) return;
+
+  try { document.body.classList.add('preloader-active'); } catch (e) {}
+
+  const preloader = document.getElementById('preloader');
+  if (preloader) {
+    // Hold the loader on screen (well past its normal minimum) while the
+    // dashboard is still pending; it is released by unmaskHomeForDashboard().
+    preloader.classList.remove('preloader-hidden');
+    preloader.setAttribute('data-dashboard-mask', '1');
+  }
+}
+
+/**
+ * Release the mask applied by maskHomeUntilDashboard() once the dashboard
+ * has actually painted (called from showAccountDashboard) or when the flow
+ * ends at the sign-in modal instead (called from attemptPendingDashboardOpen).
+ */
+function unmaskHomeForDashboard() {
+  let preloader = null;
+  try { preloader = document.getElementById('preloader'); } catch (e) { preloader = null; }
+  if (preloader && preloader.getAttribute('data-dashboard-mask') === '1') {
+    preloader.removeAttribute('data-dashboard-mask');
+    preloader.classList.add('preloader-hidden');
+    setTimeout(function () {
+      try { if (preloader.parentNode) preloader.parentNode.removeChild(preloader); } catch (e) {}
+    }, 700);
+  }
+  try { document.body.classList.remove('preloader-active'); } catch (e) {}
+}
+
+/**
+ * Complete a parked "open the Client Dashboard" request, if one exists.
+ * The pending marker ('kpr_pending_dashboard_open') is parked by the
+ * wantsDashboard branch below and retried here because arrival on
+ * index.html#account routinely happens BEFORE Firebase restores the
+ * session — reading auth.currentUser synchronously at bootstrap would see
+ * null, wrongly conclude "signed out", and strand the user on Home
+ * (the reported double-click bug).
+ *
+ * @param {Object|null} [knownUser] - user from onAuthStateChanged when
+ *   invoked from the auth callback; undefined when invoked from bootstrap.
+ */
+function attemptPendingDashboardOpen(knownUser) {
+  let pending = false;
+  try {
+    pending = !!sessionStorage.getItem('kpr_pending_dashboard_open')
+      || !!sessionStorage.getItem('kpr_open_account_dashboard')
+      || !!sessionStorage.getItem('kpr_dash_user_waiting')
+      || window.location.href === '#account';
+  } catch (e) {
+    pending = window.location.hash === '#account';
+  }
+  if (!pending) return;
+
+  const auth = (typeof getKprAuth === 'function') ? getKprAuth() : null;
+  const user = (typeof knownUser !== 'undefined')
+    ? knownUser
+    : (typeof getKprAuthUser === 'function' ? getKprAuthUser() : (auth ? auth.currentUser : null));
+
+  // Auth SDK still initialising and no callback user yet -> retry shortly;
+  // the onAuthStateChanged invocation of this same function will land the
+  // open with the real user. Bounded retries guard the (rare) path where
+  // the callback never fires.
+  if (!user && typeof knownUser === 'undefined') {
+    if (!window._kprPendingDashRetries) window._kprPendingDashRetries = 0;
+    if (window._kprPendingDashRetries < 40) { // ~10s @ 250ms
+      window._kprPendingDashRetries += 1;
+      setTimeout(function () { attemptPendingDashboardOpen(); }, 250);
+    } else {
+      try { sessionStorage.removeItem('kpr_pending_dashboard_open'); } catch (e) {}
+      if (typeof unmaskHomeForDashboard === 'function') unmaskHomeForDashboard();
+      if (typeof openAuthModal === 'function') openAuthModal();
+      if (typeof showAuthNotice === 'function') showAuthNotice('Please sign in to view your order history.', 'info');
+    }
+    return;
+  }
+
+  try { sessionStorage.removeItem('kpr_pending_dashboard_open'); } catch (e) {}
+  window._kprPendingDashRetries = 0;
+
+  if (user) {
+    if (typeof showAccountDashboard === 'function') showAccountDashboard(user);
+    if (typeof fetchUserOrders === 'function') fetchUserOrders();
+  } else {
+    if (typeof unmaskHomeForDashboard === 'function') unmaskHomeForDashboard();
+    if (typeof openAuthModal === 'function') openAuthModal();
+    if (typeof showAuthNotice === 'function') showAuthNotice('Please sign in to view your order history.', 'info');
+  }
+}
+
 /** Wire the portal into the page: auth state, Escape-to-close, redirect resume. */
 function initClientPortalAuth() {
   const auth = getKprAuth();
@@ -4444,24 +4653,81 @@ function initClientPortalAuth() {
     hydrateEnquiryFormFromAuth(user);
     renderHeaderUserAccount(user);
     loadWishlistForUser(user);
+    // Finish any parked dashboard open from a cross-page profile-icon click.
+    // On dashboard.html the view is also opened directly below, so this is
+    // just the session-restore safety net.
+    attemptPendingDashboardOpen(user);
   });
 
-  // Deep-link / post-redirect open of the account dashboard:
-  //  • index.html#account            -> open immediately (or after sign-in)
-  //  • kpr_open_account_dashboard    -> set by openMyOrders() on other pages
-  //                                     right before redirecting to index.html
-  const wantsDashboard = (window.location.hash === '#account')
-    || (() => { try { return !!sessionStorage.getItem('kpr_open_account_dashboard'); } catch (e) { return false; } })();
-  if (wantsDashboard) {
+  // Dedicated dashboard page: open the view immediately (no hash tricks, no
+  // masking needed — dashboard.html contains ONLY the dashboard). Signed-out
+  // visitors get the sign-in modal instead. The view markup here is always
+  // visible (no .hidden class), so paint it even before auth resolves.
+  if (isDashboardPage()) {
     try { sessionStorage.removeItem('kpr_open_account_dashboard'); } catch (e) {}
-    if (typeof history !== 'undefined' && history.replaceState) history.replaceState(null, '', window.location.pathname + window.location.search);
-    if (user) {
-      showAccountDashboard(user);
+    try { sessionStorage.removeItem('kpr_pending_dashboard_open'); } catch (e) {}
+    if (typeof history !== 'undefined' && history.replaceState)
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+
+    // Try to render immediately if the auth callback already resolved.
+    // (On a fresh page load, the callback hasn't fired yet, so we park a
+    // waiting flag instead of painting the dummy "Welcome, User" shell.)
+    const nowUser = window.currentKprUser || auth.currentUser;
+    if (nowUser) {
+      showAccountDashboard(nowUser);
       fetchUserOrders();
     } else {
-      openAuthModal();
-      showAuthNotice('Please sign in to view your order history.', 'info');
+      // Park a waiting flag so onAuthStateChanged can finish the open with the
+      // real user once it restores the session from IndexedDB / LocalStorage.
+      try { sessionStorage.setItem('kpr_dash_user_waiting', JSON.stringify({waiting: true, ts: Date.now()})); } catch (e) {}
+      // Safety net: if the callback never lands within 8 s, fall back to the
+      // sign-in modal so the visitor isn't stuck on a blank/dummy dashboard.
+      if (!window._kprDashTimeout) {
+        window._kprDashTimeout = setTimeout(function () {
+          let stillWaiting = false;
+          try { stillWaiting = !!sessionStorage.getItem('kpr_dash_user_waiting'); } catch (e) { stillWaiting = false; }
+          if (!stillWaiting) { window._kprDashTimeout = null; return; }
+          // Auth may have resolved while we were waiting — if so, bail out.
+          if (window.currentKprUser || auth.currentUser) {
+            try { sessionStorage.removeItem('kpr_dash_user_waiting'); } catch (e) {}
+            window._kprDashTimeout = null;
+            return;
+          }
+          try { sessionStorage.removeItem('kpr_dash_user_waiting'); } catch (e) {}
+          window._kprDashTimeout = null;
+          if (typeof unmaskHomeForDashboard === 'function') unmaskHomeForDashboard();
+          if (typeof openAuthModal === 'function') openAuthModal();
+          if (typeof showAuthNotice === 'function') showAuthNotice('Please sign in to view your order history.', 'info');
+        }, 8000);
+      }
     }
+    // Fall through to the Escape / outside-click bindings below.
+  }
+
+  // Legacy deep-link support: old index.html#account links (and any parked
+  // cross-page flag predating the dashboard.html split) forward to the
+  // dedicated page instead of rendering Home first.
+
+  // Legacy deep-link support: old index.html#account links (and any parked
+  // cross-page flag predating the dashboard.html split) forward to the
+  // dedicated page instead of rendering Home first.
+  //  • index.html#account            -> forward to dashboard.html
+  //  • kpr_open_account_dashboard    -> parked by openMyOrders()/openClientDashboard()
+  //                                     (kept for backward compatibility)
+  // NOTE: the flag is consumed here, but arrival can happen BEFORE Firebase
+  // restores the session (auth.currentUser is briefly null on a fresh page
+  // load). In that case we re-park the flag and let the onAuthStateChanged
+  // callback above finish the open.
+  const wantsDashboard = (window.location.hash === '#account')
+    || (() => { try { return !!sessionStorage.getItem('kpr_open_account_dashboard'); } catch (e) { return false; } })();
+  if (wantsDashboard && !isDashboardPage()) {
+    try { sessionStorage.removeItem('kpr_open_account_dashboard'); } catch (e) {}
+    if (typeof history !== 'undefined' && history.replaceState) history.replaceState(null, '', window.location.pathname + window.location.search);
+    // Preserve the intent across the forward so a signed-in arrival still
+    // opens instantly even if the session is mid-restore.
+    try { sessionStorage.setItem('kpr_open_account_dashboard', '1'); } catch (e) {}
+    window.location.href = 'dashboard.html';
+    return;
   }
 
   // Escape closes whichever portal overlay is open (keyboard accessibility)
@@ -4481,6 +4747,13 @@ function initClientPortalAuth() {
     if (event && event.target && wrap.contains(event.target)) return;
     closeUserDropdown();
   });
+
+  // Running inside a legacy parked-dashboard arrival? The forward above
+  // already redirected to dashboard.html, so there is nothing left to mask
+  // here. (Kept as a no-op hook for backward compatibility.)
+  if (typeof maskHomeUntilDashboard === 'function') {
+    try { maskHomeUntilDashboard(); } catch (e) {}
+  }
 
   // Complete a redirect-based Google sign-in (popup-blocked fallback). The
   // parked callback cannot survive the page reload, so the checkout entry

@@ -484,8 +484,20 @@
   }
 
   // Highlight the nav tab that matches the current page (desktop + mobile).
+  // Dashboard page: no tab is active — the profile icon (white-ring
+  // .is-dashboard-active state) is the selected marker instead.
   function setActiveNav() {
     const current = currentPageFile();
+    if (current === 'dashboard.html'
+        || (typeof document !== 'undefined' && document.getElementById('site-header')
+            && document.getElementById('site-header').getAttribute('data-dashboard-page') === '1')) {
+      document.querySelectorAll('.nav-link').forEach(function (link) {
+        link.classList.remove('active');
+      });
+      const userBtn = document.getElementById('userAccountBtn');
+      if (userBtn) userBtn.classList.add('is-dashboard-active');
+      return;
+    }
     document.querySelectorAll('.nav-link').forEach(function (link) {
       const href = (link.getAttribute('href') || '').toLowerCase();
       let linkFile = href.substring(href.lastIndexOf('/') + 1);

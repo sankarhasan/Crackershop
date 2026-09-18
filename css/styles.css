@@ -5,21 +5,28 @@
 /* --- Custom Variables (Design Tokens) --- */
 :root {
   /* Color Palette */
-  --deep-green: #0A5C36;
-  --deep-green-dark: #074729;
-  --deep-green-light: #0f864f;
-  --festive-red: #D4213D;
-  --festive-red-dark: #A3142B;
-  --festive-red-light: #F13552;
-  --golden-yellow: #FFD700;
-  --golden-light: #FFF099;
-  --golden-dark: #CCAD00;
+  --deep-green: #185c2b;          /* header forest green */
+  --deep-green-dark: #0f401f;     /* active / hover nav pill */
+  --deep-green-light: #227a3d;
+  --festive-red: #dc2626;         /* crimson red (don'ts card) */
+  --festive-red-dark: #b91c1c;
+  --festive-red-light: #ef4444;
+  --golden-yellow: #ffb700;
+  --golden-light: #ffd97a;
+  --golden-dark: #cc9200;
+  --header-green: #185c2b;        /* main header navigation */
+  --hero-maroon: #631417;         /* hero carousel base */
+  --accent-gold: #ffb700;         /* primary accent (badges / buttons) */
+  --footer-yellow: #ffb700;       /* festive footer background */
+  --btn-green: #008744;           /* secondary call buttons */
+  --btn-green-dark: #006e37;      /* secondary button hover */
   
   /* Gradients */
-  --gold-gradient: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-  --green-gradient: linear-gradient(135deg, #0A5C36 0%, #03301B 100%);
-  --red-gradient: linear-gradient(135deg, #D4213D 0%, #7E0A1B 100%);
-  --festive-glow: radial-gradient(circle, rgba(255,215,0,0.15) 0%, rgba(0,0,0,0) 70%);
+  --gold-gradient: linear-gradient(135deg, #ffb700 0%, #ffa900 100%);
+  --green-gradient: linear-gradient(135deg, #185c2b 0%, #0a2b15 100%);
+  --red-gradient: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);
+  --hero-gradient: linear-gradient(135deg, #5a1215 0%, #75171b 50%, #420b0d 100%);
+  --festive-glow: radial-gradient(circle, rgba(255,183,0,0.15) 0%, rgba(0,0,0,0) 70%);
 
   /* Neutrals */
   --white: #FFFFFF;
@@ -31,8 +38,8 @@
   
   /* Layout & Spacing */
   --container-width: 1280px;
-  --header-height: 80px;
-  --top-bar-height: 40px;
+  --header-height: 60px;         /* compact green navbar */
+  --top-bar-height: 28px;        /* sleek white announcement strip */
   
   /* Effects */
   --radius-sm: 6px;
@@ -43,7 +50,7 @@
   --shadow-md: 0 10px 20px rgba(10,92,54,0.08);
   --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --glow-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+  --glow-shadow: 0 0 20px rgba(255, 183, 0, 0.6);
 }
 
 /* --- Base & Reset --- */
@@ -268,38 +275,42 @@ html, body, div, section, textarea, table {
 }
 
 .btn-primary {
-  background-color: var(--deep-green);
-  color: var(--white);
+  background-color: var(--golden-yellow);
+  color: #0f172a;
+  font-weight: 800;
 }
 
 .btn-primary:hover {
-  background-color: var(--deep-green-dark);
+  background-color: var(--golden-dark);
+  color: #0f172a;
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(10, 92, 54, 0.3);
+  box-shadow: 0 6px 15px rgba(255, 183, 0, 0.35);
 }
 
 .btn-secondary {
-  background: var(--red-gradient);
+  background-color: var(--btn-green);
   color: var(--white);
   border: none;
 }
 
 .btn-secondary:hover {
-  background: var(--festive-red-dark);
+  background-color: var(--btn-green-dark);
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(212, 33, 61, 0.4);
+  box-shadow: 0 6px 15px rgba(0, 135, 68, 0.4);
 }
 
 .btn-outline {
-  background: transparent;
+  background-color: var(--btn-green);
   color: var(--white);
-  border-color: var(--white);
+  border: none;
+  font-weight: 700;
 }
 
 .btn-outline:hover {
-  background-color: var(--white);
-  color: var(--deep-green);
+  background-color: var(--btn-green-dark);
+  color: var(--white);
   transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 135, 68, 0.4);
 }
 
 .btn-block {
@@ -317,7 +328,7 @@ html, body, div, section, textarea, table {
 
 @keyframes pulseBtn {
   0% { transform: scale(1); }
-  50% { transform: scale(1.04); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
+  50% { transform: scale(1.04); box-shadow: 0 0 20px rgba(255, 183, 0, 0.4); }
   100% { transform: scale(1); }
 }
 
@@ -334,21 +345,24 @@ html, body, div, section, textarea, table {
 
 .badge.festive {
   background: var(--gold-gradient);
-  color: #1e1b00;
-  box-shadow: 0 2px 5px rgba(255, 215, 0, 0.3);
+  color: #0f172a;
+  box-shadow: 0 2px 5px rgba(255, 183, 0, 0.35);
 }
 
 /* --- Top Bar: continuous scrolling marquee (desktop + mobile) --- */
 .top-bar {
-  background-color: var(--deep-green-dark);
-  color: var(--white);
+  background-color: #ffffff;      /* white strip */
+  color: #1f2937;
   height: var(--top-bar-height);
-  font-size: 0.8rem;
+  font-size: 11px;                /* compact marquee text */
+  line-height: 1.2;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
   display: flex;
   align-items: center;
   width: 100%;
   overflow: hidden;
-  border-bottom: 2px solid var(--golden-yellow);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .ticker-wrap {
@@ -389,13 +403,20 @@ html, body, div, section, textarea, table {
 .minimum-order-pill {
   display: inline-block;
   background: var(--gold-gradient);
-  color: var(--deep-green-dark);
+  color: #0f172a;
   font-weight: 700;
-  font-size: 0.72rem;
+  font-size: 10px;                /* compact pill text */
   letter-spacing: 0.3px;
-  padding: 3px 12px;
+  padding: 2px 8px;               /* compact pill padding */
   border-radius: var(--radius-full);
   white-space: nowrap;
+}
+
+/* Force the dealer-name highlight (inlined as style="color:#facc15" in the
+   page markup) to a legible dark gold now that the strip is white — no
+   markup changes needed since !important beats inline styles. */
+.top-bar .ticker-item strong {
+  color: #b45309 !important;
 }
 
 /* Pause the marquee on hover so shoppers can read it */
@@ -414,8 +435,10 @@ html, body, div, section, textarea, table {
 
 /* --- Main Header / Navigation Bar (sticky) --- */
 .main-header {
-  background: linear-gradient(135deg, #ffcc00 0%, #ff9e00 100%) !important;
+  background-color: var(--header-green) !important; /* deep forest green */
   height: var(--header-height);
+  padding-top: 6px !important;    /* compact sleek navbar */
+  padding-bottom: 6px !important;
   display: flex;
   align-items: center;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
@@ -440,14 +463,16 @@ html, body, div, section, textarea, table {
   left: 0 !important;
   width: 100% !important;
   z-index: 9999 !important;
-  background: linear-gradient(135deg, #ffcc00 0%, #ff9e00 100%) !important;
+  background-color: var(--header-green) !important;
 }
 
 .header-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
+  padding-top: 6px !important;    /* compact sleek navbar */
+  padding-bottom: 6px !important;
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
@@ -488,7 +513,7 @@ html, body, div, section, textarea, table {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px; /* tightened for the compact bar */
 }
 
 
@@ -503,7 +528,7 @@ html, body, div, section, textarea, table {
   height: 40px;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.3));
+  filter: drop-shadow(0 0 5px rgba(255, 183, 0, 0.3));
 }
 
 .footer-logo-image {
@@ -544,7 +569,7 @@ html, body, div, section, textarea, table {
 }
 
 .brand-logo-img {
-  height: 56px;
+  height: 40px;                   /* compact logo */
   width: auto;
   object-fit: contain;
   display: block;
@@ -552,7 +577,7 @@ html, body, div, section, textarea, table {
 
 @media (max-width: 768px) {
   .brand-logo-img {
-    height: 48px;
+    height: 36px; /* compact logo on small screens */
   }
 }
 
@@ -575,13 +600,14 @@ html, body, div, section, textarea, table {
 
 .nav-link {
   font-family: 'Poppins', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-dark);
-  padding: 6px 10px;
-  border-radius: 6px;
+  font-size: 13px;                /* compact link text */
+  font-weight: 700;
+  color: #ffffff !important;
+  padding: 4px 10px;              /* compact spacing */
+  border: 1px solid transparent; /* reserves pill width so hover adds no shift */
+  border-radius: var(--radius-full);
   position: relative;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -591,10 +617,13 @@ html, body, div, section, textarea, table {
   display: none;
 }
 
+/* Golden pill highlight on the deep-green header */
 .nav-link:hover,
 .nav-link.active {
-  color: var(--deep-green);
-  background-color: #fffde7; /* dim pastel yellow box, matches product cards */
+  color: var(--golden-yellow) !important;
+  background-color: var(--deep-green-dark) !important; /* #0f401f */
+  border: 1px solid var(--golden-yellow) !important;
+  border-radius: var(--radius-full);
 }
 
 /* Header Action Elements */
@@ -616,18 +645,18 @@ html, body, div, section, textarea, table {
 }
 
 .phone-label {
-  font-size: 0.65rem;
+  font-size: 11px;                /* compact "call to order" label */
   font-weight: 700;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.85);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .phone-number {
   font-family: 'Poppins', sans-serif;
-  font-size: 0.85rem;
+  font-size: 11px;                /* compact phone numbers */
   font-weight: 700;
-  color: var(--festive-red);
+  color: var(--golden-yellow); /* gold reads best on the forest-green header */
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -635,7 +664,7 @@ html, body, div, section, textarea, table {
 }
 
 .phone-number:hover {
-  color: var(--deep-green);
+  color: #ffffff;
 }
 
 /* Phone icon (emoji) styling for consistent sizing */
@@ -647,16 +676,17 @@ html, body, div, section, textarea, table {
 
 /* Cart Icon Widget */
 .cart-widget {
-  background-color: var(--deep-green);
-  color: var(--white);
-  padding: 8px 16px;
+  background-color: var(--golden-yellow); /* gold pill on the green header */
+  color: #0f172a;
+  font-size: 12px;                /* compact cart text */
+  padding: 4px 12px;              /* compact pill padding */
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
   position: relative;
-  box-shadow: 0 4px 10px rgba(10, 92, 54, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
   transition: var(--transition);
 
   /* Reserve constant width on desktop so a growing total (e.g. ₹0 → ₹1,19,976)
@@ -670,12 +700,12 @@ html, body, div, section, textarea, table {
 
 
 .cart-widget:hover {
-  background-color: var(--deep-green-light);
+  background-color: #ffa900;
   transform: scale(1.05);
 }
 
 .cart-icon {
-  font-size: 1.1rem;
+  font-size: 12px;                /* compact cart glyph */
 }
 
 .cart-count {
@@ -706,9 +736,9 @@ html, body, div, section, textarea, table {
 }
 
 .cart-total {
-  font-size: 0.85rem;
+  font-size: 12px;                /* compact cart total */
   font-weight: 600;
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  border-left: 1px solid rgba(15, 23, 42, 0.3);
   padding-left: 8px;
 
   /* Keep currency + number in a single line */
@@ -734,7 +764,7 @@ html, body, div, section, textarea, table {
 .mobile-menu-toggle .bar {
   width: 100%;
   height: 3px;
-  background-color: var(--deep-green);
+  background-color: #ffffff; /* white bars on the forest-green header */
   border-radius: 10px;
   transition: var(--transition);
 }
@@ -815,12 +845,14 @@ section {
   padding: 0;
   height: 600px;
   overflow: hidden;
+  background: var(--hero-gradient); /* deep maroon / burgundy festive base */
 }
 
 .carousel-container {
   position: relative;
   width: 100%;
   height: 100%;
+  background: var(--hero-gradient);
 }
 
 .carousel-slide {
@@ -852,9 +884,10 @@ section {
   z-index: 1;
 }
 
-/* Premium gradient placeholders in lieu of actual images (user quota bypass) */
+/* Premium gradient placeholders in lieu of actual images (user quota bypass)
+   Deep maroon / burgundy festive gradient — matches the hero theme. */
 .placeholder-gradient-1 {
-  background: linear-gradient(135deg, #052c1a 0%, #154c30 50%, #40101b 100%);
+  background: var(--hero-gradient);
   position: relative;
 }
 .placeholder-gradient-1::before {
@@ -863,18 +896,18 @@ section {
   width: 100%;
   height: 100%;
   background-image: 
-    radial-gradient(circle at 20% 30%, rgba(255, 215, 0, 0.15) 1px, transparent 1px),
+    radial-gradient(circle at 20% 30%, rgba(255, 183, 0, 0.15) 1px, transparent 1px),
     radial-gradient(circle at 75% 40%, rgba(255, 80, 80, 0.2) 2px, transparent 2px),
-    radial-gradient(circle at 50% 80%, rgba(255, 215, 0, 0.2) 3px, transparent 3px);
+    radial-gradient(circle at 50% 80%, rgba(255, 183, 0, 0.2) 3px, transparent 3px);
   background-size: 100px 100px;
 }
 
 .placeholder-gradient-2 {
-  background: linear-gradient(135deg, #400711 0%, #7c1424 50%, #032b17 100%);
+  background: linear-gradient(135deg, #420b0d 0%, #631417 50%, #2a0708 100%);
 }
 
 .placeholder-gradient-3 {
-  background: linear-gradient(135deg, #240a34 0%, #0e2e1e 60%, #cca300 120%);
+  background: linear-gradient(135deg, #75171b 0%, #5a1215 60%, #2e0708 120%);
 }
 
 .slide-overlay {
@@ -883,7 +916,7 @@ section {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.8) 100%);
+  background: linear-gradient(to right, rgba(66,11,13,0.88) 0%, rgba(117,23,27,0.5) 60%, rgba(42,7,8,0.85) 100%);
   z-index: 2;
 }
 
@@ -922,7 +955,7 @@ section {
 }
 
 .text-glow {
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+  text-shadow: 0 0 10px rgba(255, 183, 0, 0.6);
 }
 
 .slide-title {
@@ -934,7 +967,7 @@ section {
 
 .text-highlight {
   color: var(--golden-yellow);
-  background: linear-gradient(to right, #FFD700, #FFA500);
+  background: linear-gradient(to right, #ffb700, #ffa900);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
@@ -1001,9 +1034,9 @@ section {
 }
 
 .carousel-arrow:hover {
-  background-color: var(--deep-green);
+  background-color: var(--btn-green);
   color: var(--white);
-  border-color: var(--deep-green);
+  border-color: var(--btn-green);
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -1034,7 +1067,7 @@ section {
   background-color: var(--golden-yellow);
   width: 30px;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+  box-shadow: 0 0 10px rgba(255, 183, 0, 0.8);
 }
 
 /* --- About Us Section --- */
@@ -1135,7 +1168,7 @@ section {
   font-size: 5rem;
   z-index: 2;
   margin-bottom: 20px;
-  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.4));
+  filter: drop-shadow(0 0 10px rgba(255, 183, 0, 0.4));
 }
 
 /* Brand logo inside the About page green card (replaces the lantern emoji).
@@ -1412,7 +1445,7 @@ section {
   right: -20%;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, rgba(0,0,0,0) 70%);
+  background: radial-gradient(circle, rgba(255, 183, 0, 0.2) 0%, rgba(0,0,0,0) 70%);
   animation: glowFloat 10s infinite ease-in-out alternate;
 }
 
@@ -1430,7 +1463,7 @@ section {
 
 .promo-badge {
   background-color: var(--golden-yellow);
-  color: #1e1b00;
+  color: #0f172a;
   font-weight: 800;
   font-size: 0.8rem;
   padding: 6px 16px;
@@ -1439,7 +1472,7 @@ section {
   letter-spacing: 1px;
   margin-bottom: 20px;
   display: inline-block;
-  box-shadow: 0 4px 10px rgba(255,215,0,0.3);
+  box-shadow: 0 4px 10px rgba(255,183,0,0.3);
 }
 
 .promo-title {
@@ -1831,8 +1864,8 @@ section {
 
 .btn-add-cart:hover {
   background-color: var(--golden-yellow);
-  color: #1e1b00;
-  box-shadow: 0 4px 10px rgba(255,215,0,0.3);
+  color: #0f172a;
+  box-shadow: 0 4px 10px rgba(255,183,0,0.3);
 }
 
 .product-card.out-of-stock .btn-add-cart {
@@ -1966,13 +1999,13 @@ section {
 }
 
 .safety-card.do {
-  background-color: rgba(10, 92, 54, 0.03);
-  border-left: 6px solid var(--deep-green);
+  background-color: #fffdf5;
+  border: 2px solid var(--golden-yellow); /* golden-yellow frame */
 }
 
 .safety-card.dont {
-  background-color: rgba(212, 33, 61, 0.03);
-  border-left: 6px solid var(--festive-red);
+  background-color: rgba(220, 38, 38, 0.04);
+  border: 2px solid var(--festive-red); /* crimson-red frame */
 }
 
 .safety-icon-wrapper {
@@ -1988,13 +2021,21 @@ section {
 }
 
 .safety-icon-wrapper.do-icon {
-  background-color: var(--deep-green);
-  color: var(--white);
+  background-color: var(--golden-yellow); /* golden header badge */
+  color: #0f172a;
 }
 
 .safety-icon-wrapper.dont-icon {
-  background-color: var(--festive-red);
+  background-color: var(--festive-red); /* crimson-red header badge */
   color: var(--white);
+}
+
+.safety-card.do h3 {
+  color: #0f172a;
+}
+
+.safety-card.dont h3 {
+  color: var(--festive-red-dark);
 }
 
 .safety-card h3 {
@@ -2148,7 +2189,7 @@ section {
   width: 100%;
   height: 100%;
   background-image: 
-    radial-gradient(circle at 10% 80%, rgba(255, 215, 0, 0.05) 0%, rgba(0,0,0,0) 50%),
+    radial-gradient(circle at 10% 80%, rgba(255, 183, 0, 0.05) 0%, rgba(0,0,0,0) 50%),
     radial-gradient(circle at 90% 20%, rgba(212, 33, 61, 0.05) 0%, rgba(0,0,0,0) 50%);
   pointer-events: none;
 }
@@ -2222,7 +2263,7 @@ section {
   height: 50px;
   border-radius: 50%;
   background: var(--gold-gradient);
-  color: #1e1b00;
+  color: #0f172a;
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 1.1rem;
@@ -2278,7 +2319,7 @@ section {
 
 .slider-btn:hover {
   background-color: var(--golden-yellow);
-  color: #1e1b00;
+  color: #0f172a;
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -2822,7 +2863,7 @@ select.form-control {
   width: 80px;
   height: 80px;
   border: 2px solid var(--golden-yellow);
-  background-color: rgba(255,215,0,0.1);
+  background-color: rgba(255,183,0,0.1);
   border-radius: 50%;
   animation: radarWave 2s infinite linear;
   z-index: 1;
@@ -2837,7 +2878,7 @@ select.form-control {
   font-size: 3.5rem;
   z-index: 2;
   margin-bottom: 12px;
-  filter: drop-shadow(0 0 5px rgba(255,215,0,0.6));
+  filter: drop-shadow(0 0 5px rgba(255,183,0,0.6));
 }
 
 .styled-map-placeholder h4 {
@@ -3160,10 +3201,10 @@ select.form-control {
 
 /* --- Footer --- */
 .main-footer {
-  background-color: var(--deep-green-dark);
-  color: var(--white);
+  background-color: var(--footer-yellow); /* vibrant festive yellow / gold */
+  color: #0f172a;
   padding: 80px 0 0 0;
-  border-top: 4px solid var(--golden-yellow);
+  border-top: 4px solid var(--deep-green-dark);
 }
 
 .footer-grid {
@@ -3175,8 +3216,8 @@ select.form-control {
 
 .footer-col h3 {
   font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--golden-yellow);
+  font-weight: 800; /* dark slate heading */
+  color: #0f172a;
   margin-bottom: 24px;
   position: relative;
   display: inline-block;
@@ -3189,7 +3230,7 @@ select.form-control {
   left: 0;
   width: 40px;
   height: 2px;
-  background-color: var(--golden-yellow);
+  background-color: var(--deep-green-dark);
 }
 
 .footer-logo {
@@ -3204,12 +3245,13 @@ select.form-control {
   font-size: 1.4rem;
   font-weight: 800;
   letter-spacing: 1px;
-  color: var(--golden-yellow);
+  color: #0f172a;
 }
 
 .footer-about {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  color: #1f2937; /* dark charcoal sub-text */
   line-height: 1.7;
   margin-bottom: 24px;
 }
@@ -3224,7 +3266,8 @@ select.form-control {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3235,8 +3278,8 @@ select.form-control {
 
 .social-icon:hover {
   transform: translateY(-3px);
-  background-color: var(--golden-yellow);
-  color: #1e1b00;
+  background-color: var(--deep-green-dark);
+  color: #ffffff;
 }
 
 /* Footer links */
@@ -3246,18 +3289,19 @@ select.form-control {
 
 .footer-links a {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500; /* dark charcoal links */
+  color: #1f2937;
   display: inline-block;
 }
 
 .footer-links a:hover {
-  color: var(--golden-yellow);
+  color: #000000;
   transform: translateX(4px);
 }
 
 .admin-portal-link {
-  font-weight: 600;
-  color: var(--golden-yellow) !important;
+  font-weight: 700;
+  color: var(--deep-green-dark) !important;
 }
 
 /* Footer contact column */
@@ -3274,24 +3318,25 @@ select.form-control {
 
 .contact-icon {
   font-size: 1rem;
-  color: var(--golden-yellow);
+  color: var(--deep-green-dark);
 }
 
 .contact-details {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  color: #1f2937;
   line-height: 1.5;
 }
 
 .contact-details a:hover {
-  color: var(--golden-yellow);
+  color: #000000;
 }
 
 /* Footer bottom copyrights */
 .footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(15, 23, 42, 0.15);
   padding: 24px 0;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .footer-bottom-content {
@@ -3299,7 +3344,8 @@ select.form-control {
   justify-content: space-between;
   align-items: center;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  color: rgba(15, 23, 42, 0.75);
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -3724,7 +3770,7 @@ select.form-control {
     z-index: 1001 !important;
     position: sticky !important;
     top: 0 !important;
-    background: linear-gradient(135deg, #ffcc00 0%, #ff9e00 100%) !important;
+    background-color: var(--header-green) !important; /* deep forest green on mobile */
   }
 
   /* Hide desktop nav on mobile */
@@ -3747,7 +3793,7 @@ select.form-control {
     height: auto !important; /* fits content, no huge gap */
     max-height: calc(100vh - 60px) !important;
     max-height: calc(100dvh - 60px) !important;
-    background: linear-gradient(180deg, #074729 0%, #03301B 100%) !important;
+    background: linear-gradient(180deg, #0f401f 0%, #0a2b15 100%) !important;
     box-shadow: -4px 4px 20px rgba(0,0,0,0.3) !important;
     padding: 0 !important;
     overflow-y: auto !important;
@@ -3792,14 +3838,14 @@ select.form-control {
   }
 
   .nav-link:hover {
-    color: #ffffff !important;
+    color: var(--golden-yellow) !important;
     background-color: rgba(255, 255, 255, 0.08) !important;
-    border-right-color: rgba(255, 215, 0, 0.5);
+    border-right-color: var(--golden-yellow);
   }
 
   .nav-link.active {
-    color: var(--deep-green-dark) !important; /* dark green text on yellow bg for readability */
-    background-color: #fffde7 !important; /* dim pastel yellow */
+    color: #0f172a !important; /* slate text on the golden pill */
+    background-color: var(--golden-yellow) !important;
     border-right-color: var(--golden-yellow);
   }
 
@@ -3852,14 +3898,14 @@ select.form-control {
     opacity: 0;
   }
 
-  .menu-fireworks .fw-particle:nth-child(1) { left: 15%; top: 50%; background: #FFD700; animation-delay: 0s; }
+  .menu-fireworks .fw-particle:nth-child(1) { left: 15%; top: 50%; background: #ffb700; animation-delay: 0s; }
   .menu-fireworks .fw-particle:nth-child(2) { left: 45%; top: 35%; background: #FF6B6B; animation-delay: 0.6s; }
-  .menu-fireworks .fw-particle:nth-child(3) { left: 75%; top: 55%; background: #FFD700; animation-delay: 1.2s; }
+  .menu-fireworks .fw-particle:nth-child(3) { left: 75%; top: 55%; background: #ffb700; animation-delay: 1.2s; }
   .menu-fireworks .fw-particle:nth-child(4) { left: 30%; top: 65%; background: #4ECDC4; animation-delay: 1.8s; }
   .menu-fireworks .fw-particle:nth-child(5) { left: 60%; top: 40%; background: #FF6B6B; animation-delay: 0.3s; }
-  .menu-fireworks .fw-particle:nth-child(6) { left: 85%; top: 60%; background: #FFD700; animation-delay: 0.9s; }
+  .menu-fireworks .fw-particle:nth-child(6) { left: 85%; top: 60%; background: #ffb700; animation-delay: 0.9s; }
   .menu-fireworks .fw-particle:nth-child(7) { left: 10%; top: 30%; background: #4ECDC4; animation-delay: 1.5s; }
-  .menu-fireworks .fw-particle:nth-child(8) { left: 55%; top: 70%; background: #FFD700; animation-delay: 2.1s; }
+  .menu-fireworks .fw-particle:nth-child(8) { left: 55%; top: 70%; background: #ffb700; animation-delay: 2.1s; }
 
   @keyframes fw-burst {
     0% {
@@ -3877,7 +3923,7 @@ select.form-control {
 
   /* Header */
   .main-header {
-    height: 70px;
+    height: 56px; /* compact sticky navbar on small screens */
   }
 
   .header-actions {
@@ -3907,16 +3953,17 @@ select.form-control {
 
   .cart-widget {
     min-width: 80px;
-    padding: 6px 12px;
+    padding: 4px 12px; /* compact cart pill on small screens */
   }
 
   .cart-total {
-    font-size: 0.75rem;
+    font-size: 11px;
   }
 
   /* Top bar marquee: tighter spacing + slightly faster on small screens */
   .top-bar {
     padding: 0 !important;
+    height: 24px; /* sleek strip on small screens */
   }
 
   .ticker-spacer {
@@ -3924,8 +3971,8 @@ select.form-control {
   }
 
   .minimum-order-pill {
-    font-size: 0.68rem;
-    padding: 3px 10px;
+    font-size: 10px; /* compact pill on small screens */
+    padding: 2px 8px;
   }
 
   .ticker-content {
@@ -5127,12 +5174,12 @@ select.form-control {
   }
 
   .main-header {
-    height: 60px;
+    height: 52px; /* compact navbar on extra-small screens */
   }
 
   .cart-widget {
     min-width: 70px;
-    padding: 5px 10px;
+    padding: 4px 10px;
     gap: 4px;
   }
 
@@ -6011,8 +6058,8 @@ body.kpr-auth-open {
    HEADER USER ACCOUNT (KPR Client Portal)
    --------------------------------------------------------------------------
    Circular account button placed in .header-actions strictly between the phone
-   contacts (.phone-box) and the green cart pill (.cart-widget).
-   Signed out -> deep-green disc with a gold ring and a white user glyph.
+   contacts (.phone-box) and the golden cart pill (.cart-widget).
+   Signed out -> golden disc with a deep-green ring and a slate user glyph.
    Signed in -> the Firebase avatar photo fills the disc and a green presence
    dot appears. (The reference markup was Tailwind/amber-on-white; the site
    header is a gold gradient, so the palette is adapted for contrast while
@@ -6028,31 +6075,45 @@ body.kpr-auth-open {
 
 .header-user-btn {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 32px;                    /* compact account button */
+  height: 32px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 2px solid var(--golden-yellow);
+  border: 2px solid var(--deep-green-dark);
   border-radius: 50%;
-  background: var(--deep-green);
-  color: var(--white);
+  background: var(--golden-yellow);
+  color: #0f172a;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(10, 92, 54, 0.25);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
   transition: var(--transition);
 }
 
 .header-user-btn:hover {
-  background: var(--deep-green-light);
+  background: #ffa900;
   border-color: var(--white);
   transform: translateY(-1px) scale(1.05);
 }
 
 .header-user-btn:focus-visible {
-  outline: 2px solid var(--deep-green-dark);
+  outline: 2px solid var(--golden-yellow);
   outline-offset: 2px;
+}
+
+/* ACTIVE / SELECTED profile state — gold disc + white ring while the Client
+   Account Dashboard is the visible "page" (mirrors the golden nav pill). */
+.header-user-btn.is-dashboard-active {
+  background: var(--golden-yellow);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px var(--header-green), 0 0 0 4px #ffffff, 0 4px 10px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px) scale(1.05);
+}
+
+.header-user-btn.is-dashboard-active:hover {
+  background: #ffa900;
+  border-color: #ffffff;
 }
 
 /* Presence dot — only rendered once a client is signed in */
@@ -6335,7 +6396,7 @@ body.kpr-auth-open {
 }
 
 .kpr-order-status.status-new { background: rgba(212, 33, 61, 0.12); color: var(--festive-red-dark); }
-.kpr-order-status.status-contacted { background: rgba(255, 215, 0, 0.28); color: #7a5c00; }
+.kpr-order-status.status-contacted { background: rgba(255, 183, 0, 0.28); color: #7a5c00; }
 .kpr-order-status.status-resolved { background: rgba(16, 185, 129, 0.18); color: #065f46; }
 
 .kpr-order-meta {
