@@ -7369,6 +7369,143 @@ main.account-view-active > section {
 
 
 /* ==========================================================================
+   Features Highlights Strip
+   Placed directly below the hero carousel — 4 feature cards with icons,
+   2x2 grid on mobile/tablet, single 4-column row on desktop, icon badges
+   with colored backgrounds, vertically centered icon+text, even gaps.
+   ========================================================================== */
+.features-highlights-section {
+  width: 100%;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 1.25rem 0.75rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+@media (min-width: 640px) {
+  .features-highlights-section {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .features-highlights-section {
+    padding: 1.5rem 3rem;
+  }
+}
+
+.features-grid {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .features-grid {
+    gap: 1.5rem 2rem;
+  }
+}
+
+/* Single horizontal row of four equal columns on desktop */
+@media (min-width: 768px) {
+  .features-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem 2.5rem;
+  }
+}
+
+.feature-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .feature-card {
+    gap: 0.875rem;
+  }
+}
+
+.feature-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+@media (min-width: 640px) {
+  .feature-icon {
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+.feature-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .feature-icon svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+.feature-text h4 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #000000;
+  line-height: 1.375;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .feature-text h4 {
+    font-size: 0.875rem;
+  }
+}
+
+.feature-text p {
+  font-size: 0.6875rem;
+  color: #6B7280;
+  font-weight: 400;
+  line-height: 1.35;
+  margin: 0.25rem 0 0;
+}
+
+@media (min-width: 640px) {
+  .feature-text p {
+    font-size: 0.75rem;
+  }
+}
+
+/* Color variants for icon badges only */
+.feature-icon-amber {
+  background: rgba(254, 243, 199, 0.8);
+  color: #92400E;
+}
+.feature-icon-emerald {
+  background: rgba(209, 250, 229, 0.8);
+  color: #065F46;
+}
+.feature-icon-blue {
+  background: rgba(219, 234, 254, 0.8);
+  color: #1E40AF;
+}
+.feature-icon-purple {
+  background: rgba(237, 233, 254, 0.8);
+  color: #6B21A8;
+}
+
+/* ==========================================================================
    FONT AWESOME GLYPH RESTORE
    The global reset above ("* { font-family: 'Poppins', sans-serif !important; }")
    clobbers the font-family that Font Awesome assigns to its icon elements,
