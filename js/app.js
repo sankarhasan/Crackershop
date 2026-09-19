@@ -1295,13 +1295,13 @@ function buildProductActionInner(prodId, qty, inStock) {
   if (qty > 0) {
     return `
       <div class="jcs-stepper-wrap">
-        <button class="jcs-step-btn" onclick="catalogStepQty('${escapedId}', -1)" aria-label="Decrease quantity">−</button>
+        <button class="jcs-step-btn" onclick="event.stopPropagation(); catalogStepQty('${escapedId}', -1)" aria-label="Decrease quantity">−</button>
         <span class="jcs-step-count">${qty}</span>
-        <button class="jcs-step-btn" onclick="catalogStepQty('${escapedId}', 1)" aria-label="Increase quantity">+</button>
+        <button class="jcs-step-btn" onclick="event.stopPropagation(); catalogStepQty('${escapedId}', 1)" aria-label="Increase quantity">+</button>
       </div>
     `;
   }
-  return `<button class="jcs-add-btn" onclick="catalogAddQty('${escapedId}')">ADD</button>`;
+  return `<button class="jcs-add-btn" onclick="event.stopPropagation(); catalogAddQty('${escapedId}')">ADD</button>`;
 }
 
 // Full pinned container (used by both the desktop grid and the mobile slider).
@@ -4323,7 +4323,7 @@ function wishlistJsId(productId) {
 function getWishlistBtnHTML(productId) {
   const isWishlisted = window.userWishlist && window.userWishlist.indexOf(String(productId)) !== -1;
   return `
-    <button type="button" onclick="toggleWishlist('${wishlistJsId(productId)}')" data-wishlist-btn data-product-id="${productId}" class="card-wishlist-btn p-2 rounded-full transition-all${isWishlisted ? ' wishlist-active' : ''}" title="Save to Wishlist" aria-label="Save to Wishlist">
+    <button type="button" onclick="event.stopPropagation(); toggleWishlist('${wishlistJsId(productId)}')" data-wishlist-btn data-product-id="${productId}" class="card-wishlist-btn p-2 rounded-full transition-all${isWishlisted ? ' wishlist-active' : ''}" title="Save to Wishlist" aria-label="Save to Wishlist">
       <i class="${isWishlisted ? 'fa-solid fa-heart text-red-500' : 'fa-regular fa-heart text-gray-400 hover:text-red-500'} text-lg"></i>
     </button>
   `;
@@ -4345,6 +4345,283 @@ function getProductBadgeRowHTML(prod) {
   }
   return `<div class="product-card-badges">${badges.join('')}</div>`;
 }
+
+/* ==========================================================================
+   12.x Product Quick View Modal (card click → detail popup)
+   Injected once into <body> on first open so every page that loads app.js
+   gets it without duplicating markup. Body scrolling is locked while open.
+   ADD / stepper / wishlist buttons call event.stopPropagation() at their
+   inline handlers, plus a closest() guard here, so they never trigger it.
+   ========================================================================== */
+window.quickViewProductId = null;
+window.quickViewRating = 0;
+
+function ensureQuickViewModal() {
+  let root = document.getElementById('product-quickview-modal');
+  if (root) return root;
+
+  root = document.createElement('div');
+  root.id = 'product-quickview-modal';
+  root.className = 'quickview-overlay';
+  root.innerHTML = `
+    <div class="quickview-card" role="dialog" aria-modal="true" aria-label="Product quick view">
+      <div class="quickview-topbar">
+        <div id="quickview-badges" class="quickview-badges"></div>
+        <button type="button" class="quickview-close-x" onclick="closeProductQuickView()" aria-label="Close quick view">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="quickview-scroll">
+        <div class="quickview-image-band">
+          <div class="quickview-image-box">
+            <img id="quickview-img" src="" alt="Product image">
+          </div>
+          <span id="quickview-discount" class="quickview-offer-badge" style="display: none;"></span>
+        </div>
+        <div class="quickview-details">
+          <span id="quickview-category" class="quickview-category"></span>
+          <h2 id="quickview-title" class="quickview-title"></h2>
+          <p id="quickview-desc" class="quickview-desc"></p>
+          <div class="quickview-price-row">
+            <span id="quickview-price" class="quickview-price"></span>
+            <span id="quickview-mrp" class="quickview-mrp"></span>
+            <span id="quickview-unit" class="quickview-unit"></span>
+          </div>
+          <div class="quickview-action-row">
+            <button type="button" id="quickview-add-btn" class="quickview-add-btn" onclick="quickViewAddToEstimate()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+              <span id="quickview-add-label">ADD TO ESTIMATE</span>
+            </button>
+            <button type="button" class="quickview-secondary-btn" onclick="closeProductQuickView()">Close</button>
+          </div>
+          <div class="quickview-reviews-section">
+            <div class="quickview-reviews-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+              <span id="quickview-reviews-count">Customer Reviews (0)</span>
+            </div>
+            <div id="quickview-reviews-list" class="quickview-reviews-list"></div>
+            <div class="quickview-review-form">
+              <div class="quickview-form-head">
+                <span class="quickview-form-title">Leave a Review:</span>
+                <div id="quickview-stars" class="quickview-stars">
+                  ${[1, 2, 3, 4, 5].map(n => `<span class="quickview-star" data-star="${n}" onclick="setQuickViewRating(${n})" role="button" aria-label="Rate ${n} star${n > 1 ? 's' : ''}">★</span>`).join('')}
+                </div>
+              </div>
+              <input type="text" id="quickview-review-name" class="quickview-input" maxlength="40" placeholder="Your Name">
+              <input type="text" id="quickview-review-text" class="quickview-input" maxlength="200" placeholder="Write a short review...">
+              <div class="quickview-form-actions">
+                <button type="button" class="quickview-post-btn" onclick="postQuickViewReview()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                  <span>Post Review</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(root);
+
+  // Click on the dim backdrop (not the card itself) closes the modal
+  root.addEventListener('click', (e) => {
+    if (e.target === root) closeProductQuickView();
+  });
+  return root;
+}
+
+function quickViewStorageKey(prodId) {
+  return 'jcs_reviews_' + String(prodId);
+}
+
+function getQuickViewReviews(prodId) {
+  try {
+    const raw = localStorage.getItem(quickViewStorageKey(prodId));
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (err) {
+    console.warn('[QuickView] Failed to read reviews for', prodId, err);
+    return [];
+  }
+}
+
+function renderQuickViewReviews() {
+  const listEl = document.getElementById('quickview-reviews-list');
+  const countEl = document.getElementById('quickview-reviews-count');
+  if (!listEl || !countEl) return;
+
+  const reviews = getQuickViewReviews(window.quickViewProductId);
+  countEl.textContent = `Customer Reviews (${reviews.length})`;
+
+  if (reviews.length === 0) {
+    listEl.innerHTML = '<div class="quickview-review-empty">No reviews yet. Be the first to rate this product!</div>';
+    return;
+  }
+  listEl.innerHTML = reviews.map(r => `
+    <div class="quickview-review-item">
+      <div class="quickview-review-top">
+        <span class="quickview-review-name">${escapeHtml(r.name)}</span>
+        <span class="quickview-review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+      </div>
+      <p class="quickview-review-text">${escapeHtml(r.text)}</p>
+      <span class="quickview-review-date">${escapeHtml(r.date)}</span>
+    </div>
+  `).join('');
+}
+
+function setQuickViewRating(n) {
+  window.quickViewRating = n;
+  document.querySelectorAll('#quickview-stars .quickview-star').forEach(star => {
+    star.classList.toggle('star-active', Number(star.getAttribute('data-star')) <= n);
+  });
+}
+
+function postQuickViewReview() {
+  const nameEl = document.getElementById('quickview-review-name');
+  const textEl = document.getElementById('quickview-review-text');
+  const name = nameEl.value.trim();
+  const text = textEl.value.trim();
+
+  if (!name) { showToast('Please enter your name.', 'error'); return; }
+  if (!text) { showToast('Please write a short review.', 'error'); return; }
+  if (window.quickViewRating < 1) { showToast('Please select a star rating.', 'error'); return; }
+
+  const reviews = getQuickViewReviews(window.quickViewProductId);
+  reviews.unshift({
+    name,
+    text,
+    rating: window.quickViewRating,
+    date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  });
+  try {
+    localStorage.setItem(quickViewStorageKey(window.quickViewProductId), JSON.stringify(reviews));
+  } catch (err) {
+    console.error('[QuickView] Failed to save review:', err);
+    showToast('Could not save your review on this device.', 'error');
+    return;
+  }
+
+  nameEl.value = '';
+  textEl.value = '';
+  setQuickViewRating(0);
+  renderQuickViewReviews();
+  showToast('Review posted. Thank you!', 'success');
+}
+
+function openProductQuickView(prodId) {
+  const prod = getProducts().find(p => String(p.id) === String(prodId));
+  if (!prod) return;
+
+  const root = ensureQuickViewModal();
+  window.quickViewProductId = prod.id;
+
+  // Header badges — solid variants inside the modal (green cracker / brand)
+  const badgesEl = document.getElementById('quickview-badges');
+  let badgeHTML = '';
+  if (prod.greenCracker === true) {
+    badgeHTML += '<span class="quickview-badge quickview-badge-green"><svg class="badge-leaf-icon" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M17.3 3.2C17.1 2.5 16.4 2 15.6 2C11.2 2 7.6 4.4 5.4 8.2C3.8 11 3.2 14.2 3.7 16.8C3.8 17.5 4.4 18 5.1 18C5.3 18 5.4 18 5.6 17.9C6.9 17.4 8.3 17.2 9.7 17.2C13.1 17.2 16 15.4 17.5 12C18.3 10 18.3 7.5 17.9 5.2C17.8 4.4 17.6 3.7 17.3 3.2ZM6.4 15.6C7.2 12.4 9.2 9.4 12 7.4C10.2 10.2 8.6 13 6.4 15.6Z"/></svg><span>Green Cracker</span></span>';
+  }
+  const brand = String(prod.brand || '').trim();
+  if (brand) {
+    badgeHTML += `<span class="quickview-badge quickview-badge-brand">${escapeHtml(brand)}</span>`;
+  }
+  badgesEl.innerHTML = badgeHTML;
+
+  // Image — same object-fit behaviour as the listing cards (no distortion)
+  const imgEl = document.getElementById('quickview-img');
+  if (prod.image) {
+    imgEl.src = prod.image;
+    imgEl.alt = prod.name;
+    imgEl.style.display = 'block';
+  } else {
+    imgEl.style.display = 'none';
+  }
+
+  // Offer badge (bottom-right of the image band), only with a valid discount
+  const discountEl = document.getElementById('quickview-discount');
+  const hasValidDiscount = prod.discount && String(prod.discount).trim() !== '' && prod.discount !== 'Special';
+  if (hasValidDiscount) {
+    discountEl.innerHTML = `<span aria-hidden="true">🔥</span> <span>${escapeHtml(String(prod.discount).trim())}</span>`;
+    discountEl.style.display = 'inline-flex';
+  } else {
+    discountEl.style.display = 'none';
+  }
+
+  // Details
+  let categoryName = '';
+  try {
+    const cat = getCategories().find(c => String(c.id).toUpperCase() === String(prod.categoryId).toUpperCase());
+    categoryName = cat ? cat.name : '';
+  } catch (err) {
+    console.warn('[QuickView] Category lookup failed:', err);
+  }
+  document.getElementById('quickview-category').textContent = categoryName;
+  document.getElementById('quickview-title').textContent = prod.name;
+  const descEl = document.getElementById('quickview-desc');
+  descEl.textContent = prod.description || '';
+  descEl.style.display = prod.description ? '' : 'none';
+  document.getElementById('quickview-price').textContent = `₹${Number(prod.price).toLocaleString('en-IN')}`;
+  const mrpEl = document.getElementById('quickview-mrp');
+  mrpEl.textContent = hasValidDiscount ? `₹${Number(prod.originalPrice).toLocaleString('en-IN')}` : '';
+  mrpEl.style.display = hasValidDiscount ? '' : 'none';
+  document.getElementById('quickview-unit').textContent = prod.qty || '';
+
+  // Add button mirrors the card state (SOLD OUT when out of stock)
+  const addBtn = document.getElementById('quickview-add-btn');
+  const addLabel = document.getElementById('quickview-add-label');
+  addBtn.disabled = !prod.inStock;
+  addLabel.textContent = prod.inStock ? 'ADD TO ESTIMATE' : 'SOLD OUT';
+
+  // Reviews — fresh state per product
+  setQuickViewRating(0);
+  renderQuickViewReviews();
+
+  root.style.display = 'flex';
+  document.body.style.overflow = 'hidden'; // lock background scrolling
+}
+
+function closeProductQuickView() {
+  const root = document.getElementById('product-quickview-modal');
+  if (root) root.style.display = 'none';
+  document.body.style.overflow = ''; // restore background scrolling
+  window.quickViewProductId = null;
+}
+
+function quickViewAddToEstimate() {
+  if (!window.quickViewProductId) return;
+  catalogAddQty(window.quickViewProductId);
+  const prod = getProducts().find(p => String(p.id) === String(window.quickViewProductId));
+  if (prod && prod.inStock) {
+    showToast(`${prod.name} added to your estimate.`, 'success');
+    const addBtn = document.getElementById('quickview-add-btn');
+    const addLabel = document.getElementById('quickview-add-label');
+    if (addBtn && addLabel) {
+      addLabel.textContent = 'ADDED — KEEP BROWSING';
+      setTimeout(() => {
+        if (window.quickViewProductId === prod.id && addLabel) addLabel.textContent = 'ADD TO ESTIMATE';
+      }, 1500);
+    }
+  }
+}
+
+// Card click (outside wishlist / action controls) opens the quick view.
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#product-quickview-modal')) return; // clicks inside the modal itself
+  const card = e.target.closest('.product-card');
+  if (!card) return;
+  if (e.target.closest('.card-wishlist-btn, .action-container-right')) return;
+  const actionEl = card.querySelector('[data-action-for]');
+  const prodId = actionEl ? actionEl.getAttribute('data-action-for') : null;
+  if (prodId) openProductQuickView(prodId);
+});
+
+// ESC closes the quick view (only while it is open)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const root = document.getElementById('product-quickview-modal');
+    if (root && root.style.display !== 'none') closeProductQuickView();
+  }
+});
 
 /** Public wishlist toggle (used by the inline onclick handlers). */
 function toggleWishlist(productId) {
