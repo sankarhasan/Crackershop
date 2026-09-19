@@ -1013,10 +1013,10 @@ function renderProductsCatalog() {
     const hasValidDiscount = prod.discount && String(prod.discount).trim() !== '' && prod.discount !== 'Special';
     
     card.innerHTML = `
+      ${getWishlistBtnHTML(prod.id)}
       <div class="card-img-container">
         ${cardImgContent}
         ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
-        ${getWishlistBtnHTML(prod.id)}
       </div>
       <div class="product-card-body">
         <h3 class="product-card-title">${prod.name}</h3>
@@ -1189,10 +1189,10 @@ function createMobileProductCard(prod, cartQty) {
    const hasValidDiscount = prod.discount && String(prod.discount).trim() !== '' && prod.discount !== 'Special';
    
    card.innerHTML = `
+     ${getWishlistBtnHTML(prod.id)}
      <div class="card-img-container">
        ${cardImgContent}
        ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
-       ${getWishlistBtnHTML(prod.id)}
      </div>
      <div class="product-card-body">
       <h3 class="product-card-title">${prod.name}</h3>

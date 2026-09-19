@@ -4431,6 +4431,33 @@ select.form-control {
     object-position: center !important;
   }
 
+  /* Wishlist heart — pinned to the card's top-right corner as a
+     dainty 26px white chip. Selectors are two-class specific so they
+     beat the base .card-wishlist-btn rule which is declared later in
+     this file (outside any media query); .wishlist-active still wins
+     via its own two-class specificity, preserving the filled state. */
+  .product-card .card-wishlist-btn {
+    top: 10px;
+    right: 10px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1px solid rgba(255, 77, 109, 0.18);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    font-size: 14px;
+  }
+
+  /* Glyph sized per spec (14px); <svg> covers the FA SVG kit */
+  .product-card .card-wishlist-btn i,
+  .product-card .card-wishlist-btn svg {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 1;
+  }
+
   .card-discount-badge {
     font-size: 0.35rem;
     padding: 1px 3px;
@@ -4466,6 +4493,8 @@ select.form-control {
     font-size: 0.85rem;
     height: auto;
     margin-bottom: 2px;
+    /* Keep the title clear of the top-right wishlist heart */
+    padding-right: 30px;
   }
 
   .product-card-qty {
@@ -7194,7 +7223,9 @@ main.account-view-active > section {
 
 
 /* ---- 3) Wishlist --------------------------------------------------------- */
-/* Heart button on every product card */
+/* Heart button on every product card — anchored to the .product-card
+   (position: relative) top-right corner, which sits flush over the image
+   on desktop (image is the full-width top section of the card). */
 .card-wishlist-btn {
   position: absolute;
   top: 10px;
