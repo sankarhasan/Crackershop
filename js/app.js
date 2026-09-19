@@ -292,85 +292,53 @@ document.addEventListener('DOMContentLoaded', () => {
   const navMenu = document.getElementById('mobile-nav'); // Mobile drawer only
   const menuToggle = document.getElementById('menu-toggle');
 
-  // Guard: the header (with #menu-toggle and #mobile-nav) is injected by
-  // js/components.js. If a page lacks these elements, skip the bindings so
-  // DOMContentLoaded never aborts with a null-reference error.
+  // Guard: the header (with #menu-toggle and #mobile-nav) is static markup
+  // present on every page. If a page lacks these elements, skip the bindings
+  // so DOMContentLoaded never aborts with a null-reference error.
   if (menuToggle && navMenu) {
-  // Sync the hamburger/X icon to the current menu open state
-  const syncHamburgerIcon = () => {
-    const bars = menuToggle.querySelectorAll('.bar');
-    if (bars.length < 3) return;
-    if (menuToggle.classList.contains('active')) {
-      bars[0].style.transform = 'rotate(-45deg) translate(-5px, 6px)';
-      bars[1].style.opacity = '0';
-      bars[2].style.transform = 'rotate(45deg) translate(-5px, -6px)';
-    } else {
-      bars[0].style.transform = 'none';
-      bars[1].style.opacity = '1';
-      bars[2].style.transform = 'none';
-    }
-  };
+    const menuBackdrop = document.getElementById('mobile-menu-backdrop');
 
-  navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-      // Set active nav link
-      navLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-      
-      // Close mobile menu AND reset the toggle icon back to the hamburger state
-      navMenu.classList.remove('active');
-      menuToggle.classList.remove('active');
-      syncHamburgerIcon();
+    // Single source of truth for the full-width dropdown state: panel
+    // slide-down, hamburger<->X morph and backdrop visibility stay in sync
+    const setMenuOpen = (isOpen) => {
+      navMenu.classList.toggle('active', isOpen);
+      menuToggle.classList.toggle('active', isOpen);
+      if (menuBackdrop) menuBackdrop.classList.toggle('active', isOpen);
+
+      const bars = menuToggle.querySelectorAll('.bar');
+      if (bars.length < 3) return;
+      if (isOpen) {
+        bars[0].style.transform = 'rotate(-45deg) translate(-5px, 6px)';
+        bars[1].style.opacity = '0';
+        bars[2].style.transform = 'rotate(45deg) translate(-5px, -6px)';
+      } else {
+        bars[0].style.transform = 'none';
+        bars[1].style.opacity = '1';
+        bars[2].style.transform = 'none';
+      }
+    };
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        // Set active nav link
+        navLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+
+        // Close mobile menu AND reset the toggle icon back to the hamburger state
+        setMenuOpen(false);
+      });
     });
-  });
-  
-  // Hamburger toggle click: open/close the drawer and morph the icon
-  menuToggle.addEventListener('click', () => {
-    // Check the CURRENT state BEFORE toggling (so we sync the icon correctly)
-    const willBeOpen = !menuToggle.classList.contains('active');
-    
-    navMenu.classList.toggle('active');
-    menuToggle.classList.toggle('active');
-    
-    // Now set the icon to match the NEW state
-    const bars = menuToggle.querySelectorAll('.bar');
-    if (bars.length < 3) return;
-    if (willBeOpen) {
-      // Menu is now OPEN → show X icon
-      bars[0].style.transform = 'rotate(-45deg) translate(-5px, 6px)';
-      bars[1].style.opacity = '0';
-      bars[2].style.transform = 'rotate(45deg) translate(-5px, -6px)';
-    } else {
-      // Menu is now CLOSED → show hamburger icon
-      bars[0].style.transform = 'none';
-      bars[1].style.opacity = '1';
-      bars[2].style.transform = 'none';
-    }
-    
-    initMobileMenuFooter();
-  });
 
-  // Inject JCS-style footer with fireworks into the mobile menu drawer
-  function initMobileMenuFooter() {
-    if (document.querySelector('.mobile-menu-footer')) return;
-    const footer = document.createElement('div');
-    footer.className = 'mobile-menu-footer';
-    footer.innerHTML = `
-      <div class="menu-fireworks">
-        <span class="fw-particle"></span>
-        <span class="fw-particle"></span>
-        <span class="fw-particle"></span>
-        <span class="fw-particle"></span>
-        <span class="fw-particle"></span>
-        <span class="fw-particle"></span>
-        <span class="fw-particle"></span>
-        <span class="fw-particle"></span>
-      </div>
-      <div class="menu-brand-title">\uD83C\uDF86 KPR Crackers</div>
-      <div class="menu-brand-tagline">Your Joy is our Pride</div>
-    `;
-    navMenu.appendChild(footer);
-  }
+    // Hamburger toggle click: open/close the dropdown panel (the morphed X
+    // in the main header is the single close control for the menu)
+    menuToggle.addEventListener('click', () => {
+      setMenuOpen(!navMenu.classList.contains('active'));
+    });
+
+    // Tapping the dimmed backdrop below the header closes the dropdown
+    if (menuBackdrop) {
+      menuBackdrop.addEventListener('click', () => setMenuOpen(false));
+    }
   } // end if (menuToggle && navMenu)
 });
 

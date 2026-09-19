@@ -131,7 +131,22 @@
         </div>
       </div>
 
+      <!-- Backdrop behind the full-width dropdown menu -->
+      <div class="mobile-menu-backdrop" id="mobile-menu-backdrop"></div>
+
       <nav class="navbar mobile-drawer-navbar" id="mobile-nav">
+        <!-- Top control bar: brand left; profile, call, close right -->
+        <div class="mobile-menu-topbar">
+          <div class="mobile-menu-brand">
+            <span class="mobile-menu-brand-name">KPR Crackers</span>
+            <span class="mobile-menu-brand-tagline">Your Joy is our Pride</span>
+          </div>
+          <!-- Phone call icon only; the header hamburger (X) handles closing -->
+          <a href="tel:+919789432373" class="mobile-menu-call-btn" title="Call KPR Crackers" aria-label="Call KPR Crackers">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
+          </a>
+        </div>
+
         <ul class="nav-menu">
           <li><a href="index.html" class="nav-link">Home</a></li>
           <li><a href="about.html" class="nav-link">About Us</a></li>
@@ -140,6 +155,8 @@
           <li><a href="safety-tips.html" class="nav-link">Safety Tips</a></li>
           <li><a href="contact.html" class="nav-link">Contact Us</a></li>
         </ul>
+
+        <a href="enquiry.html" class="mobile-menu-cta">Quick Enquiry</a>
       </nav>
     </header>
   </div>
