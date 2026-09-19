@@ -611,6 +611,118 @@ function listenToEnquiries() {
 }
 
 /* ==========================================================================
+   1c. Product Reviews — live customer submissions streamed from the
+   storefront Quick View form ('product_reviews' collection). Realtime
+   onSnapshot with a localStorage mirror when Firestore is unavailable.
+   ========================================================================== */
+let adminReviews = [];
+let reviewsRealtimeActive = false;
+const ADMIN_REVIEWS_STORAGE_KEY = 'kpr_admin_reviews';
+
+function loadLocalReviews() {
+  try {
+    const raw = localStorage.getItem(ADMIN_REVIEWS_STORAGE_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (err) {
+    console.warn('[Admin] Failed to read local reviews:', err);
+    return [];
+  }
+}
+
+function saveLocalReviews(list) {
+  try {
+    localStorage.setItem(ADMIN_REVIEWS_STORAGE_KEY, JSON.stringify(list));
+  } catch (err) {
+    console.error('[Admin] Failed to mirror reviews locally:', err);
+  }
+}
+
+/** Called when the sidebar section opens — starts the listener once. */
+function initReviewsSection() {
+  if (window.db && !reviewsRealtimeActive) {
+    reviewsRealtimeActive = true;
+    window.db.collection('product_reviews')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        adminReviews = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          data.docId = doc.id;
+          adminReviews.push(data);
+        });
+        renderReviewsTable();
+      }, (err) => {
+        reviewsRealtimeActive = false;
+        const code = err.code || 'unknown';
+        console.error('[Admin] ✗ Reviews snapshot failed. Code:', code, 'Message:', err.message, err);
+        showAdminToast('Could not load reviews from cloud [' + code + ']: ' + (err.message || 'Unknown error'), 'error');
+        adminReviews = loadLocalReviews();
+        renderReviewsTable();
+      });
+  } else {
+    if (!window.db) adminReviews = loadLocalReviews();
+    renderReviewsTable();
+  }
+}
+
+function renderReviewsTable() {
+  const tbody = document.getElementById('reviews-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!adminReviews || adminReviews.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center">No customer reviews yet. Reviews submitted from the storefront Quick View appear here automatically.</td></tr>';
+    return;
+  }
+
+  adminReviews.forEach(r => {
+    const rating = Math.min(5, Math.max(1, Number(r.rating) || 1));
+    const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    const dateStr = reviewDateDisplay(r);
+    const comment = r.reviewComment || r.comment || '';
+    const safeDocId = String(r.docId || '').replace(/[^a-zA-Z0-9]/g, '');
+
+    tbody.innerHTML += `
+      <tr>
+        <td><strong>${escapeHtml(r.productName || '')}</strong><br><small>${escapeHtml(String(r.productId || ''))}</small></td>
+        <td>${escapeHtml(r.customerName || '')}</td>
+        <td><span class="admin-review-stars" title="${rating} out of 5">${stars}</span> <span class="admin-review-rating-num">${rating.toFixed(1)}</span></td>
+        <td class="admin-review-comment">${comment ? escapeHtml(comment) : '—'}</td>
+        <td>${escapeHtml(dateStr)}</td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-action delete" onclick="confirmDelete('review', '${safeDocId}')" title="Delete Review">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/** Normalize createdAt: Firestore Timestamp | epoch number | date string. */
+function reviewDateDisplay(r) {
+  const c = r.createdAt;
+  let ms = null;
+  if (typeof c === 'number') {
+    ms = c;
+  } else if (c && typeof c.toDate === 'function') {
+    const d = c.toDate();
+    ms = d ? d.getTime() : null;
+  } else if (c && typeof c.seconds === 'number') {
+    ms = c.seconds * 1000;
+  } else if (r.dateStr) {
+    return r.dateStr;
+  } else if (typeof c === 'string') {
+    const d2 = new Date(c);
+    ms = isNaN(d2.getTime()) ? null : d2.getTime();
+  }
+  // serverTimestamp() pending on a just-added doc → treat as now
+  if (ms === null) return 'Just now';
+  return new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/* ==========================================================================
    2. Workspace Dashboard Section Switching
    ========================================================================== */
 function showDashboardSection(sectionName) {
@@ -639,6 +751,7 @@ function showDashboardSection(sectionName) {
       'dashboard': 'Dashboard Statistics',
       'products': 'Manage Firecrackers Inventory',
       'categories': 'Manage Catalog Categories',
+      'reviews': 'Manage Product Reviews',
       'enquiries': 'Customer Enquiries Portal',
       'banners': 'Manage Homepage Banners',
       'offers': 'Manage Festival Offer Banner',
@@ -655,6 +768,8 @@ function showDashboardSection(sectionName) {
     renderProductsTable();
   } else if (sectionName === 'categories') {
     renderCategoriesTable();
+  } else if (sectionName === 'reviews') {
+    initReviewsSection();
   } else if (sectionName === 'enquiries') {
     renderEnquiriesTable();
   } else if (sectionName === 'banners') {
@@ -2433,6 +2548,8 @@ function confirmDelete(type, id) {
     label.innerText = 'This will permanently delete this category link from system.';
   } else if (type === 'enquiry') {
     label.innerText = 'This will permanently delete the selected customer enquiry record.';
+  } else if (type === 'review') {
+    label.innerText = 'This will permanently delete the selected customer review from the storefront.';
   } else if (type === 'banner') {
     label.innerText = 'This will permanently delete the selected homepage banner.';
   } else if (type === 'coupon') {
@@ -2514,6 +2631,22 @@ function executePendingDelete() {
           showAdminToast('Could not delete enquiry.', 'error');
         });
       // onSnapshot listener refreshes the table automatically.
+    }
+  } else if (deleteTargetType === 'review') {
+    if (window.db && deleteTargetId) {
+      window.db.collection('product_reviews').doc(deleteTargetId).delete()
+        .then(() => showAdminToast('Review deleted.', 'info'))
+        .catch((err) => {
+          const code = err.code || 'unknown';
+          console.error('[Admin] ✗ Failed to delete review. Code:', code, err);
+          showAdminToast('Could not delete review [' + code + ']', 'error');
+        });
+      // onSnapshot listener refreshes the table automatically.
+    } else {
+      adminReviews = adminReviews.filter(r => String(r.docId) !== String(deleteTargetId));
+      saveLocalReviews(adminReviews);
+      renderReviewsTable();
+      showAdminToast('Review deleted locally.', 'info');
     }
   } else if (deleteTargetType === 'banner') {
     const banners = getBannersData();

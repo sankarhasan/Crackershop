@@ -80,6 +80,11 @@
             </a>
           </li>
           <li>
+            <a href="#" class="sidebar-link" data-section="reviews">
+              <span class="sidebar-icon">⭐</span> Product Reviews
+            </a>
+          </li>
+          <li>
             <a href="#" class="sidebar-link" data-section="enquiries">
               <span class="sidebar-icon">📨</span> Enquiries
               <span class="sidebar-badge" id="enquiry-badge-count">0</span>
@@ -306,6 +311,35 @@
             <tbody id="enquiries-table-body">
               <tr>
                 <td colspan="8" class="text-center">Loading customer enquiries...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section D2: Product Reviews Manager (live user submissions) -->
+      <section id="section-reviews" class="dashboard-section animate-fade" style="display: none;">
+        <div class="actions-panel">
+          <div class="search-filter-box">
+            <span style="font-weight:700;color:var(--admin-text);">Live customer reviews submitted from the storefront Quick View &mdash; new entries appear automatically</span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-admin">
+            <thead>
+              <tr>
+                <th>Product Name</th>
+                <th>Customer Name</th>
+                <th>Rating</th>
+                <th>Review Comment</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="reviews-table-body">
+              <tr>
+                <td colspan="6" class="text-center">Loading product reviews...</td>
               </tr>
             </tbody>
           </table>

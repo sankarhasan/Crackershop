@@ -7564,15 +7564,22 @@ main.account-view-active > section {
 .quickview-card {
   position: relative;
   width: 100%;
-  max-width: 448px;
+  max-width: 400px;
   margin: auto;
   background: #ffffff;
+  border: 1px solid #f1f5f9;
   border-radius: 24px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  max-height: 95vh; /* fixed single-view popup — no internal scrolling */
+}
+
+@media (min-width: 640px) {
+  .quickview-card {
+    max-width: 448px;
+  }
 }
 
 .quickview-topbar {
@@ -7583,48 +7590,52 @@ main.account-view-active > section {
   z-index: 10;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end; /* close button top-right; badges moved under title */
   gap: 8px;
   pointer-events: none; /* let clicks pass through empty space onto the image */
 }
 
-.quickview-badges {
+/* Badge row directly below the product title (green cracker + brand) */
+.quickview-title-badges {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  pointer-events: auto;
+  margin: 6px 0;
 }
 
 .quickview-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 4px;
+  padding: 2px 8px;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  font-size: 0.5625rem; /* 9px */
+  line-height: 1.4;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .quickview-badge-green {
-  background: #059669;
-  color: #ffffff;
+  background: #ecfdf5;
+  border: 1px solid rgba(5, 150, 105, 0.6);
+  color: #047857;
+  font-weight: 700;
 }
 
 .quickview-badge-green .badge-leaf-icon {
-  width: 14px;
-  height: 14px;
-  color: #ffffff;
+  width: 10px;
+  height: 10px;
+  color: #059669;
 }
 
 .quickview-badge-brand {
-  background: #f59e0b;
-  color: #451a03;
+  background: rgba(254, 243, 199, 0.8);
+  border: 1px solid rgba(251, 191, 36, 0.6);
+  color: #78350f;
+  font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.2px;
 }
 
 .quickview-close-x {
@@ -7657,30 +7668,28 @@ main.account-view-active > section {
   height: 20px;
 }
 
-.quickview-scroll {
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Image band — same 4/3 + object-fit:cover ratio as the listing cards */
+/* Image band — shrunk so title + action + review form all fit one view;
+   clicking/tapping opens the full-screen lightbox (no hover zoom). */
 .quickview-image-band {
   position: relative;
   background: #f8fafc;
   border-bottom: 1px solid #f1f5f9;
-  padding: 52px 16px 14px; /* top clears the absolute badge/close row */
+  padding: 34px 12px 8px; /* top clears the absolute close button */
   display: flex;
   justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .quickview-image-box {
   width: 100%;
   aspect-ratio: 4 / 3;
-  max-height: 208px;
+  max-height: 144px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  overflow: hidden;
+  cursor: zoom-in;
 }
 
 .quickview-image-box img {
@@ -7688,30 +7697,29 @@ main.account-view-active > section {
   max-width: 100%;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 12px;
+  object-fit: contain;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.07));
 }
 
 .quickview-offer-badge {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
+  right: 10px;
+  bottom: 10px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 999px;
   background: #e11d48;
   color: #ffffff;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 900;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
 }
 
 .quickview-details {
-  padding: 20px;
+  padding: 16px;
 }
 
 .quickview-category {
@@ -7724,7 +7732,7 @@ main.account-view-active > section {
 }
 
 .quickview-title {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.01em;
@@ -7734,43 +7742,85 @@ main.account-view-active > section {
 
 .quickview-desc {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #475569;
   font-weight: 400;
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   line-height: 1.6;
+  /* Full description — no truncation, text wraps freely */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
-.quickview-price-row {
+/* Price group (left) + rating summary chip (right) on one row */
+.quickview-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.quickview-price-group {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .quickview-price {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 900;
   color: #e11d48;
 }
 
 .quickview-mrp {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #94a3b8;
   text-decoration: line-through;
 }
 
 .quickview-unit {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.68rem;
+  font-weight: 600;
   color: #64748b;
+}
+
+.quickview-rating-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.quickview-chip-star {
+  color: #f59e0b;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.quickview-chip-avg {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.quickview-chip-count {
+  font-size: 0.62rem;
+  color: #94a3b8;
 }
 
 .quickview-action-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .quickview-add-btn {
@@ -7779,13 +7829,13 @@ main.account-view-active > section {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border: none;
   border-radius: 12px;
   background: #15803d;
   color: #ffffff;
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 10px 15px -3px rgba(21, 128, 61, 0.25);
@@ -7812,13 +7862,13 @@ main.account-view-active > section {
 }
 
 .quickview-secondary-btn {
-  padding: 12px 20px;
+  padding: 10px 16px;
   border: none;
   border-radius: 12px;
   background: #f1f5f9;
   color: #334155;
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -7828,106 +7878,107 @@ main.account-view-active > section {
   background: #e2e8f0;
 }
 
-/* --- Reviews --- */
-.quickview-reviews-section {
-  border-top: 1px solid #f1f5f9;
-  margin-top: 16px;
-  padding-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.quickview-reviews-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #1e293b;
-  font-weight: 700;
-  font-size: 0.875rem;
-}
-
-.quickview-reviews-head svg {
-  width: 16px;
-  height: 16px;
-  color: #64748b;
-}
-
-.quickview-reviews-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.quickview-review-empty {
-  padding: 12px;
-  border-radius: 12px;
-  background: #f8fafc;
-  border: 1px solid #f1f5f9;
-  text-align: center;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.quickview-review-item {
-  padding: 12px;
-  border-radius: 12px;
-  background: #f8fafc;
-  border: 1px solid #f1f5f9;
-}
-
-.quickview-review-top {
+/* Active/Added state: quantity stepper replacing the ADD button */
+.quickview-qty-wrap {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-}
-
-.quickview-review-name {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.quickview-review-stars {
-  color: #f59e0b;
-  font-size: 0.75rem;
-  letter-spacing: 1px;
-}
-
-.quickview-review-text {
-  font-size: 0.75rem;
-  color: #475569;
-  margin: 6px 0 0;
-  line-height: 1.55;
-  word-break: break-word;
-}
-
-.quickview-review-date {
-  font-size: 0.625rem;
-  color: #94a3b8;
-}
-
-.quickview-review-form {
-  padding: 14px;
+  background: #f1f5f9;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  background: #f8fafc;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  border-radius: 12px;
+  padding: 4px;
 }
 
-.quickview-form-head {
+.quickview-step-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.quickview-step-btn:active {
+  transform: scale(0.9);
+}
+
+.quickview-step-plus {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.quickview-step-plus:hover {
+  background: #15803d;
+}
+
+.quickview-step-count {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #0f172a;
+  padding: 0 8px;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Red delete button replacing the grey Close in the Added state */
+.quickview-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 12px;
+  background: #dc2626;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.3);
+  transition: background 0.2s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.quickview-delete-btn:hover {
+  background: #b91c1c;
+}
+
+.quickview-delete-btn:active {
+  transform: scale(0.95);
+}
+
+.quickview-delete-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* --- Compact user review submission form (bottom of the modal) --- */
+.quickview-rate-box {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quickview-rate-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.quickview-form-title {
-  font-size: 0.75rem;
+.quickview-rate-title {
+  font-size: 0.7rem;
   font-weight: 700;
   color: #334155;
 }
@@ -7936,18 +7987,21 @@ main.account-view-active > section {
   display: flex;
   align-items: center;
   gap: 2px;
+  cursor: pointer;
 }
 
 .quickview-star {
   color: #cbd5e1;
-  font-size: 1rem;
-  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
   transition: color 0.15s ease, transform 0.15s ease;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .quickview-star:hover {
-  transform: scale(1.15);
+  color: #fbbf24;
+  transform: scale(1.12);
 }
 
 .quickview-star.star-active {
@@ -7956,9 +8010,9 @@ main.account-view-active > section {
 
 .quickview-input {
   width: 100%;
-  padding: 8px 12px;
-  font-size: 0.75rem;
-  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  border-radius: 8px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
   color: #0f172a;
@@ -7969,38 +8023,138 @@ main.account-view-active > section {
 
 .quickview-input:focus {
   border-color: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
 }
 
-.quickview-form-actions {
+.quickview-rate-actions {
   display: flex;
   justify-content: flex-end;
 }
 
-.quickview-post-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+.quickview-submit-btn {
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   background: #1e293b;
   color: #ffffff;
   font-family: inherit;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
+  padding: 6px 12px;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, transform 0.1s ease;
 }
 
-.quickview-post-btn:hover {
+.quickview-submit-btn:hover {
   background: #0f172a;
 }
 
-.quickview-post-btn svg {
-  width: 14px;
-  height: 14px;
+.quickview-submit-btn:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================================================
+   Full-screen Product Image Lightbox
+   Opened by tapping the Quick View thumbnail. Manual zoom only (wheel /
+   pinch / double-tap / double-click) driven by a JS transform on the img.
+   Above the Quick View (100050), below toasts (1000100).
+   ========================================================================== */
+.image-lightbox-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100060;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.image-lightbox-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.image-lightbox-close {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.image-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.image-lightbox-close:active {
+  transform: scale(0.9);
+}
+
+.image-lightbox-close svg {
+  width: 24px;
+  height: 24px;
+}
+
+.image-lightbox-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none; /* hand pinch/drag gestures to our pointer handlers */
+}
+
+.image-lightbox-container:active {
+  cursor: grabbing;
+}
+
+#lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.2s ease;
+  will-change: transform;
+}
+
+#lightbox-img.dragging {
+  transition: none; /* 1:1 tracking while dragging/pinching */
+}
+
+.image-lightbox-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  font-weight: 500;
+  pointer-events: none;
+  margin: 0;
 }
 
 /* ==========================================================================

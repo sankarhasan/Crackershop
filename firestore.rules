@@ -18,6 +18,13 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Product Reviews collection: public read (Quick View rating chip),
+    // public write (customers submit from the storefront Quick View form;
+    // the admin Reviews tab manages/deletes the same records)
+    match /product_reviews/{reviewId} {
+      allow read, write: if true;
+    }
+
     // Banners collection: public read/write (development mode)
     match /banners/{bannerId} {
       allow read, write: if true;

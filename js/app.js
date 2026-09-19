@@ -4354,7 +4354,7 @@ function getProductBadgeRowHTML(prod) {
    inline handlers, plus a closest() guard here, so they never trigger it.
    ========================================================================== */
 window.quickViewProductId = null;
-window.quickViewRating = 0;
+window.quickViewReviewsCache = {}; // prodId -> review array (Firestore or legacy local)
 
 function ensureQuickViewModal() {
   let root = document.getElementById('product-quickview-modal');
@@ -4366,56 +4366,45 @@ function ensureQuickViewModal() {
   root.innerHTML = `
     <div class="quickview-card" role="dialog" aria-modal="true" aria-label="Product quick view">
       <div class="quickview-topbar">
-        <div id="quickview-badges" class="quickview-badges"></div>
         <button type="button" class="quickview-close-x" onclick="closeProductQuickView()" aria-label="Close quick view">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <div class="quickview-scroll">
-        <div class="quickview-image-band">
-          <div class="quickview-image-box">
-            <img id="quickview-img" src="" alt="Product image">
-          </div>
-          <span id="quickview-discount" class="quickview-offer-badge" style="display: none;"></span>
+      <div class="quickview-image-band">
+        <div class="quickview-image-box" onclick="openImageLightbox()" title="Tap to zoom">
+          <img id="quickview-img" src="" alt="Product image">
         </div>
-        <div class="quickview-details">
-          <span id="quickview-category" class="quickview-category"></span>
-          <h2 id="quickview-title" class="quickview-title"></h2>
-          <p id="quickview-desc" class="quickview-desc"></p>
-          <div class="quickview-price-row">
+        <span id="quickview-discount" class="quickview-offer-badge" style="display: none;"></span>
+      </div>
+      <div class="quickview-details">
+        <span id="quickview-category" class="quickview-category"></span>
+        <h2 id="quickview-title" class="quickview-title"></h2>
+        <div id="quickview-title-badges" class="quickview-title-badges" style="display: none;"></div>
+        <p id="quickview-desc" class="quickview-desc"></p>
+        <div class="quickview-meta-row">
+          <div class="quickview-price-group">
             <span id="quickview-price" class="quickview-price"></span>
             <span id="quickview-mrp" class="quickview-mrp"></span>
             <span id="quickview-unit" class="quickview-unit"></span>
           </div>
-          <div class="quickview-action-row">
-            <button type="button" id="quickview-add-btn" class="quickview-add-btn" onclick="quickViewAddToEstimate()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-              <span id="quickview-add-label">ADD TO ESTIMATE</span>
-            </button>
-            <button type="button" class="quickview-secondary-btn" onclick="closeProductQuickView()">Close</button>
+          <div id="quickview-rating-chip" class="quickview-rating-chip" title="Average customer rating">
+            <span class="quickview-chip-star" aria-hidden="true">★</span>
+            <span id="quickview-rating-avg" class="quickview-chip-avg"></span>
+            <span id="quickview-rating-count" class="quickview-chip-count"></span>
           </div>
-          <div class="quickview-reviews-section">
-            <div class="quickview-reviews-head">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-              <span id="quickview-reviews-count">Customer Reviews (0)</span>
+        </div>
+        <div class="quickview-action-row" id="quickview-action-row"></div>
+        <div class="quickview-rate-box">
+          <div class="quickview-rate-head">
+            <span class="quickview-rate-title">Rate this product:</span>
+            <div id="quickview-stars" class="quickview-stars">
+              ${[1, 2, 3, 4, 5].map(n => `<span class="quickview-star" data-star="${n}" onclick="setQuickViewRating(${n})" role="button" aria-label="Rate ${n} star${n > 1 ? 's' : ''}">★</span>`).join('')}
             </div>
-            <div id="quickview-reviews-list" class="quickview-reviews-list"></div>
-            <div class="quickview-review-form">
-              <div class="quickview-form-head">
-                <span class="quickview-form-title">Leave a Review:</span>
-                <div id="quickview-stars" class="quickview-stars">
-                  ${[1, 2, 3, 4, 5].map(n => `<span class="quickview-star" data-star="${n}" onclick="setQuickViewRating(${n})" role="button" aria-label="Rate ${n} star${n > 1 ? 's' : ''}">★</span>`).join('')}
-                </div>
-              </div>
-              <input type="text" id="quickview-review-name" class="quickview-input" maxlength="40" placeholder="Your Name">
-              <input type="text" id="quickview-review-text" class="quickview-input" maxlength="200" placeholder="Write a short review...">
-              <div class="quickview-form-actions">
-                <button type="button" class="quickview-post-btn" onclick="postQuickViewReview()">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-                  <span>Post Review</span>
-                </button>
-              </div>
-            </div>
+          </div>
+          <input type="text" id="quickview-reviewer-name" class="quickview-input" maxlength="40" placeholder="Your Name">
+          <input type="text" id="quickview-reviewer-comment" class="quickview-input" maxlength="200" placeholder="Write a short review...">
+          <div class="quickview-rate-actions">
+            <button type="button" class="quickview-submit-btn" onclick="submitUserReview()">Post Review</button>
           </div>
         </div>
       </div>
@@ -4445,67 +4434,105 @@ function getQuickViewReviews(prodId) {
   }
 }
 
-function renderQuickViewReviews() {
-  const listEl = document.getElementById('quickview-reviews-list');
-  const countEl = document.getElementById('quickview-reviews-count');
-  if (!listEl || !countEl) return;
-
-  const reviews = getQuickViewReviews(window.quickViewProductId);
-  countEl.textContent = `Customer Reviews (${reviews.length})`;
-
-  if (reviews.length === 0) {
-    listEl.innerHTML = '<div class="quickview-review-empty">No reviews yet. Be the first to rate this product!</div>';
+/** Render the rating summary chip (avg + count) — no form, no list. */
+function applyQuickViewRatingChip(reviews) {
+  const avgEl = document.getElementById('quickview-rating-avg');
+  const countEl = document.getElementById('quickview-rating-count');
+  if (!avgEl || !countEl) return;
+  if (!reviews || reviews.length === 0) {
+    avgEl.textContent = 'No ratings';
+    countEl.textContent = '';
     return;
   }
-  listEl.innerHTML = reviews.map(r => `
-    <div class="quickview-review-item">
-      <div class="quickview-review-top">
-        <span class="quickview-review-name">${escapeHtml(r.name)}</span>
-        <span class="quickview-review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+  const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+  const avg = (sum / reviews.length).toFixed(1);
+  avgEl.textContent = `${avg}/5`;
+  countEl.textContent = `(${reviews.length} Review${reviews.length > 1 ? 's' : ''})`;
+}
+
+/**
+ * Load reviews for the chip: Firestore 'product_reviews' collection first
+ * (submitted from this very form), legacy localStorage as fallback when
+ * offline or on error.
+ */
+function loadQuickViewRatingSummary(prodId) {
+  const key = String(prodId);
+  if (window.quickViewReviewsCache[key]) {
+    applyQuickViewRatingChip(window.quickViewReviewsCache[key]);
+    return;
+  }
+  if (window.db) {
+    window.db.collection('product_reviews')
+      .where('productId', '==', key)
+      .get()
+      .then(snap => {
+        const list = [];
+        snap.forEach(doc => list.push(doc.data()));
+        window.quickViewReviewsCache[key] = list;
+        applyQuickViewRatingChip(list);
+      })
+      .catch(err => {
+        console.warn('[QuickView] Review fetch failed for', key, err.code || err.message);
+        const legacy = getQuickViewReviews(prodId);
+        window.quickViewReviewsCache[key] = legacy;
+        applyQuickViewRatingChip(legacy);
+      });
+  } else {
+    const legacy = getQuickViewReviews(prodId);
+    window.quickViewReviewsCache[key] = legacy;
+    applyQuickViewRatingChip(legacy);
+  }
+}
+
+/**
+ * Dynamic action row — two states kept in sync with the estimate cart:
+ *  A) qty 0  → green ADD TO ESTIMATE + grey Close
+ *  B) qty >0 → quantity stepper (− count +) + RED delete (trash) button
+ * Out-of-stock products get a disabled SOLD OUT + Close.
+ */
+function renderQuickViewActions() {
+  const row = document.getElementById('quickview-action-row');
+  if (!row || !window.quickViewProductId) return;
+  const prod = getProducts().find(p => String(p.id) === String(window.quickViewProductId));
+  if (!prod) return;
+  const qty = getCartQty(prod.id);
+  const cartSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>';
+  const trashSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
+
+  if (!prod.inStock) {
+    row.innerHTML = `
+      <button type="button" class="quickview-add-btn" disabled>${cartSvg}<span>SOLD OUT</span></button>
+      <button type="button" class="quickview-secondary-btn" onclick="closeProductQuickView()">Close</button>
+    `;
+  } else if (qty > 0) {
+    row.innerHTML = `
+      <div class="quickview-qty-wrap">
+        <button type="button" class="quickview-step-btn" onclick="quickViewStep(-1)" aria-label="Decrease quantity">−</button>
+        <span class="quickview-step-count">${qty}</span>
+        <button type="button" class="quickview-step-btn quickview-step-plus" onclick="quickViewStep(1)" aria-label="Increase quantity">+</button>
       </div>
-      <p class="quickview-review-text">${escapeHtml(r.text)}</p>
-      <span class="quickview-review-date">${escapeHtml(r.date)}</span>
-    </div>
-  `).join('');
-}
-
-function setQuickViewRating(n) {
-  window.quickViewRating = n;
-  document.querySelectorAll('#quickview-stars .quickview-star').forEach(star => {
-    star.classList.toggle('star-active', Number(star.getAttribute('data-star')) <= n);
-  });
-}
-
-function postQuickViewReview() {
-  const nameEl = document.getElementById('quickview-review-name');
-  const textEl = document.getElementById('quickview-review-text');
-  const name = nameEl.value.trim();
-  const text = textEl.value.trim();
-
-  if (!name) { showToast('Please enter your name.', 'error'); return; }
-  if (!text) { showToast('Please write a short review.', 'error'); return; }
-  if (window.quickViewRating < 1) { showToast('Please select a star rating.', 'error'); return; }
-
-  const reviews = getQuickViewReviews(window.quickViewProductId);
-  reviews.unshift({
-    name,
-    text,
-    rating: window.quickViewRating,
-    date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-  });
-  try {
-    localStorage.setItem(quickViewStorageKey(window.quickViewProductId), JSON.stringify(reviews));
-  } catch (err) {
-    console.error('[QuickView] Failed to save review:', err);
-    showToast('Could not save your review on this device.', 'error');
-    return;
+      <button type="button" class="quickview-delete-btn" onclick="quickViewDeleteItem()">${trashSvg}<span>Delete</span></button>
+    `;
+  } else {
+    row.innerHTML = `
+      <button type="button" class="quickview-add-btn" onclick="quickViewAddToEstimate()">${cartSvg}<span>ADD TO ESTIMATE</span></button>
+      <button type="button" class="quickview-secondary-btn" onclick="closeProductQuickView()">Close</button>
+    `;
   }
+}
 
-  nameEl.value = '';
-  textEl.value = '';
-  setQuickViewRating(0);
-  renderQuickViewReviews();
-  showToast('Review posted. Thank you!', 'success');
+function quickViewStep(delta) {
+  if (!window.quickViewProductId) return;
+  catalogStepQty(window.quickViewProductId, delta);
+  renderQuickViewActions(); // reverts to State A automatically at qty 0
+}
+
+function quickViewDeleteItem() {
+  if (!window.quickViewProductId) return;
+  updateCartItemQuantity(window.quickViewProductId, 0);
+  syncProductAction(window.quickViewProductId);
+  renderQuickViewActions();
+  showToast('Item removed from your estimate.', 'info');
 }
 
 function openProductQuickView(prodId) {
@@ -4515,8 +4542,9 @@ function openProductQuickView(prodId) {
   const root = ensureQuickViewModal();
   window.quickViewProductId = prod.id;
 
-  // Header badges — solid variants inside the modal (green cracker / brand)
-  const badgesEl = document.getElementById('quickview-badges');
+  // Green cracker / brand badges — light chips in a row directly BELOW
+  // the product title (topbar now only carries the close button)
+  const badgesEl = document.getElementById('quickview-title-badges');
   let badgeHTML = '';
   if (prod.greenCracker === true) {
     badgeHTML += '<span class="quickview-badge quickview-badge-green"><svg class="badge-leaf-icon" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M17.3 3.2C17.1 2.5 16.4 2 15.6 2C11.2 2 7.6 4.4 5.4 8.2C3.8 11 3.2 14.2 3.7 16.8C3.8 17.5 4.4 18 5.1 18C5.3 18 5.4 18 5.6 17.9C6.9 17.4 8.3 17.2 9.7 17.2C13.1 17.2 16 15.4 17.5 12C18.3 10 18.3 7.5 17.9 5.2C17.8 4.4 17.6 3.7 17.3 3.2ZM6.4 15.6C7.2 12.4 9.2 9.4 12 7.4C10.2 10.2 8.6 13 6.4 15.6Z"/></svg><span>Green Cracker</span></span>';
@@ -4526,6 +4554,7 @@ function openProductQuickView(prodId) {
     badgeHTML += `<span class="quickview-badge quickview-badge-brand">${escapeHtml(brand)}</span>`;
   }
   badgesEl.innerHTML = badgeHTML;
+  badgesEl.style.display = badgeHTML ? 'flex' : 'none';
 
   // Image — same object-fit behaviour as the listing cards (no distortion)
   const imgEl = document.getElementById('quickview-img');
@@ -4566,15 +4595,17 @@ function openProductQuickView(prodId) {
   mrpEl.style.display = hasValidDiscount ? '' : 'none';
   document.getElementById('quickview-unit').textContent = prod.qty || '';
 
-  // Add button mirrors the card state (SOLD OUT when out of stock)
-  const addBtn = document.getElementById('quickview-add-btn');
-  const addLabel = document.getElementById('quickview-add-label');
-  addBtn.disabled = !prod.inStock;
-  addLabel.textContent = prod.inStock ? 'ADD TO ESTIMATE' : 'SOLD OUT';
+  // Action row + rating summary reflect the current cart/review state
+  renderQuickViewActions();
+  applyQuickViewRatingChip([]); // neutral chip until the fetch lands
+  loadQuickViewRatingSummary(prod.id);
 
-  // Reviews — fresh state per product
+  // Fresh submission form per product (stars cleared, inputs emptied)
+  const nameInput = document.getElementById('quickview-reviewer-name');
+  const commentInput = document.getElementById('quickview-reviewer-comment');
+  if (nameInput) nameInput.value = '';
+  if (commentInput) commentInput.value = '';
   setQuickViewRating(0);
-  renderQuickViewReviews();
 
   root.style.display = 'flex';
   document.body.style.overflow = 'hidden'; // lock background scrolling
@@ -4593,20 +4624,274 @@ function quickViewAddToEstimate() {
   const prod = getProducts().find(p => String(p.id) === String(window.quickViewProductId));
   if (prod && prod.inStock) {
     showToast(`${prod.name} added to your estimate.`, 'success');
-    const addBtn = document.getElementById('quickview-add-btn');
-    const addLabel = document.getElementById('quickview-add-label');
-    if (addBtn && addLabel) {
-      addLabel.textContent = 'ADDED — KEEP BROWSING';
-      setTimeout(() => {
-        if (window.quickViewProductId === prod.id && addLabel) addLabel.textContent = 'ADD TO ESTIMATE';
-      }, 1500);
-    }
+    renderQuickViewActions(); // morphs into qty stepper + red Delete
   }
+}
+
+/** Interactive 1–5 star selector inside the Quick View review form. */
+window.quickViewUserRating = 0;
+
+function setQuickViewRating(n) {
+  window.quickViewUserRating = n;
+  document.querySelectorAll('#quickview-stars .quickview-star').forEach(star => {
+    star.classList.toggle('star-active', Number(star.getAttribute('data-star')) <= n);
+  });
+}
+
+/**
+ * Submit the customer review into the 'product_reviews' Firestore
+collection — the Admin Portal -> Product Reviews table streams the exact
+same collection in realtime. Falls back to an in-memory/instant chip update
+with an offline error toast when Firestore is unreachable.
+ */
+function submitUserReview() {
+  if (!window.quickViewProductId) return;
+  const nameEl = document.getElementById('quickview-reviewer-name');
+  const commentEl = document.getElementById('quickview-reviewer-comment');
+  const customerName = nameEl ? nameEl.value.trim() : '';
+  const reviewComment = commentEl ? commentEl.value.trim() : '';
+
+  if (window.quickViewUserRating < 1) { showToast('Please select a star rating.', 'error'); return; }
+  if (!customerName) { showToast('Please enter your name.', 'error'); return; }
+  if (!reviewComment) { showToast('Please write a short review.', 'error'); return; }
+
+  const prod = getProducts().find(p => String(p.id) === String(window.quickViewProductId));
+  if (!prod) return;
+
+  const serverTs = (window.firebase && firebase.firestore && firebase.firestore.FieldValue)
+    ? firebase.firestore.FieldValue.serverTimestamp()
+    : Date.now();
+
+  if (!window.db) {
+    console.error('[QuickView] window.db is NULL — cannot submit review to Firestore.');
+    showToast('Not connected to the server. Review not submitted.', 'error');
+    return;
+  }
+
+  window.db.collection('product_reviews').add({
+    productId: String(prod.id),
+    productName: prod.name,
+    customerName,
+    rating: window.quickViewUserRating,
+    reviewComment,
+    createdAt: serverTs
+  })
+    .then(() => {
+      console.log('[QuickView] Review submitted for', prod.id);
+      // Update the chip instantly (no need to wait for a re-fetch)
+      const key = String(prod.id);
+      const list = window.quickViewReviewsCache[key] || [];
+      window.quickViewReviewsCache[key] = [{ rating: window.quickViewUserRating }].concat(list);
+      applyQuickViewRatingChip(window.quickViewReviewsCache[key]);
+      if (nameEl) nameEl.value = '';
+      if (commentEl) commentEl.value = '';
+      setQuickViewRating(0);
+      showToast('Review submitted. Thank you!', 'success');
+    })
+    .catch(err => {
+      const code = err.code || 'unknown';
+      console.error('[QuickView] Review submit FAILED. Code:', code, 'Message:', err.message, err);
+      showToast('Could not submit review [' + code + ']', 'error');
+    });
+}
+
+/* --------------------------------------------------------------------------
+   Full-screen Image Lightbox (click/tap on the Quick View thumbnail)
+   Manual zoom ONLY — no hover zoom. Wheel, two-pointer pinch, double-tap
+   and double-click all drive a translate+scale transform on the image.
+   Drag to pan while zoomed; ✕ or tapping outside resets/closes.
+   -------------------------------------------------------------------------- */
+window.lightboxScale = 1;
+window.lightboxTx = 0;
+window.lightboxTy = 0;
+window.lightboxMoved = false;
+
+function ensureImageLightbox() {
+  let lb = document.getElementById('image-lightbox-overlay');
+  if (lb) return lb;
+
+  lb = document.createElement('div');
+  lb.id = 'image-lightbox-overlay';
+  lb.className = 'image-lightbox-overlay';
+  lb.innerHTML = `
+    <div class="image-lightbox-controls">
+      <button type="button" class="image-lightbox-close" onclick="resetAndCloseLightbox()" aria-label="Close image view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="image-lightbox-container" id="lightbox-container">
+      <img id="lightbox-img" src="" alt="Zoomed product image" draggable="false">
+    </div>
+    <p class="image-lightbox-hint">Double tap / Pinch to zoom &bull; Tap outside to reset</p>
+  `;
+  document.body.appendChild(lb);
+  wireImageLightboxInteractions(lb);
+  return lb;
+}
+
+function clampLightboxScale(s) {
+  return Math.min(4, Math.max(1, s));
+}
+
+function applyLightboxTransform() {
+  const img = document.getElementById('lightbox-img');
+  if (!img) return;
+  if (window.lightboxScale <= 1) {
+    window.lightboxScale = 1;
+    window.lightboxTx = 0;
+    window.lightboxTy = 0;
+  }
+  img.style.transform = `translate(${window.lightboxTx}px, ${window.lightboxTy}px) scale(${window.lightboxScale})`;
+}
+
+function resetLightboxTransform() {
+  window.lightboxScale = 1;
+  window.lightboxTx = 0;
+  window.lightboxTy = 0;
+  window.lightboxMoved = false;
+  const img = document.getElementById('lightbox-img');
+  if (img) img.style.transform = '';
+}
+
+function openImageLightbox() {
+  const thumb = document.getElementById('quickview-img');
+  if (!thumb || !thumb.getAttribute('src') || thumb.style.display === 'none') return;
+  const lb = ensureImageLightbox();
+  document.getElementById('lightbox-img').src = thumb.src;
+  resetLightboxTransform();
+  lb.style.display = 'flex';
+  // body scroll stays locked (Quick View beneath also locks it)
+}
+
+function closeImageLightbox() {
+  const lb = document.getElementById('image-lightbox-overlay');
+  if (lb) lb.style.display = 'none';
+  resetLightboxTransform();
+  // Restore page scrolling only when the Quick View beneath is closed too
+  const qv = document.getElementById('product-quickview-modal');
+  if (!qv || qv.style.display === 'none') {
+    document.body.style.overflow = '';
+  }
+}
+
+function resetAndCloseLightbox() {
+  closeImageLightbox();
+}
+
+function toggleLightboxZoom() {
+  if (window.lightboxScale > 1) {
+    resetLightboxTransform(); // back to fit
+  } else {
+    window.lightboxScale = 2.5;
+    applyLightboxTransform();
+  }
+}
+
+function handleLightboxClick(e) {
+  if (e.target.id === 'lightbox-img') return; // clicks on the photo itself don't close
+  if (window.lightboxMoved) { window.lightboxMoved = false; return; } // end of a drag
+  if (window.lightboxScale > 1) {
+    resetLightboxTransform(); // zoomed: tap outside returns to original fit
+  } else {
+    closeImageLightbox();     // already fitted: tap outside closes
+  }
+}
+
+function wireImageLightboxInteractions(lb) {
+  const container = lb.querySelector('#lightbox-container');
+  const img = lb.querySelector('#lightbox-img');
+  const pointers = new Map();
+  let pinchStartDist = 0;
+  let pinchStartScale = 1;
+  let lastDrag = null;
+  let lastTapTime = 0;
+  let suppressClick = false;
+
+  container.addEventListener('pointerdown', (e) => {
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (container.setPointerCapture) container.setPointerCapture(e.pointerId);
+    if (pointers.size === 2) {
+      const [p1, p2] = [...pointers.values()];
+      pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      pinchStartScale = window.lightboxScale;
+    } else if (pointers.size === 1) {
+      lastDrag = { x: e.clientX, y: e.clientY };
+    }
+    img.classList.add('dragging');
+  });
+
+  container.addEventListener('pointermove', (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2 && pinchStartDist > 0) {
+      // Pinch-to-zoom (two pointers, any input type)
+      const [p1, p2] = [...pointers.values()];
+      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      window.lightboxScale = clampLightboxScale(pinchStartScale * (dist / pinchStartDist));
+      suppressClick = true;
+      applyLightboxTransform();
+    } else if (pointers.size === 1 && window.lightboxScale > 1 && lastDrag) {
+      // Drag-to-pan while zoomed
+      const dx = e.clientX - lastDrag.x;
+      const dy = e.clientY - lastDrag.y;
+      if (Math.abs(dx) + Math.abs(dy) > 3) {
+        window.lightboxMoved = true;
+        suppressClick = true;
+      }
+      window.lightboxTx += dx;
+      window.lightboxTy += dy;
+      lastDrag = { x: e.clientX, y: e.clientY };
+      applyLightboxTransform();
+    }
+  });
+
+  const endPointer = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinchStartDist = 0;
+    if (pointers.size === 0) {
+      lastDrag = null;
+      img.classList.remove('dragging');
+    }
+  };
+  container.addEventListener('pointerup', endPointer);
+  container.addEventListener('pointercancel', endPointer);
+
+  // Mouse-wheel zoom (desktop)
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    window.lightboxScale = clampLightboxScale(window.lightboxScale * (e.deltaY < 0 ? 1.15 : 0.87));
+    applyLightboxTransform();
+  }, { passive: false });
+
+  // Double-click zoom toggle (desktop)
+  container.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    toggleLightboxZoom();
+  });
+
+  // Double-tap zoom toggle (touch)
+  container.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTapTime < 300 && e.touches.length === 0) {
+      e.preventDefault();
+      toggleLightboxZoom();
+      lastTapTime = 0;
+      suppressClick = true;
+    } else {
+      lastTapTime = now;
+    }
+  }, { passive: false });
+
+  // Single tap outside the image: reset zoom, or close when already fitted
+  container.addEventListener('click', (e) => {
+    if (suppressClick) { suppressClick = false; window.lightboxMoved = false; return; }
+    handleLightboxClick(e);
+  });
 }
 
 // Card click (outside wishlist / action controls) opens the quick view.
 document.addEventListener('click', (e) => {
-  if (e.target.closest('#product-quickview-modal')) return; // clicks inside the modal itself
+  if (e.target.closest('#product-quickview-modal') || e.target.closest('#image-lightbox-overlay')) return; // clicks inside the modal / lightbox itself
   const card = e.target.closest('.product-card');
   if (!card) return;
   if (e.target.closest('.card-wishlist-btn, .action-container-right')) return;
@@ -4615,9 +4900,11 @@ document.addEventListener('click', (e) => {
   if (prodId) openProductQuickView(prodId);
 });
 
-// ESC closes the quick view (only while it is open)
+// ESC closes the top-most layer: lightbox first, then the quick view.
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    const lb = document.getElementById('image-lightbox-overlay');
+    if (lb && lb.style.display === 'flex') { closeImageLightbox(); return; }
     const root = document.getElementById('product-quickview-modal');
     if (root && root.style.display !== 'none') closeProductQuickView();
   }

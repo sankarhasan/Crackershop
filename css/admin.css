@@ -1715,3 +1715,26 @@ textarea.form-control-admin {
     flex-direction: column;
   }
 }
+
+/* ==========================================================================
+   Product Reviews Table (Section: section-reviews)
+   Star rating display + comment column sizing for the reviews manager.
+   ========================================================================== */
+.admin-review-stars {
+  color: #f59e0b;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+.admin-review-rating-num {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--admin-text, #1e293b);
+}
+
+.admin-review-comment {
+  max-width: 320px;
+  white-space: normal;
+  line-height: 1.5;
+}
