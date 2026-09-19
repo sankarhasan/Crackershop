@@ -4443,21 +4443,22 @@ select.form-control {
     flex-direction: row !important;
     align-items: center !important;
     flex-shrink: 0 !important;
-    /* Uniform 140px base; stretches vertically when the title wraps to
-       two lines or badges add height — never clips content */
-    height: auto !important;
-    min-height: 140px !important;
-    /* Clean, uniform tight padding on all four sides */
-    padding: 10px !important;
+    /* Strict uniform box — every mobile card is exactly 112px tall;
+       titles truncate to one line so nothing ever needs to grow */
+    height: 112px !important;
+    min-height: 0 !important;
+    /* Tight card padding (p-2.5 equivalent) */
+    padding: 8px !important;
     gap: 10px;
-    margin-bottom: 12px !important;
+    /* Grid gap already spaces the list — no extra bottom margin */
+    margin-bottom: 0 !important;
     border-radius: var(--radius-md);
   }
 
   /* Pinned bottom-right, sized down slightly for compact mobile cards */
   .action-container-right {
-    right: 10px !important;
-    bottom: 10px !important;
+    right: 8px !important;
+    bottom: 8px !important;
     min-width: 85px !important;
     width: 85px !important;
     height: 30px !important;
@@ -4547,9 +4548,15 @@ select.form-control {
 
   .product-card-title {
     font-size: 0.85rem;
-    /* One line = uniform base height; wraps to two lines without clipping */
+    /* FORCE single line with ellipsis — overrides the base 2-line
+       -webkit-box clamp so every card can hold one fixed height */
+    display: block;
+    -webkit-line-clamp: unset;
+    -webkit-box-orient: unset;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     height: auto;
-    min-height: 1.2em;
     margin-bottom: 2px;
     /* Keep the title clear of the top-right wishlist heart */
     padding-right: 30px;
@@ -4613,7 +4620,9 @@ select.form-control {
   }
 
   .product-card-price-row {
-    margin-top: 2px;
+    /* Pull price up against the quantity line (tight -mt-1 equivalent);
+       no bottom gap under the price */
+    margin-top: -2px;
     margin-bottom: 0;
     gap: 6px;
     align-items: baseline;

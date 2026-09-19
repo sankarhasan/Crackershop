@@ -1019,7 +1019,7 @@ function renderProductsCatalog() {
         ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
       </div>
       <div class="product-card-body">
-        <h3 class="product-card-title">${prod.name}</h3>
+        <h3 class="product-card-title" title="${escapeHtml(prod.name)}">${prod.name}</h3>
         ${getProductBadgeRowHTML(prod)}
          <span class="product-card-qty">${prod.qty}</span>
          <p class="product-card-desc">${prod.description}</p>
@@ -1196,7 +1196,7 @@ function createMobileProductCard(prod, cartQty) {
        ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
      </div>
      <div class="product-card-body">
-      <h3 class="product-card-title">${prod.name}</h3>
+      <h3 class="product-card-title" title="${escapeHtml(prod.name)}">${prod.name}</h3>
       ${getProductBadgeRowHTML(prod)}
       <span class="product-card-qty">${prod.qty}</span>
       <p class="product-card-desc">${prod.description}</p>
