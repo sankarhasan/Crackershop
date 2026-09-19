@@ -2010,6 +2010,55 @@ section {
   height: 2.6rem;
 }
 
+/* Optional label badges row (Green Cracker / Brand) between title and
+   pack size. Rendered only when a value exists — otherwise the row is
+   not in the DOM at all, so unaffected cards look exactly as before. */
+.product-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.badge-green-cracker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #EAF8EE;
+  border: 1px solid #1FA34A;
+  color: #188038;
+  font-size: 0.65rem; /* ~10.5px */
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.badge-green-cracker i {
+  font-size: 0.7rem;
+  color: #1FA34A;
+}
+
+.badge-brand {
+  display: inline-flex;
+  align-items: center;
+  height: 21px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #FFF3C4;
+  border: 1px solid #F5C542;
+  color: #8A5A00;
+  font-size: 0.65rem; /* ~10.5px */
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
 .product-card-qty {
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -4495,6 +4544,19 @@ select.form-control {
     margin-bottom: 2px;
     /* Keep the title clear of the top-right wishlist heart */
     padding-right: 30px;
+  }
+
+  /* Badge row — tighter vertical rhythm on compact cards and right
+     clearance so a wide first-row badge never touches the heart */
+  .product-card-badges {
+    margin-bottom: 3px;
+    padding-right: 30px;
+  }
+
+  .badge-green-cracker,
+  .badge-brand {
+    height: 20px;
+    font-size: 0.6rem;
   }
 
   .product-card-qty {

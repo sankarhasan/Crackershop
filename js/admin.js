@@ -1078,6 +1078,9 @@ function openProductAddModal() {
   document.getElementById('product-modal-title').innerText = 'Add Firecracker Details';
   document.getElementById('product-form').reset();
   document.getElementById('product-modal-id').value = '';
+  // Optional label fields — explicit reset in case the modal was left dirty
+  document.getElementById('product-modal-brand').value = '';
+  document.getElementById('product-modal-green').checked = false;
   
   // Reset image preview state
   updateImagePreview('');
@@ -1103,6 +1106,9 @@ function openProductEditModal(id) {
   updateSalePriceFromDiscount();
   document.getElementById('product-modal-desc').value = p.description || '';
   document.getElementById('product-modal-stock').checked = p.inStock;
+  // Optional label fields — legacy docs may not carry them, default to off/empty
+  document.getElementById('product-modal-brand').value = p.brand || '';
+  document.getElementById('product-modal-green').checked = p.greenCracker === true;
   
   // Set image state
   if (p.image) {
@@ -1181,6 +1187,14 @@ function saveProductData() {
   }
   const description = document.getElementById('product-modal-desc').value;
   const inStock = document.getElementById('product-modal-stock').checked;
+  // Optional labels — brand is trimmed, collapsed to single spaces, capped at
+  // 20 chars and upper-cased so "   supreme  brand  " never renders blank.
+  const brand = String(document.getElementById('product-modal-brand').value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, 20)
+    .toUpperCase();
+  const greenCracker = document.getElementById('product-modal-green').checked;
   
   // Get image value from preview src (which holds either URL or base64 data)
   const previewImg = document.getElementById('product-modal-image-preview');
@@ -1213,7 +1227,9 @@ function saveProductData() {
       qty,
       description,
       inStock,
-      image
+      image,
+      greenCracker,
+      brand
     };
     products.push(newProduct);
   } else {
@@ -1236,7 +1252,9 @@ function saveProductData() {
         qty,
         description,
         inStock,
-        image
+        image,
+        greenCracker,
+        brand
       };
     }
   }

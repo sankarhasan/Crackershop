@@ -1020,6 +1020,7 @@ function renderProductsCatalog() {
       </div>
       <div class="product-card-body">
         <h3 class="product-card-title">${prod.name}</h3>
+        ${getProductBadgeRowHTML(prod)}
          <span class="product-card-qty">${prod.qty}</span>
          <p class="product-card-desc">${prod.description}</p>
         <div class="product-card-price-row">
@@ -1196,6 +1197,7 @@ function createMobileProductCard(prod, cartQty) {
      </div>
      <div class="product-card-body">
       <h3 class="product-card-title">${prod.name}</h3>
+      ${getProductBadgeRowHTML(prod)}
       <span class="product-card-qty">${prod.qty}</span>
       <p class="product-card-desc">${prod.description}</p>
       <div class="product-card-price-row">
@@ -4325,6 +4327,23 @@ function getWishlistBtnHTML(productId) {
       <i class="${isWishlisted ? 'fa-solid fa-heart text-red-500' : 'fa-regular fa-heart text-gray-400 hover:text-red-500'} text-lg"></i>
     </button>
   `;
+}
+
+/**
+ * Optional product label badges (Green Cracker / Brand), rendered between
+ * the product title and the pack size. Legacy products without the new
+ * Firestore fields simply render nothing — the row collapses completely.
+ */
+function getProductBadgeRowHTML(prod) {
+  const badges = [];
+  if (prod.greenCracker === true) {
+    badges.push('<span class="badge-green-cracker"><i class="fa-solid fa-circle-check"></i> Green Cracker</span>');
+  }
+  const brand = String(prod.brand || '').trim();
+  if (brand) {
+    badges.push(`<span class="badge-brand">${escapeHtml(brand)}</span>`);
+  }
+  return badges.length ? `<div class="product-card-badges">${badges.join('')}</div>` : '';
 }
 
 /** Public wishlist toggle (used by the inline onclick handlers). */
