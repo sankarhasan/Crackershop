@@ -4330,20 +4330,20 @@ function getWishlistBtnHTML(productId) {
 }
 
 /**
- * Optional product label badges (Green Cracker / Brand), rendered between
- * the product title and the pack size. Legacy products without the new
- * Firestore fields simply render nothing — the row collapses completely.
+ * Product label badges row (Green Cracker / Brand) rendered between title
+ * and pack size. The container is ALWAYS present (even when empty) to
+ * reserve vertical space so all cards in a grid row stretch to equal height.
  */
 function getProductBadgeRowHTML(prod) {
   const badges = [];
   if (prod.greenCracker === true) {
-    badges.push('<span class="badge-green-cracker"><i class="fa-solid fa-circle-check"></i> Green Cracker</span>');
+    badges.push(`<span class="badge-green-cracker"><svg class="badge-leaf-icon" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M17.3 3.2C17.1 2.5 16.4 2 15.6 2C11.2 2 7.6 4.4 5.4 8.2C3.8 11 3.2 14.2 3.7 16.8C3.8 17.5 4.4 18 5.1 18C5.3 18 5.4 18 5.6 17.9C6.9 17.4 8.3 17.2 9.7 17.2C13.1 17.2 16 15.4 17.5 12C18.3 10 18.3 7.5 17.9 5.2C17.8 4.4 17.6 3.7 17.3 3.2ZM6.4 15.6C7.2 12.4 9.2 9.4 12 7.4C10.2 10.2 8.6 13 6.4 15.6Z"/></svg><span>Green Cracker</span></span>`);
   }
   const brand = String(prod.brand || '').trim();
   if (brand) {
     badges.push(`<span class="badge-brand">${escapeHtml(brand)}</span>`);
   }
-  return badges.length ? `<div class="product-card-badges">${badges.join('')}</div>` : '';
+  return `<div class="product-card-badges">${badges.join('')}</div>`;
 }
 
 /** Public wishlist toggle (used by the inline onclick handlers). */

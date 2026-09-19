@@ -2007,26 +2007,30 @@ section {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 2.6rem;
+  /* Uniform one-line base (incl. margin) that expands naturally when the
+     title wraps to a second line — no fixed two-line reservation. */
+  height: auto;
+  min-height: calc(1.3em + 6px);
 }
 
 /* Optional label badges row (Green Cracker / Brand) between title and
-   pack size. Rendered only when a value exists — otherwise the row is
-   not in the DOM at all, so unaffected cards look exactly as before. */
+   pack size. Container ALWAYS present to reserve vertical space for
+   uniform card heights. Price row uses margin-top:auto to pin bottom. */
 .product-card-badges {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin-bottom: 6px;
+  margin: 6px 0;
+  min-height: 1.75rem; /* reserves space even when empty for uniform height */
 }
 
 .badge-green-cracker {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 21px;
-  padding: 0 8px;
+  height: 22px;
+  padding: 2px 8px;
   border-radius: 999px;
   background: #EAF8EE;
   border: 1px solid #1FA34A;
@@ -2037,16 +2041,18 @@ section {
   white-space: nowrap;
 }
 
-.badge-green-cracker i {
-  font-size: 0.7rem;
+.badge-leaf-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
   color: #1FA34A;
 }
 
 .badge-brand {
   display: inline-flex;
   align-items: center;
-  height: 21px;
-  padding: 0 10px;
+  height: 22px;
+  padding: 2px 10px;
   border-radius: 999px;
   background: #FFF3C4;
   border: 1px solid #F5C542;
@@ -4437,9 +4443,10 @@ select.form-control {
     flex-direction: row !important;
     align-items: center !important;
     flex-shrink: 0 !important;
-    /* Hug content dynamically: no forced height, no empty vertical space */
+    /* Uniform 140px base; stretches vertically when the title wraps to
+       two lines or badges add height — never clips content */
     height: auto !important;
-    min-height: unset !important;
+    min-height: 140px !important;
     /* Clean, uniform tight padding on all four sides */
     padding: 10px !important;
     gap: 10px;
@@ -4540,23 +4547,53 @@ select.form-control {
 
   .product-card-title {
     font-size: 0.85rem;
+    /* One line = uniform base height; wraps to two lines without clipping */
     height: auto;
+    min-height: 1.2em;
     margin-bottom: 2px;
     /* Keep the title clear of the top-right wishlist heart */
     padding-right: 30px;
   }
 
-  /* Badge row — tighter vertical rhythm on compact cards and right
-     clearance so a wide first-row badge never touches the heart */
+  /* Badge row — STRICT single horizontal row (Green Cracker then Brand).
+     Pills are ultra-compact and never wrap; if both still cannot fit the
+     narrowed body, the row scrolls horizontally with a hidden scrollbar.
+     flex-nowrap + shrink-0 + nowrap text guarantees side-by-side placement
+     on every mobile screen. */
   .product-card-badges {
-    margin-bottom: 3px;
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    gap: 4px;
+    margin: 4px 0;
+    min-height: 16px;
     padding-right: 30px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .product-card-badges::-webkit-scrollbar {
+    display: none;
   }
 
   .badge-green-cracker,
   .badge-brand {
-    height: 20px;
-    font-size: 0.6rem;
+    height: auto;
+    padding: 1px 6px;
+    font-size: 8px;
+    line-height: 1.4;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge-green-cracker {
+    gap: 2px;
+  }
+
+  .badge-leaf-icon {
+    width: 8px;
+    height: 8px;
   }
 
   .product-card-qty {
@@ -5125,6 +5162,32 @@ select.form-control {
     left: 12px;
     max-width: calc(100% - 24px);
     top: 80px;
+  }
+}
+
+/* ========================================================================
+   Large phones / small tablets (640px–768px): badges step up from the
+   8px ultra-compact sizing while still in the horizontal mobile card.
+   Declared AFTER the max-width:768px block so equal-specificity rules
+   win by source order.
+   ======================================================================== */
+@media (min-width: 640px) and (max-width: 768px) {
+  .product-card-badges {
+    gap: 6px;
+  }
+
+  .badge-green-cracker {
+    gap: 4px;
+  }
+
+  .badge-green-cracker,
+  .badge-brand {
+    font-size: 10px;
+  }
+
+  .badge-leaf-icon {
+    width: 10px;
+    height: 10px;
   }
 }
 
