@@ -755,6 +755,7 @@ function showDashboardSection(sectionName) {
       'enquiries': 'Customer Enquiries Portal',
       'banners': 'Manage Homepage Banners',
       'offers': 'Manage Festival Offer Banner',
+      'spin-wheel': 'Manage Lucky Spin Wheel Segments',
       'coupons': 'Manage Coupon Codes',
       'state-rules': 'Manage State Minimum Order Rules'
     };
@@ -776,6 +777,8 @@ function showDashboardSection(sectionName) {
     renderBannersGrid();
   } else if (sectionName === 'offers') {
     loadOfferForm();
+  } else if (sectionName === 'spin-wheel') {
+    initSpinWheelSection();
   } else if (sectionName === 'coupons') {
     loadCouponsFromFirestore().then(coupons => {
       adminCoupons = coupons;
@@ -3277,6 +3280,132 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+/* ==========================================================================
+   SPIN WHEEL SETTINGS — Admin Segment Configuration Module
+   Ten <select> slots map wheel slices to 'try_again' | 'better_luck' |
+   'product:<id>'. Persisted as ONE doc ('config') in 'spin_wheel_config'
+   via the shared data.js sync layer (immediate full-array overwrite,
+   matching the offer-banner single-doc pattern).
+   ========================================================================== */
+const SPIN_SPECIAL_OPTIONS = [
+  { value: 'try_again',   label: '🎲 Try Again' },
+  { value: 'better_luck', label: '🍀 Better Luck Next Time' }
+];
+
+let adminSpinConfig = null; // last loaded/saved { segments: [10] }
+
+/** Option list for one segment slot: specials + every listed site product. */
+function spinSegmentOptionsHtml(selectedValue) {
+  const escapeAttr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  let html = '';
+
+  SPIN_SPECIAL_OPTIONS.forEach(opt => {
+    const isSel = selectedValue === opt.value ? ' selected' : '';
+    html += `<option value="${opt.value}"${isSel}>${opt.label}</option>`;
+  });
+
+  try {
+    getProducts().forEach(prod => {
+      const value = `product:${prod.id}`;
+      const isSel = selectedValue === value ? ' selected' : '';
+      const stock = prod.inStock ? '' : ' (Out of Stock)';
+      html += `<option value="${escapeAttr(value)}"${isSel}>🎁 ${escapeAttr(prod.name || ('Product #' + prod.id))}${stock}</option>`;
+    });
+  } catch (e) {
+    console.error('[Admin] ✗ Could not populate product options for the wheel:', e);
+  }
+
+  return html;
+}
+
+/** Paint the 10 dropdowns from adminSpinConfig (defaults when unset). */
+function renderSpinWheelForm() {
+  const grid = document.getElementById('spin-wheel-segments-grid');
+  if (!grid) return;
+
+  const segments = (adminSpinConfig && Array.isArray(adminSpinConfig.segments))
+    ? adminSpinConfig.segments.slice(0, 10) : [];
+
+  let html = '';
+  for (let i = 0; i < 10; i++) {
+    const value = segments[i] || 'try_again';
+    html += `
+      <div class="form-group">
+        <label for="spin-segment-${i}">Segment ${i + 1}</label>
+        <select id="spin-segment-${i}" class="form-control-admin">${spinSegmentOptionsHtml(value)}</select>
+      </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+/** Called when the sidebar section opens — loads the cloud config once. */
+function initSpinWheelSection() {
+  loadSpinWheelConfigForm(false);
+}
+
+/** Pull the config from Firestore (cache fallback) and repaint the form. */
+function loadSpinWheelConfigForm(showToastOnDone) {
+  try {
+    if (typeof loadSpinConfigFromFirestore !== 'function') {
+      showAdminToast('Spin config loader unavailable (data.js not loaded).', 'error');
+      return;
+    }
+    loadSpinConfigFromFirestore()
+      .then(config => {
+        adminSpinConfig = config;
+        renderSpinWheelForm();
+        if (showToastOnDone) showAdminToast('Spin wheel config reloaded from cloud.', 'info');
+      })
+      .catch(err => {
+        const code = err.code || 'unknown';
+        console.error('[Admin] ✗ Spin config load failed. Code:', code, 'Message:', err.message, err);
+        showAdminToast('Could not load wheel config [' + code + ']: ' + (err.message || 'Unknown error'), 'error');
+        renderSpinWheelForm(); // still paint from the localStorage/default cache
+      });
+  } catch (syncError) {
+    console.error('[Admin] Exception during spin config load:', syncError);
+    showAdminToast('Exception: ' + (syncError.message || 'Unknown'), 'error');
+  }
+}
+
+/** Collect the 10 selects and persist the whole mapping in one write. */
+function saveSpinWheelConfig() {
+  console.log('[Admin] Saving spin wheel config...');
+
+  try {
+    const segments = [];
+    for (let i = 0; i < 10; i++) {
+      const select = document.getElementById(`spin-segment-${i}`);
+      if (!select) {
+        showAdminToast('Wheel form is still loading — try again in a second.', 'error');
+        return;
+      }
+      segments.push(select.value);
+    }
+
+    const config = {
+      id: 'config',
+      segments: segments,
+      updatedAt: new Date().toISOString()
+    };
+
+    saveSpinConfigToFirestore(config)
+      .then(() => {
+        adminSpinConfig = config;
+        console.log('[Admin] ✓ Spin wheel config saved:', config);
+        showAdminToast('Spin wheel saved and synced to cloud!', 'success');
+      })
+      .catch(err => {
+        const code = err.code || 'unknown';
+        console.error('[Admin] ✗ Spin wheel save failed. Code:', code, 'Message:', err.message, err);
+        showAdminToast('Cloud sync failed [' + code + ']: ' + (err.message || 'Unknown error'), 'error');
+      });
+  } catch (syncError) {
+    console.error('[Admin] Exception during spin wheel save:', syncError);
+    showAdminToast('Exception: ' + (syncError.message || 'Unknown'), 'error');
+  }
+}
+
 /* ==========================================================================
    COUPON CODES — Admin Management Module
    ========================================================================== */

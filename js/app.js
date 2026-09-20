@@ -3047,6 +3047,18 @@ function closeNoticeModal() {
   } catch (e) {
     // sessionStorage may not be available, silently ignore
   }
+
+  // Chained popup: hand off to the Lucky Spin Wheel info modal (js/spin-wheel.js
+  // shows the info modal on every page load OR after this close when the
+  // notice was still pending; guarded so pages without the module — e.g.
+  // admin — close the notice untouched).
+  try {
+    if (typeof window.openSpinInfoModalAfterNotice === 'function') {
+      window.openSpinInfoModalAfterNotice();
+    }
+  } catch (e) {
+    console.error('[SpinWheel] ✗ Failed to raise the spin info modal after the notice:', e);
+  }
 }
 
 /**

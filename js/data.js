@@ -1032,6 +1032,121 @@ function saveOfferToFirestore(offer) {
 }
 
 /* ==========================================================================
+   SPIN WHEEL — Firestore Sync Layer (shared by storefront + admin panel)
+   Single document (ID: 'config') in the 'spin_wheel_config' collection.
+   Holds the 10 wheel segments; each entry is one of:
+     'try_again' | 'better_luck' | 'product:<productId>'
+   Mirrored to localStorage ('jcs_spin_wheel_config') for instant hydration.
+   Per-user spin history lives in 'spin_wheel_results' (one doc per uid),
+   handled client-side by js/spin-wheel.js.
+   ========================================================================== */
+
+const SPIN_CONFIG_DOC_ID = 'config';
+const SPIN_CONFIG_STORAGE_KEY = 'jcs_spin_wheel_config';
+
+const DEFAULT_SPIN_CONFIG = {
+  id: SPIN_CONFIG_DOC_ID,
+  segments: [
+    'try_again', 'product:1', 'try_again', 'better_luck', 'product:2',
+    'try_again', 'product:3', 'better_luck', 'product:4', 'try_again'
+  ]
+};
+
+/**
+ * Get the spin wheel config from localStorage, falling back to defaults.
+ */
+function getSpinConfig() {
+  const stored = localStorage.getItem(SPIN_CONFIG_STORAGE_KEY);
+  if (!stored) {
+    console.warn('[getSpinConfig] localStorage empty. Returning DEFAULT_SPIN_CONFIG.');
+    return DEFAULT_SPIN_CONFIG;
+  }
+  try {
+    const parsed = JSON.parse(stored);
+    if (!parsed || !Array.isArray(parsed.segments) || parsed.segments.length !== 10) {
+      console.error('[getSpinConfig] Cached config malformed. Returning DEFAULT_SPIN_CONFIG.');
+      return DEFAULT_SPIN_CONFIG;
+    }
+    return parsed;
+  } catch (e) {
+    console.error('[getSpinConfig] JSON.parse failed. Returning DEFAULT_SPIN_CONFIG.', e);
+    return DEFAULT_SPIN_CONFIG;
+  }
+}
+
+/**
+ * Fetch the spin wheel config document from Firestore server.
+ * Falls back to localStorage -> DEFAULT_SPIN_CONFIG on failure (10s timeout).
+ */
+function loadSpinConfigFromFirestore() {
+  console.log('[data.js] loadSpinConfigFromFirestore() called. window.db:', window.db ? 'CONNECTED' : 'NULL');
+
+  if (!window.db) {
+    console.warn('[data.js] window.db is NULL. Returning localStorage spin config.');
+    return Promise.resolve(getSpinConfig());
+  }
+
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Firestore spin config fetch timeout (10s)')), 10000);
+  });
+
+  const fetchPromise = window.db.collection('spin_wheel_config')
+    .doc(SPIN_CONFIG_DOC_ID)
+    .get({ source: 'server' })
+    .then(doc => {
+      if (!doc.exists) {
+        console.log('[data.js] Spin config doc does not exist. Seeding DEFAULT_SPIN_CONFIG.');
+        return window.db.collection('spin_wheel_config').doc(SPIN_CONFIG_DOC_ID)
+          .set(DEFAULT_SPIN_CONFIG)
+          .then(() => {
+            console.log('[data.js] ✓ DEFAULT_SPIN_CONFIG seeded to Firestore.');
+            localStorage.setItem(SPIN_CONFIG_STORAGE_KEY, JSON.stringify(DEFAULT_SPIN_CONFIG));
+            return DEFAULT_SPIN_CONFIG;
+          });
+      }
+      const config = { id: SPIN_CONFIG_DOC_ID, ...(doc.data() || {}) };
+      localStorage.setItem(SPIN_CONFIG_STORAGE_KEY, JSON.stringify(config));
+      console.log('[data.js] ✓ Spin config hydrated from Firestore.');
+      return config;
+    })
+    .catch(err => {
+      console.error('[data.js] ✗ Firestore spin config fetch FAILED:', err);
+      return getSpinConfig();
+    });
+
+  return Promise.race([fetchPromise, timeoutPromise]).catch(timeoutErr => {
+    console.error('[data.js] ✗ Timeout in loadSpinConfigFromFirestore:', timeoutErr);
+    return getSpinConfig();
+  });
+}
+
+/**
+ * Save the spin wheel config document to Firestore (admin panel writes).
+ */
+function saveSpinConfigToFirestore(config) {
+  console.log('[data.js] saveSpinConfigToFirestore called with:', config);
+
+  if (!window.db) {
+    console.warn('[data.js] window.db is NULL. Saving spin config to localStorage only.');
+    localStorage.setItem(SPIN_CONFIG_STORAGE_KEY, JSON.stringify(config));
+    return Promise.resolve();
+  }
+
+  return window.db.collection('spin_wheel_config')
+    .doc(SPIN_CONFIG_DOC_ID)
+    .set(config)
+    .then(() => {
+      console.log('[data.js] ✓ Spin config saved to Firestore successfully.');
+      localStorage.setItem(SPIN_CONFIG_STORAGE_KEY, JSON.stringify(config));
+    })
+    .catch(err => {
+      console.error('[data.js] ✗ Firestore spin config save FAILED:', err);
+      console.error('[data.js] Error code:', err.code, 'Message:', err.message);
+      throw err;
+    });
+}
+
+/* ==========================================================================
    COUPON CODES - Firestore Sync Layer
    - loadCouponsFromFirestore(): fetches coupons collection, caches to localStorage
    - saveCouponToFirestore(coupon): upserts a single coupon doc

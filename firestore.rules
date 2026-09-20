@@ -35,6 +35,18 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Spin Wheel config: single 'config' doc managed by the admin panel,
+    // read by every storefront visitor (development mode)
+    match /spin_wheel_config/{configId} {
+      allow read, write: if true;
+    }
+
+    // Spin Wheel results: one doc per signed-in client (uid) holding
+    // last_spun_at for the 24-hour lock (development mode)
+    match /spin_wheel_results/{userId} {
+      allow read, write: if true;
+    }
+
     // Coupons collection: public read/write (development mode)
     match /coupons/{couponId} {
       allow read, write: if true;

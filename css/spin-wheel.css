@@ -1,0 +1,374 @@
+/* ==========================================================================
+   LUCKY SPIN WHEEL — Storefront Styles (plain CSS, no Tailwind)
+   Loads AFTER styles.css on every storefront page. Two modals injected by
+   js/spin-wheel.js: #spin-info-modal (Window 1) and #spin-wheel-modal (2).
+   Z-layering: content (≤9999) < spin modals (1000400/1000450) < auth portal
+   (1000500, so the sign-in gate always raises ABOVE "Spin Now").
+   ========================================================================== */
+
+/* ---------- Shared overlay chrome ---------- */
+.spin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000400;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.7); /* slate-950/70 */
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.spin-modal-overlay.open {
+  display: flex;
+}
+
+#spin-wheel-modal {
+  z-index: 1000450;
+  background: rgba(2, 6, 23, 0.8); /* slate-950/80 */
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.spin-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  outline: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.spin-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ---------- Window 1: Spin Wheel Info modal ---------- */
+.spin-info-card {
+  position: relative;
+  width: 100%;
+  max-width: 384px; /* max-w-sm */
+  border-radius: 24px;
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  background: linear-gradient(to bottom, #6b21a8, #312e81); /* purple-700 → indigo-900 */
+  color: #ffffff;
+  padding: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+.spin-brand-head {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.spin-brand-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  color: #fcd34d; /* amber-300 */
+  margin: 0;
+}
+
+.spin-brand-tagline {
+  font-size: 12px;
+  font-weight: 600;
+  color: #d8b4fe; /* purple-200 */
+  margin: 2px 0 0;
+}
+
+.spin-info-box {
+  border-radius: 16px;
+  background: #fffbeb; /* amber-50 */
+  color: #0f172a;
+  padding: 20px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.spin-info-gift-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fef3c7; /* amber-100 */
+  color: #d97706; /* amber-600 */
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.spin-info-heading {
+  font-family: 'Poppins', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #78350f; /* amber-900 */
+  margin: 0 0 8px;
+}
+
+.spin-info-text {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: #334155; /* slate-700 */
+  margin: 0 0 12px;
+}
+
+.spin-info-note {
+  font-size: 11px;
+  font-style: italic;
+  color: #64748b; /* slate-500 */
+  margin: 0;
+}
+
+.spin-info-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.spin-btn-primary {
+  width: 100%;
+  padding: 14px 12px;
+  border: none;
+  outline: none;
+  border-radius: 12px;
+  background: #fbbf24; /* amber-400 */
+  color: #020617;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.spin-btn-primary:hover {
+  background: #fcd34d;
+}
+
+.spin-btn-primary:active {
+  transform: scale(0.95);
+}
+
+.spin-btn-primary:disabled,
+.spin-btn-primary.is-locked {
+  background: #78716c;
+  color: #d6d3d1;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.spin-lock-hint {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fcd34d;
+  text-align: center;
+  margin: 0;
+}
+
+.spin-btn-secondary {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  outline: none;
+  border-radius: 12px;
+  background: rgba(59, 7, 100, 0.6); /* purple-950/60 */
+  color: #d8b4fe;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.spin-btn-secondary:hover {
+  background: #581c87; /* purple-950 solid */
+}
+
+/* ---------- Window 2: Spin Wheel canvas modal ---------- */
+.spin-wheel-card {
+  position: relative;
+  width: 100%;
+  max-width: 448px; /* max-w-md */
+  border-radius: 24px;
+  border: 1px solid rgba(192, 132, 252, 0.4);
+  background: linear-gradient(to bottom, #6b21a8, #312e81 55%, #020617);
+  color: #ffffff;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+.spin-wheel-eyebrow {
+  display: inline-block;
+  padding: 4px 16px;
+  border-radius: 9999px;
+  background: #fbbf24;
+  color: #020617;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.spin-wheel-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  color: #fcd34d;
+  margin: 0 0 4px;
+}
+
+.spin-wheel-subtitle {
+  font-size: 12px;
+  color: #d8b4fe;
+  margin: 0 0 16px;
+}
+
+.spin-wheel-holder {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin: 16px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spin-wheel-pointer {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 20px solid #fbbf24; /* amber triangle pointing down */
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+}
+
+#wheel-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.25), 0 10px 30px rgba(0, 0, 0, 0.45);
+  /* transform + transition durations are applied by js/spin-wheel.js
+     (SPIN_ANIM_MS) — keep the two in sync if this ever changes. */
+}
+
+.spin-start-btn {
+  position: absolute;
+  z-index: 10;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fbbf24;
+  color: #020617;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  border: 4px solid #ffffff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.15;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.spin-start-btn:hover {
+  background: #fcd34d;
+}
+
+.spin-start-btn:active {
+  transform: scale(0.95);
+}
+
+.spin-start-btn:disabled {
+  background: #94a3b8;
+  color: #e2e8f0;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.spin-start-sub {
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.spin-result-msg {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fcd34d;
+  min-height: 24px;
+  margin: 8px 0 0;
+}
+
+/* ==========================================================================
+   Responsive — mobile isolation convention: everything below only fires at
+   ≤768px / ≤400px; desktop geometry above is untouched.
+   ========================================================================== */
+@media (max-width: 768px) {
+  .spin-info-card,
+  .spin-wheel-card {
+    max-width: 340px;
+    padding: 20px 16px;
+  }
+
+  .spin-brand-title,
+  .spin-wheel-title {
+    font-size: 20px;
+  }
+
+  .spin-wheel-holder {
+    width: 250px;
+    height: 250px;
+    margin: 12px auto;
+  }
+
+  .spin-start-btn {
+    width: 58px;
+    height: 58px;
+  }
+}
+
+@media (max-width: 400px) {
+  .spin-info-card,
+  .spin-wheel-card {
+    max-width: 300px;
+    padding: 18px 14px;
+  }
+
+  .spin-wheel-holder {
+    width: 220px;
+    height: 220px;
+  }
+
+  .spin-start-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 11px;
+  }
+}

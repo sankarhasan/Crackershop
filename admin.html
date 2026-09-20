@@ -100,6 +100,11 @@
               <span class="sidebar-icon">🎉</span> Offers
             </a>
           </li>
+          <li>
+            <a href="#" class="sidebar-link" data-section="spin-wheel">
+              <span class="sidebar-icon">🎡</span> Spin Wheel Settings
+            </a>
+          </li>
            <li>
              <a href="#" class="sidebar-link" data-section="coupons">
                <span class="sidebar-icon">🎟️</span> Coupon Code
@@ -505,6 +510,32 @@
             </button>
           </div>
         </form>
+      </section>
+
+      <!-- Section F-2: Spin Wheel Settings -->
+      <section id="section-spin-wheel" class="dashboard-section animate-fade" style="display: none;">
+        <div class="actions-panel justify-end">
+          <div class="text-right">
+            <div style="font-weight:700;color:var(--admin-text);">Configure the 10 Lucky Spin Wheel Segments</div>
+            <p style="font-size:0.85rem;color:var(--admin-text-muted, #64748b);margin:4px 0 0;">
+              Pick a prize product, "Try Again" or "Better Luck Next Time" for each slot. Customers spin once per 24 hours.
+            </p>
+          </div>
+        </div>
+
+        <div id="spin-wheel-segments-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;max-width:900px;">
+          <!-- 10 segment <select> rows injected by js/admin.js -> renderSpinWheelForm() -->
+          <p class="text-center" style="grid-column:1/-1;color:inherit;">Loading wheel segments...</p>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:24px;">
+          <button type="button" class="btn-admin btn-admin-primary" onclick="saveSpinWheelConfig()">
+            <span class="btn-icon-admin">💾</span> Save Wheel to Cloud
+          </button>
+          <button type="button" class="btn-admin btn-admin-secondary" onclick="loadSpinWheelConfigForm()">
+            <span class="btn-icon-admin">🔄</span> Reload from Cloud
+          </button>
+        </div>
       </section>
 
       <!-- Section G: Coupon Codes Management -->
