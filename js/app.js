@@ -298,12 +298,31 @@ document.addEventListener('DOMContentLoaded', () => {
   if (menuToggle && navMenu) {
     const menuBackdrop = document.getElementById('mobile-menu-backdrop');
 
+    // Highlight the drawer link that matches the page currently loaded.
+    // The mobile menu markup is duplicated on every page, so the active
+    // state must be derived from the URL at runtime instead of being
+    // hardcoded in HTML. Only the mobile drawer (#mobile-nav) is touched —
+    // the desktop navbar layout stays untouched.
+    const normalizeMenuHref = (raw) => {
+      const file = (raw || '').split('#')[0].split('?')[0];
+      const base = file.substring(file.lastIndexOf('/') + 1).replace(/\.html$/i, '');
+      return base || 'index'; // site root ('/' or '') serves index.html
+    };
+    const highlightActiveMenuLinks = () => {
+      const current = normalizeMenuHref(window.location.pathname);
+      navMenu.querySelectorAll('.nav-link').forEach((link) => {
+        link.classList.toggle('active', normalizeMenuHref(link.getAttribute('href')) === current);
+      });
+    };
+    highlightActiveMenuLinks();
+
     // Single source of truth for the full-width dropdown state: panel
     // slide-down, hamburger<->X morph and backdrop visibility stay in sync
     const setMenuOpen = (isOpen) => {
       navMenu.classList.toggle('active', isOpen);
       menuToggle.classList.toggle('active', isOpen);
       if (menuBackdrop) menuBackdrop.classList.toggle('active', isOpen);
+      if (isOpen) highlightActiveMenuLinks(); // re-sync in case a click handler marked another link
 
       const bars = menuToggle.querySelectorAll('.bar');
       if (bars.length < 3) return;
@@ -326,6 +345,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Close mobile menu AND reset the toggle icon back to the hamburger state
         setMenuOpen(false);
+
+        // Keep the URL-derived active state authoritative on mobile: the
+        // click-time class above is transient (the browser navigates away),
+        // so re-apply highlighting to the drawer links after navigation.
+        if (link.closest('#mobile-nav')) {
+          navMenu.querySelectorAll('.nav-link').forEach((l) => {
+            l.classList.toggle('active', normalizeMenuHref(l.getAttribute('href')) === normalizeMenuHref(link.getAttribute('href')));
+          });
+        }
       });
     });
 
@@ -3741,8 +3769,9 @@ function hydrateEnquiryFormFromAuth(user) {
  * Paint the header account button (#userAccountBtn) for the current auth state:
  *   • signed out -> generic white user glyph on the green/gold disc; clicking it
  *     opens the KPR Client Portal modal
- *   • signed in  -> the Firebase avatar photo fills the disc (Google accounts),
- *     a green presence dot appears and clicking it opens the profile dropdown.
+ *   • signed in  -> the Firebase avatar photo fills the disc (Google accounts)
+ *     and clicking it opens the profile dropdown. (The old green presence dot
+ *     was removed — no status indicator overlays the disc.)
  * Also fills the dropdown header and force-closes the menu when signed out.
  */
 function renderHeaderUserAccount(user) {

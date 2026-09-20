@@ -478,14 +478,15 @@ html, body, div, section, textarea, table {
   border: none !important;
 }
 
-/* Prevent header nav from being squeezed/repositioned by cart total growth */
+/* Prevent header nav from being squeezed/repositioned by cart total growth.
+   shrink-0 + content width: link positions never react to the cart pill. */
 .logo {
   flex: 0 0 auto;
   min-width: 180px;
 }
 
 .navbar {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   display: flex;
   justify-content: center;
   margin-left: 0;
@@ -508,11 +509,16 @@ html, body, div, section, textarea, table {
 }
 
 
-/* Anchor right-side header actions so cart total changes can't push nav */
+/* Anchor right-side header actions so cart total changes can't push nav.
+   margin-left:auto pins the whole group to the right edge: the auto-fit
+   cart pill grows leftwards into the free header space instead of shoving
+   the navbar, profile icon or phone block sideways. */
 .header-actions {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
   gap: 12px; /* tightened for the compact bar */
 }
 
@@ -684,7 +690,8 @@ html, body, div, section, textarea, table {
   background-color: var(--golden-yellow); /* gold pill on the green header */
   color: #0f172a;
   font-size: 12px;                /* compact cart text */
-  padding: 4px 12px;              /* compact pill padding */
+  padding: 8px 14px;              /* taller desktop pill */
+  min-height: 40px;               /* h-10: comfortable tap target on desktop */
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
@@ -694,13 +701,14 @@ html, body, div, section, textarea, table {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
   transition: var(--transition);
 
-  /* Reserve constant width on desktop so a growing total (e.g. ₹0 → ₹1,19,976)
-     never widens .header-actions and pushes the nav links / phone block left.
-     Fits totals up to ~₹99,99,999; only beyond that does it grow. */
+  /* Auto-fit pill: compact at ₹0, widens naturally as the total digits grow
+     (e.g. ₹15,450). The group is right-anchored via .header-actions
+     margin-left:auto, so the pill expands leftwards into the free header
+     gap without shifting the nav links, profile icon or phone block. */
   flex: 0 0 auto;
-  min-width: 150px;
+  display: inline-flex;
   width: auto;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 
@@ -711,25 +719,29 @@ html, body, div, section, textarea, table {
 
 .cart-icon {
   font-size: 12px;                /* compact cart glyph */
+  flex-shrink: 0;
 }
 
 .cart-count {
   background-color: var(--festive-red);
   color: var(--white);
-  font-size: 0.75rem;
-  font-weight: 700;
-  min-width: 22px;
-  width: auto;
-  height: 22px;
-  padding: 0 6px;
+  font-size: 9px;                 /* compact badge text */
+  font-weight: 900;               /* font-black */
+  min-width: 18px;                /* 1-digit: perfect 18px circle … */
+  width: auto;                    /* … 2/3-digit: grows into a clean pill */
+  height: 18px;
+  padding: 0 4px;
   box-sizing: border-box;
-  border-radius: 12px; /* pill shape for multi-digit counts */
+  border-radius: 9px;
+  line-height: 1;                 /* leading-none: dead-center vertical fit */
+  text-align: center;
+  white-space: nowrap;            /* never wrap or cut off big counts */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   position: absolute;
-  top: -8px;
-  right: -5px;
+  top: -4px;
+  right: -4px;
   border: 2px solid var(--white);
   animation: bounceCount 0.3s ease-out;
 }
@@ -4325,7 +4337,10 @@ select.form-control {
   }
 
   .cart-widget {
-    min-width: 80px;
+    /* Auto-fit on small screens too: no reserved min-width, the pill hugs
+       its content and grows naturally with the total digits. The taller
+       desktop height is reverted to keep the compact mobile bar. */
+    min-height: unset;
     padding: 4px 12px; /* compact cart pill on small screens */
   }
 
@@ -5659,7 +5674,7 @@ select.form-control {
   }
 
   .cart-widget {
-    min-width: 70px;
+    min-height: unset;
     padding: 4px 10px;
     gap: 4px;
   }
@@ -5671,17 +5686,6 @@ select.form-control {
   .cart-total {
     font-size: 0.7rem;
     padding-left: 6px;
-  }
-
-  .cart-count {
-    min-width: 18px;
-    width: auto;
-    height: 18px;
-    padding: 0 5px;
-    font-size: 0.65rem;
-    border-radius: 10px;
-    top: -6px;
-    right: -4px;
   }
 
   /* Product cards */
@@ -6540,9 +6544,10 @@ body.kpr-auth-open {
    --------------------------------------------------------------------------
    Circular account button placed in .header-actions strictly between the phone
    contacts (.phone-box) and the golden cart pill (.cart-widget).
-   Signed out -> golden disc with a deep-green ring and a slate user glyph.
-   Signed in -> the Firebase avatar photo fills the disc and a green presence
-   dot appears. (The reference markup was Tailwind/amber-on-white; the site
+   Signed out -> clean golden disc (no default ring) with a slate user glyph;
+   a white ring appears only while the button is focused/clicked.
+   Signed in -> the Firebase avatar photo fills the disc. (The reference
+   markup was Tailwind/amber-on-white; the site
    header is a gold gradient, so the palette is adapted for contrast while
    keeping the same size, position and behaviour.)
    ========================================================================== */
@@ -6563,7 +6568,8 @@ body.kpr-auth-open {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 2px solid var(--deep-green-dark);
+  border: none;                   /* no default dark ring around the disc */
+  outline: none;
   border-radius: 50%;
   background: var(--golden-yellow);
   color: #0f172a;
@@ -6574,41 +6580,32 @@ body.kpr-auth-open {
 
 .header-user-btn:hover {
   background: #ffa900;
-  border-color: var(--white);
   transform: translateY(-1px) scale(1.05);
 }
 
+/* Clean white ring appears ONLY while the button has focus (clicked) */
+.header-user-btn:focus,
+.header-user-btn:active,
 .header-user-btn:focus-visible {
-  outline: 2px solid var(--golden-yellow);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--header-green), 0 0 0 4px var(--white), 0 4px 10px rgba(0, 0, 0, 0.25);
 }
 
 /* ACTIVE / SELECTED profile state — gold disc + white ring while the Client
    Account Dashboard is the visible "page" (mirrors the golden nav pill). */
 .header-user-btn.is-dashboard-active {
   background: var(--golden-yellow);
-  border-color: #ffffff;
   box-shadow: 0 0 0 2px var(--header-green), 0 0 0 4px #ffffff, 0 4px 10px rgba(0, 0, 0, 0.25);
   transform: translateY(-1px) scale(1.05);
 }
 
 .header-user-btn.is-dashboard-active:hover {
   background: #ffa900;
-  border-color: #ffffff;
 }
 
-/* Presence dot — only rendered once a client is signed in */
-.header-user-btn.is-signed-in::after {
-  content: '';
-  position: absolute;
-  right: 1px;
-  bottom: 1px;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--white);
-  border-radius: 50%;
-  background: #22c55e;
-}
+/* Presence dot removed — the signed-in disc shows only the avatar photo
+   (.header-user-avatar), with no green status indicator overlay. The
+   .is-signed-in class is still toggled by js/app.js for avatar logic. */
 
 .header-user-icon {
   width: 20px;
@@ -6728,7 +6725,6 @@ body.kpr-auth-open {
   .header-user-btn {
     width: 32px;
     height: 32px;
-    border-width: 2px;
   }
 
   .header-user-icon {
