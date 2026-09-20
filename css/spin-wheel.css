@@ -83,9 +83,12 @@
 }
 
 .spin-brand-tagline {
-  font-size: 12px;
-  font-weight: 600;
-  color: #d8b4fe; /* purple-200 */
+  font-family: 'Sacramento', cursive !important; /* beats styles.css "*" Poppins reset */
+  font-size: 1.5rem;                /* text-2xl: boosted for cursive legibility */
+  font-weight: 400;                 /* font-normal */
+  line-height: 1.15;                /* room for descender swashes */
+  color: #d8b4fe;                   /* purple-200 */
+  letter-spacing: 0;                /* keep the script glyphs connected */
   margin: 2px 0 0;
 }
 

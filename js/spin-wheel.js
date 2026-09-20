@@ -89,7 +89,7 @@
 
           <div class="spin-brand-head">
             <h3 class="spin-brand-title">KPR Crackers</h3>
-            <p class="spin-brand-tagline">Your Joy is our Pride</p>
+            <p class="spin-brand-tagline" style="font-family: 'Sacramento', cursive !important;">Your Joy is our Pride</p>
           </div>
 
           <div class="spin-info-box">
@@ -123,6 +123,7 @@
 
           <span class="spin-wheel-eyebrow">Lucky Spin Wheel</span>
           <h2 class="spin-wheel-title">Spin the Wheel &amp; Win Crackers!</h2>
+          <p class="spin-brand-tagline" style="font-family: 'Sacramento', cursive !important;">Your Joy is our Pride</p>
           <p class="spin-wheel-subtitle">Tap start and test your luck. Exciting gifts await you!</p>
 
           <div class="spin-wheel-holder">

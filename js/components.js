@@ -28,7 +28,7 @@
         </dotlottie-player>
         <div class="brand-text-wrapper">
           <h1 class="unique-brand-title">KPR CRACKERS</h1>
-          <p class="brand-subtitle">Your Joy is our Pride</p>
+          <p class="brand-subtitle" style="font-family: 'Sacramento', cursive !important;">Your Joy is our Pride</p>
           <div class="loading-indicator">
             <span>LOADING</span>
             <div class="loading-dots">

@@ -179,12 +179,24 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 2px;
 }
 
+/* Sacramento cursive utility — plain-CSS equivalent of the Tailwind
+   `font-sacramento` config entry; applied to every "Your Joy is our Pride"
+   tagline across Header/Preloader, Mobile Menu and Spin Wheel modals.
+   !important is MANDATORY: the universal "*" reset above forces Poppins with
+   !important on every element (same winning tier as the Font Awesome
+   restore rules near the bottom of this file). */
+.font-sacramento {
+  font-family: 'Sacramento', cursive !important;
+}
+
 .brand-subtitle {
-  font-size: 1rem;
-  font-weight: 500;
+  font-family: 'Sacramento', cursive !important;
+  font-size: 1.875rem;            /* text-3xl: cursive loops need the room */
+  font-weight: 400;               /* font-normal — Sacramento single-weight */
   color: var(--white);
   opacity: 0.92;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  line-height: 1.1;               /* room for the descender swashes */
   margin-bottom: 14px;
 }
 
@@ -4198,9 +4210,12 @@ select.form-control {
   }
 
   .mobile-menu-brand-tagline {
-    font-size: 0.5625rem; /* 9px */
+    font-family: 'Sacramento', cursive !important; /* beats the "*" Poppins reset */
+    font-size: 1.5rem;            /* text-2xl: cursive loops show clearly */
+    font-weight: 400;             /* font-normal */
     color: #a7f3d0;
-    letter-spacing: 0.5px;
+    letter-spacing: 0;            /* keep the script glyphs connected */
+    line-height: 1.1;
   }
 
   .mobile-menu-call-btn {
