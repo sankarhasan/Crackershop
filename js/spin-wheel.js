@@ -11,18 +11,20 @@
      • product:<id> — item pushed into the cart as a ₹0 FREE GIFT + 24h lock
 
    Data contract (see js/data.js for the config sync layer):
-     • spin_wheel_config/'config'   → { segments: [10 × slot] } (admin-managed)
-     • spin_wheel_results/{uid}     → { uid, email, last_spun_at, last_result,
-                                        prize } (one doc per signed-in client)
-   A localStorage mirror (kpr_spin_lock) keeps the 24h lock honest offline /
-   while Firestore settles, mirroring the site's Firestore + cache hybrid.
+     • spin_wheel_config/'config' → { segments: [10 × slot] } (admin-managed)
+     • users/{uid}                → { email, last_spun_at (serverTimestamp),
+                                       last_result, last_prize_won }
+   The 24-hour cooldown is EMAIL/ACCOUNT-based: it lives ONLY in the signed-in
+   user's Firestore user document — never in localStorage — so logging out and
+   spinning with a different account on the same browser is never blocked by
+   the previous account's cooldown, and the lock follows the user across
+   devices.
 
    Styling lives in css/spin-wheel.css (plain CSS — no Tailwind).
    ========================================================================== */
 (function () {
   'use strict';
 
-  const SPIN_LOCK_STORAGE_KEY = 'kpr_spin_lock';
   const NOTICE_ACK_STORAGE_KEY = 'noticeAcknowledged'; // app.js writes this
   const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
   const SPIN_ANIM_MS = 4000; // must match the canvas CSS transition duration
@@ -31,6 +33,7 @@
   let currentRotation = 0;          // cumulative clockwise degrees on the canvas
   let isSpinning = false;
   let pendingSpinAfterAuth = false; // "Spin Now" pressed while signed out
+  let spinCheck = null;             // { uid, record } verified at Spin-Now click
   let scrollLockCount = 0;
 
   /* ---------- Tiny helpers (defensive; app.js owns the real ones) ---------- */
@@ -162,60 +165,59 @@
     return out;
   }
 
-  function readLocalLock() {
-    try {
-      const raw = localStorage.getItem(SPIN_LOCK_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      return null;
-    }
-  }
+  /* ---------- Firestore-only spin cooldown (users/{uid} document) ----------
+     No localStorage anywhere in this path: eligibility always reflects the
+     CURRENT signed-in account's own database record. */
 
-  function writeLocalLock(entry) {
-    try { localStorage.setItem(SPIN_LOCK_STORAGE_KEY, JSON.stringify(entry)); } catch (e) {}
+  /** Firestore Timestamp | ISO string | Date → epoch millis (null if absent). */
+  function toMillis(value) {
+    if (!value) return null;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (typeof value.toDate === 'function') return value.toDate().getTime();
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : null;
   }
 
   function isLockActive(entry) {
-    if (!entry || !entry.last_spun_at) return false;
-    if (entry.last_result === 'try_again') return false; // re-spin stays allowed
-    const ts = new Date(entry.last_spun_at).getTime();
-    return Number.isFinite(ts) && (Date.now() - ts) < TWENTY_FOUR_HOURS_MS;
+    if (!entry) return false;
+    // A "Try Again" outcome never locks — the user may re-spin immediately.
+    if (entry.last_result === 'try_again') return false;
+    const ts = toMillis(entry.last_spun_at);
+    // null last_spun_at = serverTimestamp() write still pending → treat as
+    // locked (a spin DID just happen; fail closed, never grant a bonus spin).
+    if (ts === null) return entry.last_spun_at === null && !!entry.last_result;
+    return (Date.now() - ts) < TWENTY_FOUR_HOURS_MS;
   }
 
-  // Local mirror first (instant + offline-safe), then the Firestore record.
-  function isUserLockedOut() {
-    if (isLockActive(readLocalLock())) return true;
-    return false; // refreshed async by syncLockFromFirestore() once signed in
+  function lockHoursRemaining(entry) {
+    const ts = toMillis(entry && entry.last_spun_at);
+    if (ts === null) return 24;
+    const remaining = Math.max(0, TWENTY_FOUR_HOURS_MS - (Date.now() - ts));
+    return Math.max(1, Math.ceil(remaining / (60 * 60 * 1000)));
   }
 
-  function syncLockFromFirestore() {
+  /**
+   * Live-query the signed-in user's spin record: users/{uid}.
+   * Resolves { ok, record } — ok=false means the DB could not be reached,
+   * and the caller must NOT allow a spin on an unverified account.
+   */
+  function fetchUserSpinRecord() {
     const user = authUser();
-    if (!user || !window.db) return Promise.resolve();
+    if (!user) return Promise.resolve({ ok: false, record: null });
+    if (!window.db) {
+      console.error('[SpinWheel] ✗ Firestore (window.db) not initialized — cannot verify spin status.');
+      return Promise.resolve({ ok: false, record: null });
+    }
 
-    return window.db.collection('spin_wheel_results').doc(user.uid).get()
-      .then(doc => {
-        if (doc && doc.exists) {
-          const server = doc.data();
-          const local = readLocalLock();
-          // Trust whichever record is newer for the SAME user; a local lock
-          // from a different account must not leak across logins.
-          if (local && local.uid === user.uid && local.last_spun_at > server.last_spun_at) return;
-          if (server.uid !== user.uid) return;
-          writeLocalLock(server);
-        }
+    return window.db.collection('users').doc(user.uid).get({ source: 'server' })
+      .then(docSnap => {
+        const record = (docSnap && docSnap.exists) ? docSnap.data() : null;
+        return { ok: true, record: record };
       })
       .catch(err => {
-        console.error('[SpinWheel] ✗ Failed to read spin lock from Firestore:', err && err.code, err && err.message, err);
+        console.error('[SpinWheel] ✗ Failed to read spin cooldown from Firestore. Code:', err && err.code, 'Message:', err && err.message, err);
+        return { ok: false, record: null };
       });
-  }
-
-  function lockRemainingHoursText() {
-    const entry = readLocalLock();
-    if (!entry || !entry.last_spun_at) return '';
-    const elapsed = Date.now() - new Date(entry.last_spun_at).getTime();
-    const remaining = Math.max(0, TWENTY_FOUR_HOURS_MS - elapsed);
-    const hours = Math.ceil(remaining / (60 * 60 * 1000));
-    return hours > 1 ? `Next spin available in about ${hours} hours.` : 'Next spin available in about an hour.';
   }
 
   /* ==========================================================================
@@ -307,8 +309,21 @@
   /* ==========================================================================
      4. "Spin Now" — auth gate + wheel modal (Window 2)
      ========================================================================== */
-  function handleSpinNowClick() {
-    if (!authUser()) {
+  function buildCooldownMessage(user, record) {
+    const hoursLeft = lockHoursRemaining(record);
+    return `⏳ This account (${user && user.email ? user.email : 'this user'}) has already spun today! Please try again in ${hoursLeft} hour${hoursLeft === 1 ? '' : 's'}.`;
+  }
+
+  /**
+   * Single validation point for a spin attempt:
+   *   1. Force login check (KPR Client Portal modal — no native alert).
+   *   2. Live Firestore query of users/{uid} for THIS account's last_spun_at.
+   *   3. Block when a conclusive spin happened < 24h ago; otherwise run
+   *      onEligible(). DB read failures fail closed (no unverified spins).
+   */
+  function evaluateSpinEligibility(onEligible) {
+    const user = authUser();
+    if (!user || !user.email) {
       // Signed out: raise the existing KPR Client Portal modal on top and
       // auto-continue into the wheel once the user signs in.
       pendingSpinAfterAuth = true;
@@ -324,15 +339,29 @@
       return;
     }
 
-    // REQUIREMENT 3: the 24h restriction is enforced HERE, at click time —
-    // refresh from the cloud first, then block only if a conclusive spin
-    // (better_luck / product prize) landed within 24 hours.
-    syncLockFromFirestore().then(() => {
-      if (isUserLockedOut()) {
-        showLockHint('⏳ ' + lockRemainingHoursText() + ' Come back then for another lucky shot!');
+    fetchUserSpinRecord().then(result => {
+      if (!result.ok) {
+        spinCheck = null;
+        showLockHint('⚠️ Unable to verify your spin status right now. Please try again.');
+        toast('Unable to verify spin status. Please try again.', 'error');
         return;
       }
+
+      spinCheck = { uid: user.uid, record: result.record };
+
+      if (isLockActive(result.record)) {
+        // Cooldown message stays INSIDE the info modal (custom UI, no alert()).
+        showLockHint(buildCooldownMessage(user, result.record));
+        return;
+      }
+
       showLockHint('');
+      if (typeof onEligible === 'function') onEligible();
+    });
+  }
+
+  function handleSpinNowClick() {
+    evaluateSpinEligibility(() => {
       closeSpinInfoModal();
       openSpinWheelModal();
     });
@@ -360,14 +389,46 @@
 
   /* ==========================================================================
      5. Canvas wheel rendering + spin animation
+        Palette gradients, depth shadows and multi-line white labels. Slice 0
+        MUST keep starting at 12 o'clock (-90°): executeWheelSpin's pointer
+        math resolves winners against that exact geometry.
      ========================================================================== */
-  const SEGMENT_COLORS = ['#fde68a', '#fecaca', '#bbf7d0', '#bfdbfe', '#fbcfe8',
-                          '#ddd6fe', '#fed7aa', '#a5f3fc', '#d9f99d', '#f5d0fe'];
+  const SEGMENT_PALETTE = [
+    { start: '#FF3B00', end: '#991B00' }, // 1. Red-Orange Gradient
+    { start: '#FF6A00', end: '#993D00' }, // 2. Bright Orange Gradient
+    { start: '#FFAA00', end: '#996600' }, // 3. Warm Yellow-Orange Gradient
+    { start: '#FFD600', end: '#806B00' }, // 4. Vivid Yellow Gradient
+    { start: '#FFF59D', end: '#7A7538' }, // 5. Soft Light Yellow Gradient
+    { start: '#CE93D8', end: '#6A1B9A' }, // 6. Light Orchid Purple Gradient
+    { start: '#8E24AA', end: '#4A148C' }, // 7. Rich Deep Purple Gradient
+    { start: '#673AB7', end: '#311B92' }, // 8. Royal Indigo-Purple Gradient
+    { start: '#512DA8', end: '#1A237E' }, // 9. Dark Violet Gradient
+    { start: '#311B92', end: '#0D47A1' }  // 10. Deep Navy-Purple Gradient
+  ];
 
-  function slotColor(slot, index) {
-    if (slot === 'better_luck') return '#64748b';   // muted slate — losing feel
-    if (slot === 'try_again') return '#cbd5e1';     // light slate — neutral
-    return SEGMENT_COLORS[index % SEGMENT_COLORS.length]; // prizes pop
+  /** Greedy word-wrap for the radial slice labels (≈11 chars per line). */
+  function wrapWheelText(text, maxLen) {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let w = 1; w < words.length; w++) {
+      if ((currentLine + ' ' + words[w]).length <= maxLen) {
+        currentLine += ' ' + words[w];
+      } else {
+        lines.push(currentLine);
+        currentLine = words[w];
+      }
+    }
+    lines.push(currentLine);
+
+    // Limit to max 2-3 lines so it never overlaps edges
+    if (lines.length > 3) {
+      lines.splice(2);
+      lines[1] += '...';
+    }
+    // A single un-breakable long word must not bleed past the rim
+    return lines.map(line => (line.length > maxLen + 3 ? line.substring(0, maxLen + 2) + '…' : line));
   }
 
   function drawWheel() {
@@ -381,44 +442,80 @@
 
     const segs = segments();
     const count = segs.length; // always 10 (segments() pads)
-    const cx = cssSize / 2, cy = cssSize / 2, r = cssSize / 2 - 4;
-    const slice = (2 * Math.PI) / count;
+    const centerX = cssSize / 2, centerY = cssSize / 2;
+    const outerRadius = cssSize / 2 - 4;
+    const innerRadius = 35; // Center Start Button Gap
+    const arcSize = (2 * Math.PI) / count;
 
     ctx.save();
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, cssSize, cssSize);
 
     for (let i = 0; i < count; i++) {
-      const start = -Math.PI / 2 + i * slice; // slice 0 begins at 12 o'clock
-      const mid = start + slice / 2;
+      const angle = -Math.PI / 2 + i * arcSize; // slice 0 begins at 12 o'clock
+      const colorTheme = SEGMENT_PALETTE[i % SEGMENT_PALETTE.length];
 
+      // --- A. DRAW SEGMENT WITH RADIAL GRADIENT (depth effect) ---
+      ctx.save();
       ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, r, start, start + slice);
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, outerRadius, angle, angle + arcSize);
       ctx.closePath();
-      ctx.fillStyle = slotColor(segs[i], i);
+
+      const gradient = ctx.createRadialGradient(
+        centerX, centerY, innerRadius,
+        centerX, centerY, outerRadius
+      );
+      gradient.addColorStop(0, colorTheme.start);
+      gradient.addColorStop(1, colorTheme.end);
+      ctx.fillStyle = gradient;
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+
+      // --- B. SUBTLE INNER SHADOW + WHITE SEGMENT SEPARATOR ---
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, outerRadius, angle, angle + arcSize);
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.lineWidth = 4;
       ctx.stroke();
 
-      // Radial label, truncated for the narrow slice
-      let label = resolveSegmentLabel(segs[i]).toUpperCase();
-      if (label.length > 12) label = label.substring(0, 11) + '…';
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(
+        centerX + outerRadius * Math.cos(angle),
+        centerY + outerRadius * Math.sin(angle)
+      );
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+
+      // --- C. MULTI-LINE WHITE TEXT RENDERING (along the radius) ---
       ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(mid);
-      ctx.textAlign = 'right';
+      ctx.translate(centerX, centerY);
+      ctx.rotate(angle + arcSize / 2);
+
+      ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#0f172a';
-      ctx.font = '700 10px Poppins, sans-serif';
-      ctx.fillText(label, r - 10, 0);
+      ctx.fillStyle = '#FFFFFF'; // Pure White Text
+      ctx.font = '900 10px sans-serif'; // Compact Bold Font
+      // Faint dark glow keeps white labels legible on the light-yellow slices
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+      ctx.shadowBlur = 3;
+
+      const lines = wrapWheelText(resolveSegmentLabel(segs[i]).toUpperCase(), 11);
+      const radiusPos = outerRadius * 0.62;
+      const lineHeight = 11;
+      const startY = -((lines.length - 1) * lineHeight) / 2;
+
+      lines.forEach((line, index) => {
+        ctx.fillText(line, radiusPos, startY + (index * lineHeight));
+      });
       ctx.restore();
     }
 
-    // Outer rim + hub
+    // Outer amber rim (brand frame around the gradient pie)
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
     ctx.strokeStyle = '#fbbf24';
     ctx.lineWidth = 5;
     ctx.stroke();
@@ -441,9 +538,24 @@
     const msg = document.getElementById('spin-result-msg');
     if (!canvas || !msg) return;
 
-    // Hard re-check: lock may have landed from the cloud since the modal opened.
-    if (isUserLockedOut()) {
-      msg.textContent = '⏳ ' + lockRemainingHoursText();
+    // Hard re-check against the record verified at Spin-Now time: the wheel
+    // can sit open across a sign-out, so validate uid + cooldown synchronously.
+    const user = authUser();
+    if (!user || !user.email) {
+      msg.textContent = '🔒 Please sign in to spin the lucky wheel.';
+      pendingSpinAfterAuth = true;
+      try { if (typeof openAuthModal === 'function') openAuthModal(); } catch (e) {}
+      return;
+    }
+    if (!spinCheck || spinCheck.uid !== user.uid) {
+      // Account switched or never verified through the button — re-run the
+      // full eligibility gate before allowing this spin.
+      evaluateSpinEligibility(() => {});
+      msg.textContent = '⏳ Verifying your account…';
+      return;
+    }
+    if (isLockActive(spinCheck.record)) {
+      msg.textContent = buildCooldownMessage(user, spinCheck.record);
       return;
     }
 
@@ -484,27 +596,43 @@
   }
 
   /* ==========================================================================
-     6. Result handling — lock writes, gift carting
+     6. Result handling — cooldown writes, gift carting
      ========================================================================== */
   function persistSpinResult(slot) {
     const user = authUser();
-    const entry = {
-      uid: user ? user.uid : 'anonymous',
-      email: user ? (user.email || '') : '',
-      last_spun_at: new Date().toISOString(),
-      last_result: slot,
-      prize: slot.indexOf('product:') === 0 ? slot.substring('product:'.length) : ''
-    };
-    writeLocalLock(entry);
+    if (!user) return Promise.resolve();
 
-    if (!user || !window.db) return Promise.resolve();
-    return window.db.collection('spin_wheel_results').doc(user.uid).set(entry, { merge: true })
-      .then(() => console.log('[SpinWheel] ✓ Spin result saved to Firestore for', user.uid))
+    const isTryAgain = slot === 'try_again';
+    const payload = {
+      email: user.email || '',
+      last_result: slot,
+      last_prize_won: slot.indexOf('product:') === 0 ? slot.substring('product:'.length) : ''
+    };
+    // Only a CONCLUSIVE outcome starts the 24h cooldown; "Try Again" leaves
+    // last_spun_at untouched so the immediate re-spin stays free.
+    if (!isTryAgain) {
+      payload.last_spun_at = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue)
+        ? firebase.firestore.FieldValue.serverTimestamp()
+        : new Date().toISOString();
+    }
+
+    if (!window.db) {
+      console.error('[SpinWheel] ✗ window.db is NULL — spin result could not be persisted.');
+      return Promise.resolve();
+    }
+
+    return window.db.collection('users').doc(user.uid).set(payload, { merge: true })
+      .then(() => {
+        console.log('[SpinWheel] ✓ Spin result saved to users/' + user.uid);
+        // Mirror the write into the local verification snapshot with a plain
+        // Date (the serverTimestamp resolves null until the round-trip lands).
+        const localRecord = Object.assign({}, payload);
+        if (!isTryAgain) localRecord.last_spun_at = new Date().toISOString();
+        spinCheck = { uid: user.uid, record: localRecord };
+      })
       .catch(err => {
-        // The local mirror already holds the lock — a failed cloud write must
-        // not silently hand the user another free spin on THIS device, and
-        // cross-device enforcement self-heals on the next successful read.
         console.error('[SpinWheel] ✗ Failed to save spin result. Code:', err && err.code, 'Message:', err && err.message, err);
+        toast('Could not save your spin result. Please contact the store.', 'error');
       });
   }
 
@@ -556,9 +684,9 @@
 
     const settle = () => {
       if (slot === 'try_again') {
-        // No lock written — the user may immediately spin again.
+        // No cooldown written — the user may immediately spin again.
         setSpinButtonEnabled(true, 'SPIN');
-        syncLockFromFirestore(); // keep the local mirror fresh for next load
+        persistSpinResult(slot); // records last_result/last_prize_won only
         return;
       }
 
@@ -594,19 +722,15 @@
     try {
       if (typeof firebase === 'undefined' || !firebase.auth) return;
       firebase.auth().onAuthStateChanged((user) => {
+        spinCheck = null; // account changed/signed out — stale verification
         if (user && pendingSpinAfterAuth) {
+          // Same click-time validation path: cooldown/notif messages land in
+          // the info modal's hint line, which is still open behind the portal.
           pendingSpinAfterAuth = false;
-          syncLockFromFirestore().then(() => {
-            if (isUserLockedOut()) {
-              openSpinInfoModal();
-              showLockHint('⏳ ' + lockRemainingHoursText() + ' Come back then for another lucky shot!');
-              return;
-            }
+          evaluateSpinEligibility(() => {
             closeSpinInfoModal();
             openSpinWheelModal();
           });
-        } else if (user) {
-          syncLockFromFirestore(); // keep the local mirror fresh for click checks
         }
       });
     } catch (e) {

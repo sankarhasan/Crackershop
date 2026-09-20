@@ -41,9 +41,10 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // Spin Wheel results: one doc per signed-in client (uid) holding
-    // last_spun_at for the 24-hour lock (development mode)
-    match /spin_wheel_results/{userId} {
+    // User account documents: email-based spin cooldown fields (last_spun_at,
+    // last_result, last_prize_won) for the Lucky Spin Wheel, keyed by uid
+    // (development mode)
+    match /users/{userId} {
       allow read, write: if true;
     }
 

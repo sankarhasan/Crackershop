@@ -1037,8 +1037,9 @@ function saveOfferToFirestore(offer) {
    Holds the 10 wheel segments; each entry is one of:
      'try_again' | 'better_luck' | 'product:<productId>'
    Mirrored to localStorage ('jcs_spin_wheel_config') for instant hydration.
-   Per-user spin history lives in 'spin_wheel_results' (one doc per uid),
-   handled client-side by js/spin-wheel.js.
+   Per-user spin cooldown is stored EMAIL/ACCOUNT-based in the user's
+   Firestore document 'users/{uid}' (last_spun_at), handled client-side by
+   js/spin-wheel.js — deliberately NOT cached in localStorage.
    ========================================================================== */
 
 const SPIN_CONFIG_DOC_ID = 'config';
