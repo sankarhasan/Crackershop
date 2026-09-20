@@ -3047,6 +3047,80 @@ select.form-control {
   vertical-align: middle;
 }
 
+/* Solid emerald "FREE" pill beside the Spin Wheel summary label — same
+   footprint as the .discount-badge offer pill, solid variant per spec */
+.spin-free-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #059669; /* emerald-600 solid */
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-left: 6px;
+  vertical-align: middle;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.spin-free-badge .fa-gift {
+  font-size: 9px;
+}
+
+/* Dynamic won-gift name in the Spin Wheel summary row (right cell) */
+.summary-value.summary-gift-name {
+  color: #059669;
+  font-weight: 700;
+  max-width: 180px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- MOBILE (≤768px): Order Summary Spin Wheel row layout ----
+   "Spin Wheel" + FREE badge stay locked on one inline line on the LEFT;
+   the won product name claims the remaining width, truncates to a single
+   line (line-clamp-1) and sits flush in the same right column as the ₹
+   values of Total / You Saved / Non Discounted Items. */
+@media (max-width: 768px) {
+  .summary-label-spin {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;   /* badge renders beside, never below */
+    flex-shrink: 0;
+    min-width: 0;
+    font-size: 0.8rem;
+  }
+
+  .summary-label-spin .spin-free-badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 6px;
+    gap: 4px;
+    margin-left: 6px;
+    flex-shrink: 0;
+  }
+
+  .summary-label-spin .spin-free-badge .fa-gift {
+    font-size: 8px;
+  }
+
+  .summary-value.summary-gift-name {
+    flex: 1;               /* claims leftover width up to the row edge */
+    min-width: 0;          /* lets the truncate kick in on long names */
+    max-width: none;
+    margin-left: 8px;      /* breathing room from the badge/label */
+    font-size: 10px;       /* text-[10px]: clearly smaller than ₹ values */
+    text-align: right;     /* aligned with the amount column above/below */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-clamp: 1;
+  }
+}
+
 .coupon-badge {
   display: inline-block;
   background-color: #DEF7EC;
@@ -3322,6 +3396,16 @@ select.form-control {
   gap: 20px;
 }
 
+/* Unified scroll list: every direct child (Free Gift card + all product rows)
+   lives in THIS one scrollable wrapper and must keep its natural height —
+   without this, the column flex parent squeezes each row vertically once the
+   cart overflows instead of letting the body scroll. (flex-basis auto keeps
+   the empty-cart message's margin:auto centering working.) */
+.cart-drawer-body > * {
+  flex: 0 0 auto;
+  height: auto;
+}
+
 /* Empty Cart State */
 .empty-cart-message {
   text-align: center;
@@ -3357,6 +3441,195 @@ select.form-control {
   align-items: center;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border-color);
+}
+
+/* ---- Spin Wheel FREE GIFT cart card ----
+   Pinned at index 0 by js/app.js -> cartWithGiftsFirst(); no qty controls,
+   no delete, no ₹0 price row. Compact: same row footprint (padding + thumb
+   size) as a standard .cart-item so it blends into the scroll list. */
+.cart-gift-item {
+  background: linear-gradient(135deg, #FF5A57 0%, #E02F75 35%, #6700A3 70%, #050C38 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  /* Never collapse as the cart grows; height stays content-natural. Spacing
+     comes from the parent's gap: 20px — no extra margin. */
+  flex-shrink: 0;
+  height: auto;
+  overflow: hidden;
+  box-shadow: 0 6px 12px -4px rgba(0, 0, 0, 0.35);
+}
+
+/* Thumbnail: exact same box as the regular cart item image (80px, 18/13) */
+.cart-gift-img {
+  width: 80px;
+  aspect-ratio: 18 / 13;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cart-gift-img-fallback {
+  width: 80px;
+  height: 58px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 20px;
+}
+
+/* Name column takes the leftover width; badge hugs beneath it */
+.cart-gift-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-gift-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.25;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.cart-gift-right {
+  text-align: right;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.cart-gift-unlocked {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6ee7b7;
+  background: rgba(2, 44, 34, 0.5);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Continuous shimmer sweep across the green SPIN WHEEL FREE GIFT badge */
+@keyframes continuous-shine {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.cart-gift-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;                 /* mr-1 equivalent between icon and text */
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+  border: 1px solid rgba(110, 231, 183, 0.4);
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.25);
+}
+
+.cart-gift-badge .fa-gift {
+  font-size: 9px;
+}
+
+.animate-gift-shine {
+  background: linear-gradient(110deg, #059669 0%, #10B981 30%, #6EE7B7 50%, #10B981 70%, #059669 100%);
+  background-size: 200% 100%;
+  animation: continuous-shine 2.5s infinite linear;
+}
+
+/* ---- MOBILE (≤768px) compaction of the Spin Wheel gift row — isolated per
+     the mobile-isolation convention; the desktop styles above are untouched ---- */
+@media (max-width: 768px) {
+  .cart-gift-item {
+    padding: 12px;
+    gap: 12px;
+    border-radius: 14px;
+  }
+
+  /* 1. Thumbnail: square w-12 (48px) instead of the wide desktop box */
+  .cart-gift-img {
+    width: 48px;
+    height: 48px;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 10px;
+  }
+
+  .cart-gift-img-fallback {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  /* 2. Title: 1 line when short, hard-clamped to 2 lines when long */
+  .cart-gift-name {
+    font-size: 12px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: normal;
+    word-break: break-word;
+  }
+
+  /* 3. Badge hugs directly under the clamped title */
+  .cart-gift-badge {
+    margin-top: 3px;
+    padding: 1px 7px;
+    font-size: 8px;
+    gap: 4px;
+  }
+
+  .cart-gift-badge .fa-gift {
+    font-size: 8px;
+  }
+
+  /* "Unlocked" chip stays pinned right, vertically centred */
+  .cart-gift-right {
+    align-self: center;
+  }
+
+  .cart-gift-unlocked {
+    font-size: 9px;
+    padding: 3px 9px;
+    background: rgba(2, 44, 34, 0.6); /* emerald-950/60 */
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  /* sm: tier — slightly larger 56px thumb (w-14 h-14) on big phones/tablets */
+  .cart-gift-img,
+  .cart-gift-img-fallback {
+    width: 56px;
+    height: 56px;
+  }
+
+  .cart-gift-name {
+    font-size: 13px;
+  }
+
+  .cart-gift-badge {
+    font-size: 9px;
+  }
+
+  .cart-gift-badge .fa-gift {
+    font-size: 9px;
+  }
 }
 
 .cart-item-img-placeholder {
@@ -7050,6 +7323,53 @@ main.account-view-active > section {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* ---- Signed-out GUEST profile view (dashboard.html) ---- */
+/* Amber "Guest Mode" pill replacing the emerald "Verified Client" badge */
+.dash-verified-badge-guest {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+/* Button groups inside the banner actions area (user vs guest swap) */
+.dash-welcome-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* "No orders yet" empty state shown in place of the order history */
+.dash-guest-empty {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.dash-guest-empty-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #f9fafb;
+  margin: 0 0 6px;
+}
+
+.dash-guest-empty-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #9ca3af;
+  max-width: 420px;
+  margin: 0 auto 20px;
+}
+
+.dash-guest-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
 }
 
 /* ---- Buttons ---- */

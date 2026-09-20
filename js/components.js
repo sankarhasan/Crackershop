@@ -443,8 +443,8 @@
                 <span class="summary-value" id="summary-non-discounted">₹0</span>
               </div>
               <div class="summary-row">
-                <span class="summary-label">Spin Wheel</span>
-                <span class="summary-value" id="summary-spin-wheel">—</span>
+                <span class="summary-label summary-label-spin">Spin Wheel <span class="spin-free-badge"><i class="fa-solid fa-gift" aria-hidden="true"></i> FREE</span></span>
+                <span class="summary-value" id="summary-spin-wheel">--</span>
               </div>
               <div class="summary-row">
                 <span class="summary-label">Coupon Applied <span id="coupon-discount-badge" class="discount-badge coupon-badge" style="display: none;"></span></span>

@@ -168,22 +168,31 @@
     <div id="accountDashboardView" class="account-dashboard-view">
       <div class="dash-container">
 
-        <!-- USER WELCOME BANNER CARD -->
+        <!-- USER WELCOME BANNER CARD — guest state is the default markup; js/app.js
+             -> renderAccountDashboardProfile(user) swaps to the signed-in view once
+             Firebase resolves, so a signed-out visit never blanks the page. -->
         <div class="dash-welcome-card">
           <div class="dash-welcome-left">
-            <div id="dashAvatar" class="dash-avatar">U</div>
+            <div id="dashAvatar" class="dash-avatar">G</div>
             <div class="dash-welcome-id">
               <div class="dash-welcome-name-row">
-                <h1 class="dash-welcome-title">Welcome, <span id="dashUserName">User</span></h1>
-                <span class="dash-verified-badge">Verified Client</span>
+                <h1 id="dashWelcomeTitle" class="dash-welcome-title">You are not signed in</h1>
+                <span id="dashVerifiedBadge" class="dash-verified-badge dash-verified-badge-guest">Guest Mode</span>
               </div>
-              <p id="dashUserEmail" class="dash-user-email">user@kprcrackers.com</p>
+              <p id="dashUserEmail" class="dash-user-email">Please sign in to view your order history, account details &amp; track shipments.</p>
             </div>
           </div>
 
           <div class="dash-welcome-actions">
-            <button type="button" onclick="showProductsPage()" class="dash-btn dash-btn-primary"><i class="fa-solid fa-cart-shopping"></i> Place New Order</button>
-            <button type="button" onclick="handleSignOut()" class="dash-btn dash-btn-ghost"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
+            <!-- Signed-in only: hidden for guests (requirement: no Sign Out / Place New Order in guest state) -->
+            <div id="dashActionsUser" class="dash-welcome-actions-group hidden">
+              <button type="button" onclick="showProductsPage()" class="dash-btn dash-btn-primary"><i class="fa-solid fa-cart-shopping"></i> Place New Order</button>
+              <button type="button" onclick="handleSignOut()" class="dash-btn dash-btn-ghost"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
+            </div>
+            <!-- Guest only: raises the KPR Client Portal sign-in modal -->
+            <div id="dashActionsGuest" class="dash-welcome-actions-group">
+              <button type="button" onclick="guestSignInRequested()" class="dash-btn dash-btn-primary"><i class="fa-solid fa-key"></i> Sign In</button>
+            </div>
           </div>
         </div>
 
@@ -224,11 +233,18 @@
         <div id="ordersHistorySection" class="dash-history">
           <div class="dash-history-head">
             <h2 class="dash-history-title">Order History &amp; Downloadable Receipts</h2>
-            <button type="button" onclick="fetchUserOrders()" class="dash-btn dash-btn-refresh"><i class="fa-solid fa-arrows-rotate"></i> Refresh Orders</button>
+            <button type="button" id="dashRefreshOrdersBtn" class="dash-btn dash-btn-refresh hidden" onclick="fetchUserOrders()"><i class="fa-solid fa-arrows-rotate"></i> Refresh Orders</button>
           </div>
 
           <!-- ORDERS LIST CONTAINER (rendered dynamically by js/app.js -> fetchUserOrders()) -->
           <div id="userOrdersListContainer" class="dash-orders-list"></div>
+
+          <!-- GUEST EMPTY STATE (shown while signed out; hidden by renderAccountDashboardProfile) -->
+          <div id="dashGuestEmptyState" class="dash-guest-empty">
+            <h3 class="dash-guest-empty-title">No orders yet</h3>
+            <p class="dash-guest-empty-desc">Orders you place while signed in appear here so you can track their status and download receipts.</p>
+            <a href="products.html" class="dash-btn dash-btn-primary dash-guest-empty-cta"><i class="fa-solid fa-store"></i> Browse Crackers</a>
+          </div>
         </div>
 
         <!-- WISHLIST SECTION (rendered dynamically by js/app.js -> renderWishlistSection()) -->

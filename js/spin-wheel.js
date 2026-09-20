@@ -648,20 +648,24 @@
     // The cart globals live in app.js (classic scripts share global scope).
     try {
       const giftId = `GIFT-${prod.id}`;
-      const existing = cart.find(item => String(item.id) === giftId);
-      if (existing) {
-        existing.quantity += 1;
-      } else {
-        cart.push({
-          id: giftId,
-          name: `${prod.name} (FREE GIFT 🎁)`,
-          price: 0,                 // gift line contributes ₹0 to every total
-          quantity: 1,
-          categoryId: prod.categoryId,
-          image: prod.image,
-          isGift: true
-        });
-      }
+      const isRewardRow = (it) => !!(it.isGift || it.isFreeGift || it.isSpinReward ||
+        String(it.id).indexOf('GIFT-') === 0);
+
+      // SINGLE-GIFT rule: a user can never hold more than one spin reward.
+      // Drop any previous gift row, then insert ONLY the fresh win at index 0.
+      const kept = cart.filter(it => !isRewardRow(it));
+      cart = [{
+        id: giftId,
+        name: prod.name,          // plain name — the cart gift card renders
+                                  // its own "SPIN WHEEL FREE GIFT" badge
+        price: 0,                 // gift line contributes ₹0 to every total
+        quantity: 1,
+        categoryId: prod.categoryId,
+        image: prod.image,
+        isGift: true,
+        isFreeGift: true,
+        isSpinReward: true
+      }, ...kept];
       saveCartToStorage();
       updateCartUI();
       return prod;

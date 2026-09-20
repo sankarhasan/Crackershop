@@ -1508,11 +1508,196 @@ function loadCartFromStorage() {
   }
   // Always sync the UI — first-time visitors (no saved key) still need the
   // empty-cart state painted (e.g. the enquiry page empty-cart notice).
+  // Cross-account mismatches are reconciled moments later by the
+  // onAuthStateChanged → applyCartOwnership() gate (single source of truth).
   updateCartUI();
 }
 
+/* ---------- Account-isolated cart (guest ↔ signed-in ownership) ----------
+   'kpr_cart' always mirrors the VISIBLE cart; 'kpr_cart_owner' stamps whose
+   account it belongs to ('' = guest); 'kpr_cart_user_<uid>' keeps a private
+   per-device copy for instant offline repaint; and the SERVER SOURCE OF
+   TRUTH is the user's Firestore document field 'users/{uid}.cart' — written
+   on every cart mutation while signed in, so the cart follows the account
+   across devices and a fresh account's cart starts EMPTY. User A's items
+   never reach User B: every transition reconciles against the current
+   account's own document only. */
+const CART_OWNER_KEY = 'kpr_cart_owner';
+let _kprCartLastLocalWrite = 0; // guards reconcile-vs-fast-edit races
+
+function userCartKey(uid) {
+  return 'kpr_cart_user_' + uid;
+}
+
+/** True for Spin Wheel free-gift lines (legacy id prefix + all flag variants). */
+function isGiftCartItem(item) {
+  if (!item) return false;
+  return !!(item.isGift || item.isFreeGift || item.isSpinReward ||
+    String(item.id).indexOf('GIFT-') === 0);
+}
+
+/** Copy of the cart with every free-gift line pinned to the top (stable). */
+function cartWithGiftsFirst() {
+  return [...cart].sort((a, b) => (isGiftCartItem(a) ? 0 : 1) - (isGiftCartItem(b) ? 0 : 1));
+}
+
+/** Fire-and-forget write of the signed-in user's cart to users/{uid}. */
+function persistCartToFirestore() {
+  const user = (typeof getKprAuthUser === 'function') ? getKprAuthUser() : null;
+  if (!user || !user.uid || !window.db) return;
+
+  try {
+    window.db.collection('users').doc(user.uid)
+      .set({ cart: cartWithGiftsFirst(), cartUpdatedAt: new Date().toISOString() }, { merge: true })
+      .catch(err => {
+        // Merge-set never clobbers the spin-cooldown fields in the same doc.
+        console.error('[Cart] ✗ Firestore cart sync failed. Code:', err && err.code, 'Message:', err && err.message, err);
+      });
+  } catch (e) {
+    console.error('[Cart] ✗ Firestore cart sync threw:', e);
+  }
+}
+
+/**
+ * Pull users/{uid}.cart from the SERVER and adopt it as the visible cart.
+ * ONLY called on genuine auth transitions (first sign-in / account switch),
+ * never on same-account page navigation (see applyCartOwnership).
+ *   • server has a cart AND the local per-account copy is NEWER (a DB write
+ *     killed by a fast page navigation) → local wins and is re-pushed
+ *   • server has a cart → server wins (cross-device sync)
+ *   • server has no cart field → the current uid-owned local cart (a guest
+ *     cart adopted at sign-in, or offline edits) is canonical → written down
+ *   • fetch failed / offline → keep the local mirror state
+ */
+function reconcileUserCartWithServer(uid) {
+  if (!uid || !window.db) return;
+  const startedAt = Date.now();
+
+  window.db.collection('users').doc(uid).get({ source: 'server' })
+    .then(docSnap => {
+      if (_kprCartLastLocalWrite > startedAt) return; // local edits are newer
+      const data = (docSnap && docSnap.exists) ? docSnap.data() : null;
+      if (data && Array.isArray(data.cart)) {
+        // Staleness tiebreaker: compare the server cart's write time against
+        // this device's last LOCAL write for THIS account. If the local copy
+        // is newer (e.g. the DB write died mid-navigation to dashboard.html),
+        // keep — do not clobber — it and let the save below re-push it.
+        let localTs = 0;
+        try { localTs = Number(localStorage.getItem(userCartKey(uid) + '_ts')) || 0; } catch (e) {}
+        const serverTs = data.cartUpdatedAt ? new Date(data.cartUpdatedAt).getTime() : 0;
+        if (!(localTs > serverTs)) {
+          cart = data.cart; // server is current → adopt
+        }
+      }
+      // Persist the final authoritative cart (also stamps the local ts).
+      saveCartToStorage(); // rewrites kpr_cart + mirror + users/{uid}.cart
+      updateCartUI();
+    })
+    .catch(err => {
+      console.error('[Cart] ✗ Could not fetch user cart from Firestore. Code:', err && err.code, 'Message:', err && err.message, err);
+      // Offline / read failure: keep the local mirror as canonical and make
+      // sure ownership + the local slots are fully written (DB write inside
+      // is fire-and-forget and simply retries on the next mutation).
+      saveCartToStorage();
+      updateCartUI();
+    });
+}
+
 function saveCartToStorage() {
-  localStorage.setItem('kpr_cart', JSON.stringify(cart));
+  try {
+    _kprCartLastLocalWrite = Date.now();
+    // Gift lines are stored index-0 so every renderer (and the DB copy) keeps
+    // the Free Gift pinned at the top of the list.
+    localStorage.setItem('kpr_cart', JSON.stringify(cartWithGiftsFirst()));
+    // Stamp ownership and mirror the account-scoped private copy.
+    const user = (typeof getKprAuthUser === 'function') ? getKprAuthUser() : null;
+    const uid = (user && user.uid) ? user.uid : '';
+    localStorage.setItem(CART_OWNER_KEY, uid);
+    if (uid) {
+      localStorage.setItem(userCartKey(uid), JSON.stringify(cart));
+      // Per-account write stamp: lets reconcileUserCartWithServer tell a
+      // genuinely-newer local cart from one whose DB write was lost when a
+      // page navigation interrupted it (profile-icon click, etc.).
+      localStorage.setItem(userCartKey(uid) + '_ts', String(Date.now()));
+    }
+  } catch (e) {
+    console.error('[Cart] ✗ Failed to persist the cart:', e);
+  }
+  // Requirement 1: every add/update/delete by a signed-in user syncs to DB.
+  persistCartToFirestore();
+}
+
+/**
+ * Reconcile the visible cart with the CURRENT auth account. Called from the
+ * onAuthStateChanged listener (fires on every page load once Firebase
+ * resolves the real session — never guesses signed-out prematurely) and on
+ * explicit sign-out.
+ *   • guest → signed-in : items carry over ONLY until the server is consulted
+ *                         (fresh account with no saved cart → guest items are
+ *                         adopted & persisted; saved cart → server wins)
+ *   • uid A → uid B     : A's items wiped; B's own cart restored (local mirror
+ *                         instantly, then B's Firestore document — fresh
+ *                         account → EMPTY, never any of A's items)
+ *   • uid  → signed out : visible cart wiped so the next visitor starts clean
+ *                         (the account's saved cart REMAINS in the DB)
+ *   • same uid nav/load : NOTHING runs — the locally saved cart (already
+ *                         painted from kpr_cart) is left untouched. A server
+ *                         reconcile here used to clobber the just-added items
+ *                         whose fire-and-forget write was killed by the page
+ *                         navigation ("cart resets on Profile visit" bug).
+ */
+function applyCartOwnership(user) {
+  const uid = (user && user.uid) ? user.uid : '';
+  let owner = '';
+  try {
+    owner = localStorage.getItem(CART_OWNER_KEY) || '';
+  } catch (e) {
+    return; // private-mode storage — leave the in-memory cart untouched
+  }
+
+  const accountChanged = (owner !== uid);
+  if (accountChanged) {
+    if (uid && owner && owner !== uid) {
+      // Account switch: drop the previous user's cart, restore this account's
+      // own local mirror instantly (server doc reconciles right after).
+      cart = [];
+      try {
+        const saved = localStorage.getItem(userCartKey(uid));
+        if (saved) cart = JSON.parse(saved) || [];
+      } catch (e) {
+        cart = [];
+      }
+      console.log('[Cart] Account switch ' + owner + ' → ' + uid + ': restored ' + cart.length + ' item(s) for the new account.');
+    } else if (!uid && owner) {
+      // Logged out: the shared 'kpr_cart' slot must not leak the old account's
+      // items to the next guest. The private kpr_cart_user_<owner> copy stays
+      // intact and the owner's Firestore cart persists server-side, so signing
+      // back in restores their own cart everywhere.
+      cart = [];
+      console.log('[Cart] Signed out — visible cart cleared for the next visitor.');
+    }
+    // else: guest signed IN with no prior owner stamp — current cart simply
+    // carries over; the reconcile below adopts or replaces it per the DB.
+
+    // Update the LOCAL slots instantly (mirror UX) but deliberately NOT via
+    // saveCartToStorage(): no server write may race ahead of the reconcile
+    // fetch below, or an empty fresh-device state would clobber the account's
+    // saved server cart. reconcileUserCartWithServer() persists the final
+    // authoritative cart once the server doc has been consulted.
+    try {
+      localStorage.setItem('kpr_cart', JSON.stringify(cart));
+      localStorage.setItem(CART_OWNER_KEY, uid);
+      if (uid) localStorage.setItem(userCartKey(uid), JSON.stringify(cart));
+    } catch (e) {
+      console.error('[Cart] ✗ Failed to update local cart slots:', e);
+    }
+    updateCartUI();
+  }
+
+  // Fetch the DB cart ONLY on a genuine auth change (first sign-in / account
+  // switch) — never on ordinary route navigation with the same account, so
+  // navigating to the Profile dashboard can never reset the live cart.
+  if (accountChanged && uid) reconcileUserCartWithServer(uid);
 }
 
 function addProductToCart(productId) {
@@ -1550,6 +1735,8 @@ function addProductToCart(productId) {
 
 function updateCartItemQuantity(productId, newQty) {
   const existing = cart.find(item => item.id === productId);
+  // Free-gift lines have no quantity controls — reject external edits.
+  if (existing && isGiftCartItem(existing)) return;
   if (existing) {
     if (newQty === 0) {
       cart = cart.filter(item => item.id !== productId);
@@ -1576,6 +1763,13 @@ function updateCartItemQuantity(productId, newQty) {
 }
 
 function removeCartItem(productId) {
+  // Free-gift lines are non-removable (the drawer hides their Delete button;
+  // this guards any other caller too).
+  const target = cart.find(i => String(i.id) === String(productId));
+  if (target && isGiftCartItem(target)) {
+    if (typeof showToast === 'function') showToast('Free Gift items cannot be removed from the cart.', 'info');
+    return;
+  }
   cart = cart.filter(item => item.id !== productId);
   saveCartToStorage();
   updateCartUI();
@@ -1662,9 +1856,37 @@ function updateCartUI() {
     return;
   }
   
-  // Render cart items
-  cart.forEach(item => {
+  // Render cart items — free gifts pinned to index 0 (display order only;
+  // in-memory cart keeps its natural add order for merge/qty logic).
+  cartWithGiftsFirst().forEach(item => {
     const itemRow = document.createElement('div');
+
+    // ---- SPIN WHEEL FREE GIFT CARD (compact gradient row, no qty/delete/price) ----
+    if (isGiftCartItem(item)) {
+      itemRow.className = 'cart-item cart-gift-item';
+
+      // Same thumbnail footprint as a regular product row; FA gift tile only
+      // when the won product carries no image.
+      let giftImgContent = `<div class="cart-gift-img-fallback"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`;
+      if (item.image) {
+        giftImgContent = `<img src="${item.image}" alt="${item.name}" class="cart-gift-img">`;
+      }
+
+      itemRow.innerHTML = `
+        ${giftImgContent}
+        <div class="cart-gift-info">
+          <h4 class="cart-gift-name">${item.name}</h4>
+          <span class="cart-gift-badge animate-gift-shine"><i class="fa-solid fa-gift" aria-hidden="true"></i> SPIN WHEEL FREE GIFT</span>
+        </div>
+        <div class="cart-gift-right">
+          <span class="cart-gift-unlocked">Unlocked</span>
+        </div>
+      `;
+      container.appendChild(itemRow);
+      return;
+    }
+
+    // ---- REGULAR PRODUCT CART ITEM ----
     itemRow.className = 'cart-item';
     
     const bgIndex = (getCartItemCategoryNumber(item.categoryId) % 9) + 1;
@@ -2062,7 +2284,19 @@ function populateOrderSummaryFromCart() {
   }
 
   if (spinWheelEl) {
-    spinWheelEl.textContent = data.spinWheelDiscount > 0 ? `-₹${data.spinWheelDiscount.toLocaleString()}` : '—';
+    // DYNAMIC SPIN GIFT NAME: show the exact won product's name (green pill
+    // text, ellipsis-truncated) — or '--' when no reward sits in the cart.
+    const spinGift = cart.find(isGiftCartItem);
+    if (spinGift) {
+      const giftName = spinGift.name || 'Free Gift';
+      spinWheelEl.textContent = giftName;
+      spinWheelEl.title = giftName;
+      spinWheelEl.classList.add('summary-gift-name');
+    } else {
+      spinWheelEl.textContent = '--';
+      spinWheelEl.removeAttribute('title');
+      spinWheelEl.classList.remove('summary-gift-name');
+    }
   }
 
   // Coupon discount display
@@ -3923,7 +4157,8 @@ function isDashboardPage() {
   }
 }
 
-/** Dropdown "[signout] Sign Out" — ends the Firebase session, keeps the cart intact. */
+/** Dropdown "[signout] Sign Out" — ends the Firebase session and clears the
+ *  visible cart so the next account on this device starts with an empty one. */
 function handleSignOut() {
   closeUserDropdown();
   kprSignOut();
@@ -4043,6 +4278,45 @@ function hideAccountDashboard() {
 }
 
 /**
+ * Render the FULL guest profile layout on dashboard.html for signed-out
+ * visitors (and immediately after signing out) — instead of hiding the view
+ * and leaving a header/footer-only blank page. Stats stay at their static
+ * 0 / 0 / "Not Set Yet" defaults and the order history shows the guest
+ * empty state.
+ */
+function renderDashboardGuestState() {
+  const view = document.getElementById('accountDashboardView');
+  if (!view) return;
+
+  view.classList.remove('hidden');
+  const main = view.closest('main');
+  if (main) main.classList.add('account-view-active');
+  setDashboardNavState(true);
+
+  renderAccountDashboardProfile(null);
+
+  // Reset stats painted for the previous account back to guest defaults
+  // (0 / 0 / "Not Set Yet").
+  const setStat = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+  setStat('statTotalOrders', '0');
+  setStat('statActiveOrders', '0');
+  setStat('statAddress', 'Not Set Yet');
+
+  // Clear any order rows rendered for the previous account.
+  const list = document.getElementById('userOrdersListContainer');
+  if (list) list.innerHTML = '';
+  const wishGrid = document.getElementById('wishlistItemsGrid');
+  if (wishGrid) wishGrid.innerHTML = '';
+}
+
+/** Guest "Sign In" button — raises the KPR Client Portal with a notice. */
+function guestSignInRequested() {
+  openAuthModal();
+  switchAuthTab('signin');
+  showAuthNotice('Please sign in to view your order history, account details & track shipments.', 'info');
+}
+
+/**
  * Unified active-navbar toggler for the two header "views":
  *   dashboard open  -> Home pill cleared, profile icon ringed (gold + white ring)
  *   dashboard closed -> profile ring cleared, Home pill restored
@@ -4067,16 +4341,38 @@ function setDashboardNavState(dashboardOpen) {
   }
 }
 
-/** Paint the welcome banner (avatar initial, name, email / mobile identity). */
+/**
+ * Paint the welcome banner for BOTH account states.
+ * Signed out is a FIRST-CLASS guest view (never a hidden/blank page):
+ * guest avatar "G", "You are not signed in" + Guest Mode badge, sign-in
+ * subtitle, a single Sign In button, 0/0/"Not Set Yet" stats and the
+ * "No orders yet" empty state. All new ids are guarded so the legacy
+ * in-page dashboard copy on index.html keeps working untouched.
+ */
 function renderAccountDashboardProfile(user) {
   const avatarEl = document.getElementById('dashAvatar');
-  const nameEl = document.getElementById('dashUserName');
+  const titleEl = document.getElementById('dashWelcomeTitle');
+  const nameEl = document.getElementById('dashUserName'); // legacy markup
   const emailEl = document.getElementById('dashUserEmail');
+  const badgeEl = document.getElementById('dashVerifiedBadge');
+  const actionsUser = document.getElementById('dashActionsUser');
+  const actionsGuest = document.getElementById('dashActionsGuest');
+  const refreshBtn = document.getElementById('dashRefreshOrdersBtn');
+  const guestEmpty = document.getElementById('dashGuestEmptyState');
 
   if (!user) {
-    if (avatarEl) avatarEl.innerText = 'U';
+    if (avatarEl) avatarEl.innerText = 'G';
+    if (titleEl) titleEl.innerText = 'You are not signed in';
     if (nameEl) nameEl.innerText = 'User';
-    if (emailEl) emailEl.innerText = 'Not signed in';
+    if (emailEl) emailEl.innerText = 'Please sign in to view your order history, account details & track shipments.';
+    if (badgeEl) {
+      badgeEl.innerText = 'Guest Mode';
+      badgeEl.classList.add('dash-verified-badge-guest');
+    }
+    if (actionsUser) actionsUser.classList.add('hidden');
+    if (actionsGuest) actionsGuest.classList.remove('hidden');
+    if (refreshBtn) refreshBtn.classList.add('hidden');
+    if (guestEmpty) guestEmpty.classList.remove('hidden');
     return;
   }
 
@@ -4089,8 +4385,22 @@ function renderAccountDashboardProfile(user) {
     const initial = (user.displayName || name || 'U').trim().charAt(0).toUpperCase();
     avatarEl.innerText = initial || 'U';
   }
+  if (titleEl) titleEl.innerText = 'Welcome, ' + name;
   if (nameEl) nameEl.innerText = name;
   if (emailEl) emailEl.innerText = email;
+  if (badgeEl) {
+    badgeEl.innerText = 'Verified Client';
+    badgeEl.classList.remove('dash-verified-badge-guest');
+  }
+  if (actionsUser) actionsUser.classList.remove('hidden');
+  if (actionsGuest) actionsGuest.classList.add('hidden');
+  if (refreshBtn) refreshBtn.classList.remove('hidden');
+  if (guestEmpty) {
+    guestEmpty.classList.add('hidden');
+    // Drop the guest placeholder from the list container too.
+    const list = document.getElementById('userOrdersListContainer');
+    if (list && list.querySelector('.dash-guest-empty')) list.innerHTML = '';
+  }
 }
 
 /**
@@ -5228,7 +5538,8 @@ function showProductsPage() {
   window.location.href = 'products.html';
 }
 
-/** Sign the client out of the KPR Client Portal (cart contents are preserved). */
+/** Sign the client out of the KPR Client Portal — the visible cart is cleared
+ *  so the next visitor on this device starts fresh (applyCartOwnership). */
 function kprSignOut() {
   const auth = getKprAuth();
   if (!auth) return;
@@ -5241,9 +5552,16 @@ function kprSignOut() {
       window.userWishlist = [];
       window.dashOrdersCache = {};
       closeUserDropdown();
-      hideAccountDashboard();
+      if (isDashboardPage()) {
+        // Stay on the Profile page: swap to the full guest layout instead of
+        // hiding the view (hiding it left only header + footer on screen).
+        renderDashboardGuestState();
+      } else {
+        hideAccountDashboard();
+      }
       renderHeaderUserAccount(null);
       syncWishlistHearts();
+      applyCartOwnership(null); // deterministic immediate clear
       if (typeof showToast === 'function') showToast('You have signed out of the KPR Client Portal.', 'info');
     })
     .catch((err) => console.error('[Portal] Sign out failed:', err));
@@ -5389,6 +5707,32 @@ function initClientPortalAuth() {
     hydrateEnquiryFormFromAuth(user);
     renderHeaderUserAccount(user);
     loadWishlistForUser(user);
+    // Cart isolation: reconcile the visible cart with THIS account once the
+    // real session state is known (never before Firebase settles).
+    applyCartOwnership(user);
+    // REACTIVE profile dashboard rendering: the auth callback itself is the
+    // single source of truth for this page's banner state — never rely on
+    // the parked sessionStorage flags (a guest visit consumes/clears them
+    // BEFORE the visitor signs in, which left the banner stuck on Guest
+    // Mode even though sign-in had succeeded).
+    if (user && isDashboardPage()) {
+      // Flip the guest banner to the signed-in view the moment ANY sign-in
+      // succeeds here (portal modal, Google redirect, cross-page restore).
+      try { sessionStorage.removeItem('kpr_dash_user_waiting'); } catch (e) {}
+      if (window._kprDashRenderedUid !== user.uid) {
+        window._kprDashRenderedUid = user.uid;
+        showAccountDashboard(user);
+        fetchUserOrders();
+      }
+    } else if (!user && isDashboardPage()) {
+      // Signed out (or definitive guest): paint the full guest layout, never
+      // a blank body; also cancel the 8s fallback sign-in-modal timer so the
+      // guest layout stands on its own.
+      window._kprDashRenderedUid = null;
+      try { sessionStorage.removeItem('kpr_dash_user_waiting'); } catch (e) {}
+      if (window._kprDashTimeout) { clearTimeout(window._kprDashTimeout); window._kprDashTimeout = null; }
+      renderDashboardGuestState();
+    }
     // Finish any parked dashboard open from a cross-page profile-icon click.
     // On dashboard.html the view is also opened directly below, so this is
     // just the session-restore safety net.
@@ -5410,9 +5754,13 @@ function initClientPortalAuth() {
     // waiting flag instead of painting the dummy "Welcome, User" shell.)
     const nowUser = window.currentKprUser || auth.currentUser;
     if (nowUser) {
+      window._kprDashRenderedUid = nowUser.uid; // the listener skips its own re-paint
       showAccountDashboard(nowUser);
       fetchUserOrders();
     } else {
+      // Paint the GUEST layout immediately while Firebase restores the session
+      // (prevents the fake "Welcome, User" shell and any blank-page flash).
+      renderDashboardGuestState();
       // Park a waiting flag so onAuthStateChanged can finish the open with the
       // real user once it restores the session from IndexedDB / LocalStorage.
       try { sessionStorage.setItem('kpr_dash_user_waiting', JSON.stringify({waiting: true, ts: Date.now()})); } catch (e) {}
