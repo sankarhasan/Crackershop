@@ -4567,18 +4567,23 @@ function friendlyOrderStatus(status) {
  * receipt without another Firestore read.
  */
 function renderOrderCard(order) {
-  const items = (order.items || []).map((it) => ({
-    name: it.productName || it.name || it.title || 'Item',
-    qty: Number(it.quantity || it.qty || 0),
-    price: Number(it.unitPrice || it.price || 0)
-  }));
+  const items = (order.items || []).map((it) => {
+    const price = Number(it.unitPrice || it.price || 0);
+    return {
+      name: it.productName || it.name || it.title || 'Item',
+      qty: Number(it.quantity || it.qty || 0),
+      price: price,
+      // FREE row: ₹0 unit price or an explicit spin-gift flag carried on the order
+      isFreeItem: price === 0 || !!(it.isGift || it.isFreeGift || it.isSpinReward)
+    };
+  });
 
   const itemsTableRows = items.map((item) => `
-    <tr class="border-b border-gray-100/80 text-xs text-gray-800">
-      <td class="py-3 px-4 font-bold uppercase tracking-wide text-gray-900">${escapeHtml(item.name)}</td>
-      <td class="py-3 px-4 font-bold text-gray-700">${item.qty} Pcs</td>
-      <td class="py-3 px-4 font-semibold text-gray-500">₹${item.price.toLocaleString('en-IN')}</td>
-      <td class="py-3 px-4 font-extrabold text-emerald-700 text-right">₹${(item.price * item.qty).toLocaleString('en-IN')}</td>
+    <tr class="order-item-row">
+      <td class="order-cell-name"><span class="order-item-name">${escapeHtml(item.name)}</span>${item.isFreeItem ? ' <span class="order-free-badge">(FREE)</span>' : ''}</td>
+      <td class="order-cell-qty"><span class="order-qty-num">${item.qty}</span><span class="order-qty-unit">Pcs</span></td>
+      <td class="order-cell-price">₹${item.price.toLocaleString('en-IN')}</td>
+      <td class="order-cell-subtotal">₹${(item.price * item.qty).toLocaleString('en-IN')}</td>
     </tr>
   `).join('');
 
@@ -4592,7 +4597,7 @@ function renderOrderCard(order) {
         </div>
         <div class="flex items-center gap-2">
           <span class="bg-amber-100 text-amber-800 font-bold text-xs px-3 py-1 rounded-full">${escapeHtml(order.statusLabel || friendlyOrderStatus(order.status))}</span>
-          <button onclick="downloadReceipt('${order.id}')" class="bg-amber-400 hover:bg-amber-500 text-gray-900 font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
+          <button onclick="downloadReceipt('${order.id}')" class="order-pdf-btn bg-amber-400 hover:bg-amber-500 text-gray-900 font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
             <i class="fa-solid fa-file-pdf"></i> Download PDF Receipt
           </button>
         </div>
@@ -4603,27 +4608,30 @@ function renderOrderCard(order) {
         Deliver To: <span class="font-extrabold text-gray-900">${escapeHtml(order.userName || order.customerName || 'Customer')} (${escapeHtml(order.userPhone || order.mobile || 'N/A')})</span>
       </p>
 
-      <!-- PRODUCTS TABLE -->
+      <!-- PRODUCTS TABLE (fixed percentage grid: name 40% / qty 14% / price 22% / subtotal 24%) -->
       <div class="overflow-x-auto rounded-xl border border-gray-100">
-        <table class="w-full text-left border-collapse">
+        <table class="order-items-table">
+          <colgroup>
+            <col style="width:40%"><col style="width:14%"><col style="width:22%"><col style="width:24%">
+          </colgroup>
           <thead>
-            <tr class="bg-slate-50 text-[11px] font-extrabold text-gray-500 uppercase tracking-wider border-b border-gray-200">
-              <th class="py-2.5 px-4">ITEM NAME</th>
-              <th class="py-2.5 px-4">QTY</th>
-              <th class="py-2.5 px-4">PRICE</th>
-              <th class="py-2.5 px-4 text-right">SUBTOTAL</th>
+            <tr>
+              <th class="th-name">ITEM NAME</th>
+              <th class="th-qty">QTY</th>
+              <th class="th-price">PRICE</th>
+              <th class="th-sub">SUBTOTAL</th>
             </tr>
           </thead>
           <tbody>
-            ${itemsTableRows || '<tr><td colspan="4" class="py-3 px-4 text-xs text-gray-500 text-center">Item details not available for this order</td></tr>'}
+            ${itemsTableRows || '<tr class="order-item-row"><td colspan="4" class="order-cell-name" style="text-align:center;font-weight:600;color:#6b7280">Item details not available for this order</td></tr>'}
           </tbody>
         </table>
       </div>
 
-      <!-- FOOTER SUMMARY -->
-      <div class="bg-slate-50/80 rounded-xl p-3.5 flex items-center justify-between text-xs font-bold text-gray-600 border border-gray-100">
-        <div>Product Items Count: <span class="text-gray-900 font-extrabold">${items.length}</span></div>
-        <div class="text-sm">Grand Total: <span class="text-emerald-700 font-extrabold text-base ml-1">₹${Number(order.totalAmount || order.grandTotal || 0).toLocaleString('en-IN')}</span></div>
+      <!-- FOOTER SUMMARY: clean rounded card, count ⇄ grand total spaced -->
+      <div class="order-totals-card">
+        <span class="order-totals-count">Product Items Count: <strong>${items.length}</strong></span>
+        <span class="order-totals-grand">Grand Total: <strong>₹${Number(order.totalAmount || order.grandTotal || 0).toLocaleString('en-IN')}</strong></span>
       </div>
     </div>
   `;
