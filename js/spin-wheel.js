@@ -26,6 +26,10 @@
   'use strict';
 
   const NOTICE_ACK_STORAGE_KEY = 'noticeAcknowledged'; // app.js writes this
+  // Account-scoped UI mirror of the cooldown ({uid, ts}): used ONLY to gate
+  // the auto-popup and pre-fill the teaser countdown before the server read
+  // lands. Eligibility itself always re-verifies against users/{uid}.
+  const SPIN_TS_KEY = 'lastSpinTimestamp';
   const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
   const SPIN_ANIM_MS = 4000; // must match the canvas CSS transition duration
 
@@ -256,14 +260,25 @@
 
   function openSpinInfoModal() {
     const modal = document.getElementById('spin-info-modal');
-    if (!modal || modal.classList.contains('open')) return;
+    if (!modal) return;
+
+    // STRICT GUARD (checked before anything can paint): active cooldown ⇒
+    // this function is a no-op, no matter who called it. The homepage teaser
+    // is re-synced so the banner keeps showing the live countdown instead.
+    if (!canShowSpinModal()) {
+      console.log('[SpinWheel] Info modal render blocked — active 24h cooldown.');
+      evaluateSpinAvailability();
+      return;
+    }
+
+    if (modal.classList.contains('open')) return;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     lockScroll();
     showLockHint('');
     // Decide the CTA mode for the account whose popup this is: SPIN NOW
     // (green/shining) or the live red countdown.
-    refreshInfoModalAvailability();
+    evaluateSpinAvailability();
   }
 
   function closeSpinInfoModal() {
@@ -280,8 +295,12 @@
     // Home-only restriction: the notice exists site-wide, but the spin
     // pop-up is a homepage experience — never chain it on inner pages.
     if (!isHomePage()) return;
-    // Small beat so the notice modal's scroll-unlock paints first.
-    setTimeout(openSpinInfoModal, 250);
+    // Cooldown guard applies to the notice-chained open too: a locked-in
+    // account never gets an auto-popup — only the teaser banner shows why.
+    gateAutoOpen(function () {
+      // Small beat so the notice modal's scroll-unlock paints first.
+      setTimeout(openSpinInfoModal, 250);
+    });
   }
 
   // The Spin Wheel Info modal is a HOME PAGE feature only — inner pages
@@ -324,18 +343,34 @@
   }
 
   // REQUIREMENT 1: auto-show on every page load / refresh — but ONLY on the
-  // Home Page; inner pages never surface the Info modal.
+  // Home page and ONLY while NOT inside the 24h cooldown.
   function autoShowInfoModalOnLoad() {
     if (!isHomePage()) return;          // strict inner-page guard
-    if (deferToPendingNotice()) return; // requirement 2 handles this visit
-    openSpinInfoModalWhenVisible();
+    if (deferToPendingNotice()) {
+      // Notice-chaining must never hold an eligible popup hostage: the notice
+      // only surfaces on scroll into #categories, so if it hasn't actually
+      // opened shortly after arrival, run the normal auto-popup anyway (the
+      // notice-close chain stays idempotent; openSpinInfoModal no-ops if the
+      // modal is already visible).
+      setTimeout(function () {
+        const notice = document.getElementById('notice-modal-overlay');
+        if (notice && notice.classList.contains('open')) return; // chain will handle it
+        gateAutoOpen(openSpinInfoModalWhenVisible);
+      }, 3500);
+      return;
+    }
+    gateAutoOpen(openSpinInfoModalWhenVisible);
   }
 
   /* ==========================================================================
-     4. "Spin Now" — dual-state CTA (live countdown ⇄ shining button),
-        auth gate and wheel modal (Window 2)
+     4. Shared cooldown availability state machine — drives BOTH the info
+        modal CTA and the homepage teaser banner from one source of truth:
+        'checking' → red-family pending | 'locked' → live HH:MM:SS countdown
+        | 'available' → green shining SPIN NOW.
      ========================================================================== */
-  let spinCtaInterval = null; // one guarded 1s tick; cleared on close/switch
+  let availState = 'unknown';       // unknown | checking | locked | available
+  let availEndsAt = null;           // epoch ms when the cooldown expires
+  let spinCtaInterval = null;       // ONE shared 1s ticker for both CTAs
 
   function stopCtaTimer() {
     if (spinCtaInterval) {
@@ -354,87 +389,323 @@
     return pad(h) + ':' + pad(m) + ':' + pad(s);
   }
 
-  /** GREEN shining "SPIN NOW" state (also used the instant a countdown ends). */
-  function setSpinCtaToSpinNow() {
-    stopCtaTimer();
-    const btn = document.getElementById('spin-open-wheel-btn');
-    if (!btn) return;
-    btn.disabled = false;
-    btn.classList.remove('spin-btn-cooldown');
-    btn.classList.add('animate-gift-shine'); // emerald shimmer sweep
-    btn.innerHTML = '<span id="spin-cta-label">SPIN NOW</span> <i class="fa-solid fa-rotate" aria-hidden="true"></i>';
+  /* ---- Account-scoped localStorage mirror (UI fast-path only) ---- */
+  function readSpinTsEntry() {
+    try {
+      const raw = localStorage.getItem(SPIN_TS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
   }
 
-  /** Neutral waiting face while the cooldown check runs — styled like the
-      red countdown pill so a "SPIN NOW" green flash never appears first. */
-  function setSpinCtaToPending() {
-    stopCtaTimer();
-    const btn = document.getElementById('spin-open-wheel-btn');
-    if (!btn) return;
-    btn.disabled = true;
-    btn.classList.remove('animate-gift-shine');
-    btn.classList.add('spin-btn-cooldown');
-    btn.innerHTML = '<i class="fa-solid fa-clock" aria-hidden="true"></i> <span id="spin-cta-label">CHECKING&hellip;</span>';
+  function spinTsEntryEnds(entry) {
+    if (!entry || !entry.ts) return null;
+    return entry.ts + TWENTY_FOUR_HOURS_MS;
   }
 
-  /** RED disabled countdown state: "🕒 Next Spin in HH:MM:SS", ticking live. */
-  function setSpinCtaToCountdown(endsAt) {
-    const btn = document.getElementById('spin-open-wheel-btn');
-    if (!btn) return;
-    stopCtaTimer(); // never stack intervals on re-entry
-    btn.disabled = true;
-    btn.classList.remove('animate-gift-shine');
-    btn.classList.add('spin-btn-cooldown');
-    btn.innerHTML = '<i class="fa-solid fa-clock" aria-hidden="true"></i> <span id="spin-cta-label"></span>';
-
-    const label = document.getElementById('spin-cta-label'); // cached ref —
-                                                              // tick only touches textContent
-    const tick = () => {
-      const diff = endsAt - Date.now();
-      if (diff <= 0) {
-        setSpinCtaToSpinNow(); // auto-flip the moment the cooldown expires
-        return;
-      }
-      if (label) label.textContent = 'Next Spin in ' + formatHms(diff);
-    };
-    tick();
-    spinCtaInterval = setInterval(tick, 1000);
+  function clearSpinTsMirror() {
+    try { localStorage.removeItem(SPIN_TS_KEY); } catch (e) {}
   }
 
   /**
-   * Requirement 1: the cooldown check happens IMMEDIATELY as the info modal
-   * opens — a locked-in account sees the RED timer button on load, never a
-   * "SPIN NOW" flash. A record already verified this page session paints
-   * synchronously; otherwise the pending (red-family) face holds until the
-   * live users/{uid} read resolves. Signed-out visitors get SPIN NOW at once
-   * (they have no cooldown; the login gate runs on click).
+   * Cooldown end-time from the local mirror.
+   *   • uid string   → only the SAME account's entry counts (A's lock must
+   *                    never hide B's popup).
+   *   • uid === null → auth not resolved yet: ANY unexpired entry counts as
+   *                    a potential lock (strict mode for the auto-popup gate).
+   * REQUIREMENT 2: an expired entry is deleted on sight so tomorrow's
+   * auto-popup re-arms itself with no stale state.
    */
-  function applyAvailability(record) {
-    if (isLockActive(record)) {
-      const ts = toMillis(record.last_spun_at);
-      // Pending serverTimestamp (ts === null) → a spin JUST landed; show the
-      // worst-case 24h countdown; it self-corrects on the next open.
-      setSpinCtaToCountdown(ts !== null ? ts + TWENTY_FOUR_HOURS_MS : Date.now() + TWENTY_FOUR_HOURS_MS);
-    } else {
-      setSpinCtaToSpinNow();
+  function localCooldownEndsFor(uid) {
+    const entry = readSpinTsEntry();
+    if (!entry) return null;
+    const ends = spinTsEntryEnds(entry);
+    if (ends === null) return null;
+    if (Date.now() >= ends) {
+      clearSpinTsMirror(); // cooldown over — clean slate for the next spin
+      return null;
+    }
+    if (uid === null) return ends;
+    return entry.uid === uid ? ends : null;
+  }
+
+  function rememberLocalSpinTsAt(uid, tsMs) {
+    try { localStorage.setItem(SPIN_TS_KEY, JSON.stringify({ uid: uid, ts: tsMs })); } catch (e) {}
+  }
+
+  function rememberLocalSpinTs(uid) {
+    rememberLocalSpinTsAt(uid, Date.now());
+  }
+
+  /**
+   * STRICT RENDER GUARD — account-scoped by design, and now EXACTLY aligned
+   * with the banner's green/red availability: a cooldown only counts when it
+   * belongs to the CURRENT account (its own mirror entry, or a lock the
+   * server confirmed for this uid this session). A stale entry left by a
+   * different account — or any entry while auth is unresolved — must never
+   * block an eligible user's popup (that mismatch was the "green button but
+   * no modal" bug). Expired entries are deleted on read, so the next-day
+   * spin unblocks automatically.
+   */
+  function isSpinCooldownBlocked() {
+    const user = authUser();
+    if (!user) return false; // no identifiable account ⇒ no personal cooldown
+    if (localCooldownEndsFor(user.uid)) return true;
+    if (spinCheck && spinCheck.uid === user.uid && isLockActive(spinCheck.record)) return true;
+    return false;
+  }
+
+  /**
+   * CENTRAL UTILITY — the vanilla equivalent of utils/spinGuard.js.
+   * Every surface (auto gate, modal open, teaser click, future hooks) asks
+   * canShowSpinModal(); true only when NO cooldown is in effect.
+   */
+  function canShowSpinModal() {
+    return !isSpinCooldownBlocked();
+  }
+
+  /**
+   * DIRECT EVALUATION GUARD — pure sync, never throws. Account-scoped so it
+   * can never disagree with the green/red CTA state: true only when the
+   * CURRENT account's own lastSpinTimestamp mirror is inside its 24h window
+   * (no account identifiable → not "in cooldown" → spin stays available).
+   */
+  function isUserInCooldown() {
+    try {
+      const user = authUser();
+      return !!localCooldownEndsFor(user ? user.uid : null) === true && !!user;
+    } catch (e) { return false; }
+  }
+
+  /**
+   * CENTRAL AVAILABILITY CHECK — canonical name from the spec
+   * (utils/spinGuard.js isSpinAvailable()). Mirrors the required semantics:
+   *   • never spun / cooldown expired      → true  (auto-popup MUST open)
+   *   • live local lastSpinTimestamp entry → false (popup MUST stay closed)
+   *   • server-confirmed lock this session → false (cross-device hardening)
+   */
+  function isSpinAvailable() {
+    return canShowSpinModal();
+  }
+
+  /** Resolve once Firebase reports its real session (or after a 4s cap). */
+  function whenAuthReady(cb) {
+    let fired = false;
+    const once = () => { if (!fired) { fired = true; cb(); } };
+    try {
+      if (typeof firebase === 'undefined' || !firebase.auth) { once(); return; }
+      let unsub = null;
+      const timer = setTimeout(() => { if (unsub) unsub(); once(); }, 4000);
+      unsub = firebase.auth().onAuthStateChanged(() => {
+        clearTimeout(timer);
+        if (unsub) unsub();
+        once();
+      });
+    } catch (e) { once(); }
+  }
+
+  /**
+   * REQUIREMENT 1 — auto-popup gate for every automatic path (page load /
+   * refresh / route back to Home / notice-close / bfcache restore).
+   * The two exact rules:
+   *   ELIGIBLE (no cooldown anywhere) → MUST auto-open on every Home visit.
+   *   IN COOLDOWN (live local mirror, or server-confirmed lock) → MUST NOT
+   *   auto-open — the homepage teaser banner's red timer is the only notice.
+   * Decision order:
+   *   • same-account mirror still inside 24h → block, no fetch needed
+   *   • auth still resolving while an unexpired mirror exists → WAIT for the
+   *     real session, then decide (never assume guest mid-cooldown);
+   *     if auth can't resolve at all → stay blocked (strict)
+   *   • guest with no relevant lock → proceed immediately
+   *   • signed in, no local lock → open; the post-open server confirmation
+   *     force-closes + materializes the mirror if actually locked
+   * Manual entry (teaser banner click) never passes through here.
+   */
+  function gateAutoOpen(proceed) {
+    let decided = false;
+    let authWaited = false;
+
+    const finish = (allow, why) => {
+      if (decided) return;
+      decided = true;
+      if (allow) { proceed(); }
+      else { console.log('[SpinWheel] Auto-popup suppressed — ' + why); }
+    };
+
+    const serverCheck = (user) => {
+      fetchUserSpinRecord().then(result => {
+        if (result.ok && isLockActive(result.record)) {
+          finish(false, 'server cooldown active');
+          return;
+        }
+        // Eligibility decides: no local lock and no server-confirmed lock →
+        // auto-open. An unverifiable server read (offline) still proceeds —
+        // the async availability check re-confirms on open and, if it reveals
+        // a real lock, applyAvailabilityRecord force-closes the modal and
+        // materializes the mirror so every later check blocks synchronously.
+        finish(true);
+      });
+    };
+
+    const evaluate = () => {
+      if (decided) return;
+      const user = authUser();
+
+      if (user && localCooldownEndsFor(user.uid)) {
+        finish(false, 'account cooldown active (local mirror)');
+        return;
+      }
+
+      if (!user) {
+        const pendingLock = localCooldownEndsFor(null); // ANY unexpired entry
+        if (pendingLock && !authWaited) {
+          authWaited = true;
+          whenAuthReady(evaluate); // identity unknown mid-lock → wait, don't pop
+          return;
+        }
+        // Second pass with auth still unresolved: no longer a hard block.
+        // Availability (the banner's own state) treats this as eligible, and
+        // an account-less browser can never have a personal cooldown — the
+        // popup must open. (If auth later resolves signed-in mid-cooldown,
+        // applyAvailabilityRecord force-closes and re-materializes the lock.)
+        finish(true);
+        return;
+      }
+
+      serverCheck(user);
+    };
+
+    evaluate();
+  }
+
+  /* ---- Shared state → both CTA surfaces ---- */
+  function setAvailability(state, endsAt) {
+    availState = state;
+    availEndsAt = endsAt || null;
+    renderModalCta();
+    renderTeaserCta();
+    ensureAvailabilityTicker();
+  }
+
+  function ensureAvailabilityTicker() {
+    stopCtaTimer();
+    if (availState !== 'locked') return;
+    tickAvailability(); // paint immediately, then every second
+    spinCtaInterval = setInterval(tickAvailability, 1000);
+  }
+
+  function tickAvailability() {
+    const diff = availEndsAt ? availEndsAt - Date.now() : 0;
+    if (diff <= 0) {
+      clearSpinTsMirror();  // REQUIREMENT 2: cooldown finished → drop the stale
+                            // mirror so tomorrow's auto-popup re-arms cleanly
+      setAvailability('available', null); // auto-flip at expiry, live on both
+      return;
+    }
+    const text = 'Next Spin in ' + formatHms(diff);
+    const modalLabel = document.getElementById('spin-cta-label');   // cached refs;
+    if (modalLabel) modalLabel.textContent = text;                  // tick only
+    const teaserLabel = document.getElementById('spin-teaser-label'); // touches textContent
+    if (teaserLabel) teaserLabel.textContent = text;
+  }
+
+  function renderModalCta() {
+    const btn = document.getElementById('spin-open-wheel-btn');
+    if (!btn) return;
+    if (availState === 'available') {
+      btn.disabled = false;
+      btn.classList.remove('spin-btn-cooldown');
+      btn.classList.add('animate-gift-shine'); // emerald shimmer sweep
+      btn.innerHTML = '<span id="spin-cta-label">SPIN NOW</span> <i class="fa-solid fa-rotate" aria-hidden="true"></i>';
+    } else if (availState === 'locked') {
+      btn.disabled = true;
+      btn.classList.remove('animate-gift-shine');
+      btn.classList.add('spin-btn-cooldown');
+      btn.innerHTML = '<i class="fa-solid fa-clock" aria-hidden="true"></i> <span id="spin-cta-label"></span>';
+    } else if (availState === 'checking') {
+      btn.disabled = true;
+      btn.classList.remove('animate-gift-shine');
+      btn.classList.add('spin-btn-cooldown');
+      btn.innerHTML = '<i class="fa-solid fa-clock" aria-hidden="true"></i> <span id="spin-cta-label">CHECKING&hellip;</span>';
     }
   }
 
-  function refreshInfoModalAvailability() {
+  function renderTeaserCta() {
+    const btn = document.getElementById('spin-teaser-cta');
+    if (!btn) return; // homepage widget only
+    if (availState === 'available') {
+      btn.disabled = false;
+      btn.className = 'spin-teaser-btn spin-teaser-btn-go animate-gift-shine';
+      btn.innerHTML = '<span>SPIN NOW</span> <i class="fa-solid fa-rotate" aria-hidden="true"></i>';
+    } else if (availState === 'locked') {
+      btn.disabled = true;
+      btn.className = 'spin-teaser-btn spin-teaser-btn-cooldown';
+      btn.innerHTML = '<i class="fa-solid fa-clock" aria-hidden="true"></i> <span id="spin-teaser-label"></span>';
+      const label = document.getElementById('spin-teaser-label');
+      if (label && availEndsAt) label.textContent = 'Next Spin in ' + formatHms(availEndsAt - Date.now());
+    } else {
+      btn.disabled = true;
+      btn.className = 'spin-teaser-btn spin-teaser-btn-checking';
+      btn.innerHTML = '<i class="fa-solid fa-clock" aria-hidden="true"></i> <span id="spin-teaser-label">CHECKING&hellip;</span>';
+    }
+  }
+
+  function applyAvailabilityRecord(record) {
+    if (isLockActive(record)) {
+      const ts = toMillis(record.last_spun_at);
+      const endsAt = ts !== null ? ts + TWENTY_FOUR_HOURS_MS : Date.now() + TWENTY_FOUR_HOURS_MS;
+
+      // Materialize the exact server cooldown into the local mirror: from now
+      // on, EVERY synchronous direct-evaluation guard (render guard, gate,
+      // pageshow) blocks instantly even for a cross-device spin, with no
+      // dependence on async state settling.
+      const u = authUser();
+      if (u && ts !== null) rememberLocalSpinTsAt(u.uid, ts);
+
+      // HARD STOP: if the modal somehow already mounted (manual open during
+      // the async cross-device check window), force-unmount it immediately.
+      const infoModal = document.getElementById('spin-info-modal');
+      if (infoModal && infoModal.classList.contains('open')) {
+        console.log('[SpinWheel] Cooldown confirmed while mounted — force-closing info modal.');
+        closeSpinInfoModal();
+      }
+
+      // Pending serverTimestamp (ts === null) → a spin JUST landed; show the
+      // worst-case 24h countdown; it self-corrects on the next evaluation.
+      setAvailability('locked', endsAt);
+    } else {
+      setAvailability('available', null);
+    }
+  }
+
+  /**
+   * Evaluate the current account's availability and push it to both CTAs.
+   * Instant paint from the page-session cache or the account-scoped local
+   * mirror; the live users/{uid} read always has the final say.
+   */
+  function evaluateSpinAvailability() {
     const user = authUser();
-    if (!user) { setSpinCtaToSpinNow(); return; }
+    if (!user) { setAvailability('available', null); return; } // guest: no cooldown
 
     if (spinCheck && spinCheck.uid === user.uid) {
-      applyAvailability(spinCheck.record); // instant, no re-fetch, no flash
+      applyAvailabilityRecord(spinCheck.record); // instant, no re-fetch, no flash
       return;
     }
 
-    setSpinCtaToPending();
+    const endsFast = localCooldownEndsFor(user.uid);
+    if (endsFast) setAvailability('locked', endsFast);   // sync red timer now
+    else setAvailability('checking', null);              // red-family pending
+
     fetchUserSpinRecord().then(result => {
-      if (!result.ok) { setSpinCtaToSpinNow(); return; } // click re-verifies
+      if (!result.ok) return; // keep the local-mirror state
       spinCheck = { uid: user.uid, record: result.record };
-      applyAvailability(result.record);
+      applyAvailabilityRecord(result.record);
     });
+  }
+
+  /** Homepage teaser click — manual entry into the info modal. */
+  function handleSpinTeaserClick() {
+    if (availState === 'locked' || availState === 'checking') return;
+    openSpinInfoModal();
   }
 
   /**
@@ -475,8 +746,7 @@
       if (isLockActive(result.record)) {
         // Cooldown surfaced as the live red countdown button — no text message.
         showLockHint('');
-        const ts = toMillis(result.record.last_spun_at);
-        setSpinCtaToCountdown(ts !== null ? ts + TWENTY_FOUR_HOURS_MS : Date.now() + TWENTY_FOUR_HOURS_MS);
+        applyAvailabilityRecord(result.record);
         return;
       }
 
@@ -733,9 +1003,9 @@
     }
     if (isLockActive(spinCheck.record)) {
       msg.textContent = 'Cooldown is active for this account. Please try again later.';
-      // Also re-arm the info modal's red countdown for when it reopens.
+      // Also re-arm the shared countdown state (modal + teaser).
       const cdTs = toMillis(spinCheck.record.last_spun_at);
-      if (cdTs !== null) setSpinCtaToCountdown(cdTs + TWENTY_FOUR_HOURS_MS);
+      if (cdTs !== null) setAvailability('locked', cdTs + TWENTY_FOUR_HOURS_MS);
       return;
     }
 
@@ -809,6 +1079,14 @@
         const localRecord = Object.assign({}, payload);
         if (!isTryAgain) localRecord.last_spun_at = new Date().toISOString();
         spinCheck = { uid: user.uid, record: localRecord };
+        if (!isTryAgain) {
+          // Account-scoped cooldown mirror (gates the auto-popup on the next
+          // page load) + flip the teaser/CTA to the live red countdown now.
+          rememberLocalSpinTs(user.uid);
+          setAvailability('locked', Date.now() + TWENTY_FOUR_HOURS_MS);
+        } else {
+          setAvailability('available', null); // try_again: re-spin stays open
+        }
       })
       .catch(err => {
         console.error('[SpinWheel] ✗ Failed to save spin result. Code:', err && err.code, 'Message:', err && err.message, err);
@@ -916,6 +1194,14 @@
       if (typeof firebase === 'undefined' || !firebase.auth) return;
       firebase.auth().onAuthStateChanged((user) => {
         spinCheck = null; // account changed/signed out — stale verification
+        availState = 'unknown';
+        availEndsAt = null;
+        stopCtaTimer();
+        if (!user) {
+          setAvailability('available', null); // guests have no cooldown
+        } else if (document.getElementById('spin-teaser-cta')) {
+          evaluateSpinAvailability(); // refresh the homepage teaser for the new account
+        }
         if (user && pendingSpinAfterAuth) {
           // Same click-time validation path: cooldown/notif messages land in
           // the info modal's hint line, which is still open behind the portal.
@@ -954,8 +1240,15 @@
       console.error('[SpinWheel] ✗ Config bootstrap error:', e);
     }
 
+    // Homepage teaser widget (index.html only): paint its CTA state from the
+    // current account's cooldown as soon as the page is interactive.
+    if (document.getElementById('spin-teaser-cta')) {
+      evaluateSpinAvailability();
+    }
+
     // REQUIREMENT 1: auto-show the Info Modal on EVERY page load/refresh
-    // (deferred to the closeNoticeModal chain while the Notice is pending).
+    // (cooldown-gated; deferred to the closeNoticeModal chain while the
+    // Notice is pending).
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', autoShowInfoModalOnLoad);
     } else {
@@ -963,17 +1256,45 @@
     }
   }
 
+  /**
+   * STRICT NAVIGATION GUARD (bfcache).
+   * Back/Forward navigation restores the page straight from the browser's
+   * back-forward cache WITHOUT re-running any script — so a modal left open
+   * when the user navigated away (or a cooldown that started in the
+   * meantime) would silently re-appear on "route change". On every pageshow
+   * we re-validate through the central utility: force-close the modal while
+   * blocked, and re-sync the homepage teaser countdown.
+   */
+  window.addEventListener('pageshow', function () {
+    if (!canShowSpinModal()) {
+      const modal = document.getElementById('spin-info-modal');
+      if (modal && modal.classList.contains('open')) {
+        console.log('[SpinWheel] bfcache restore during cooldown — info modal force-closed.');
+        closeSpinInfoModal();
+      }
+    } else if (isHomePage()) {
+      // ELIGIBLE + route-back to Home via bfcache → the popup MUST re-open
+      // (openSpinInfoModal no-ops when already visible or cooldown starts).
+      gateAutoOpen(function () { openSpinInfoModal(); });
+    }
+    if (document.getElementById('spin-teaser-cta')) evaluateSpinAvailability();
+  });
+
   // Script tag lives at </body>: DOM is ready, run immediately (zero-flicker).
   initSpinWheel();
 
   /* ---------- Expose for the inline onclick handlers / app.js hook ---------- */
   window.openSpinInfoModal = openSpinInfoModal;
+  window.canShowSpinModal = canShowSpinModal; // central guard utility
+  window.isSpinAvailable = isSpinAvailable;   // canonical availability check
+  window.isUserInCooldown = isUserInCooldown; // direct sync evaluation
   window.closeSpinInfoModal = closeSpinInfoModal;
   window.openSpinInfoModalAfterNotice = openSpinInfoModalAfterNotice;
   window.handleSpinNowClick = handleSpinNowClick;
   window.closeSpinWheelModal = closeSpinWheelModal;
   window.executeWheelSpin = executeWheelSpin;
   window.openSpinWheelModal = openSpinWheelModal;
+  window.handleSpinTeaserClick = handleSpinTeaserClick;
   window.openSpinRewardModal = openSpinRewardModal;
   window.closeSpinRewardModal = closeSpinRewardModal;
   window.claimSpinReward = claimSpinReward;

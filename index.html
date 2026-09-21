@@ -260,6 +260,30 @@
       </div>
     </section>
 
+    <!-- Lucky Spin Wheel Teaser Banner — sits directly under the 4 feature
+         highlight cards. js/spin-wheel.js owns the CTA state: green shining
+         "SPIN NOW" when eligible, red live "Next Spin in HH:MM:SS" box while
+         the 24h cooldown runs. -->
+    <section id="spin-wheel-banner" class="spin-teaser-section">
+      <div class="container">
+        <div class="spin-teaser-card">
+          <div class="spin-teaser-wheel" aria-hidden="true">
+            <div class="spin-teaser-wheel-face"></div>
+            <div class="spin-teaser-wheel-hub"></div>
+          </div>
+          <div class="spin-teaser-text">
+            <h3 class="spin-teaser-title"><i class="fa-solid fa-gift" aria-hidden="true"></i> Spin &amp; Get Free Gift!</h3>
+            <p class="spin-teaser-sub">One lucky spin every 24 hours — win free crackers straight into your cart!</p>
+          </div>
+          <div class="spin-teaser-action">
+            <button type="button" id="spin-teaser-cta" class="spin-teaser-btn" disabled onclick="handleSpinTeaserClick()">
+              <i class="fa-solid fa-clock" aria-hidden="true"></i> <span id="spin-teaser-label">CHECKING&hellip;</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Promotional Big Sale Banner Section -->
     <section class="promo-banner-section fade-in-up" id="promo-banner-section">
       <div class="container">

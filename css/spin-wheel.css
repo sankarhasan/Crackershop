@@ -558,3 +558,184 @@
     font-size: 16px;
   }
 }
+
+/* ==========================================================================
+   HOMEPAGE TEASER BANNER (index.html — directly under the 4 feature cards)
+   ========================================================================== */
+
+/* Symmetrical my-10 equivalent: identical 40px gap above (under the four
+   highlight boxes) and below (above the Diwali offer banner). */
+.spin-teaser-section {
+  padding: 0;
+  margin: 40px 0;
+}
+
+/* The teaser's own bottom margin now provides the gap above the Diwali
+   card, so the promo section's legacy padding-top is removed — otherwise
+   it would double-space (and vary per breakpoint). Its mobile margin-top
+   (24px) collapses harmlessly with our 40px sibling margin (max wins). */
+.promo-banner-section {
+  padding-top: 0;
+}
+
+.spin-teaser-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 18px 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  background: linear-gradient(120deg, #4c1d95 0%, #312e81 55%, #0f172a 100%);
+  box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.45);
+}
+
+/* Left: mini wheel that keeps spinning — slow rotation, brief pause, repeat */
+.spin-teaser-wheel {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.spin-teaser-wheel-face {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  /* Same 10 festive slices as the live canvas wheel */
+  background: conic-gradient(
+    #FF3B00 0 36deg, #FF6A00 36deg 72deg, #FFAA00 72deg 108deg,
+    #FFD600 108deg 144deg, #FFF59D 144deg 180deg, #CE93D8 180deg 216deg,
+    #8E24AA 216deg 252deg, #673AB7 252deg 288deg, #512DA8 288deg 324deg,
+    #311B92 324deg 360deg
+  );
+  border: 4px solid #fbbf24; /* amber rim, mirrors #wheel-canvas */
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35), 0 6px 14px rgba(0, 0, 0, 0.4);
+  animation: teaser-wheel-cycle 10s ease-in-out infinite;
+}
+
+.spin-teaser-wheel-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #0f172a;
+}
+
+/* "ninnu ninnu spin aagura mathiri": spin → pause briefly → spin again.
+   Ends on a full-turn multiple so the loop seam is invisible. */
+@keyframes teaser-wheel-cycle {
+  0%   { transform: rotate(0deg); }
+  45%  { transform: rotate(720deg); }
+  55%  { transform: rotate(720deg); }
+  100% { transform: rotate(1440deg); }
+}
+
+/* Middle: headline + sub-copy */
+.spin-teaser-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.spin-teaser-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.spin-teaser-title .fa-gift {
+  color: #fcd34d; /* amber glyph accent */
+}
+
+.spin-teaser-sub {
+  margin: 0;
+  font-size: 12px;
+  color: #d8b4fe;
+}
+
+/* Right: dual-state CTA driven by js/spin-wheel.js availability machine */
+.spin-teaser-action {
+  flex-shrink: 0;
+}
+
+.spin-teaser-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 210px;
+  padding: 13px 20px;
+  border-radius: 12px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  cursor: not-allowed;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* Checking / cooldown faces: solid red, no shine, tabular digits */
+.spin-teaser-btn-checking,
+.spin-teaser-btn-cooldown {
+  background: #e11d48; /* rose-600 */
+  opacity: 0.95;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Available face: solid emerald + continuous shimmer sweep */
+.spin-teaser-btn-go {
+  background: #059669;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35);
+}
+
+.spin-teaser-btn-go.animate-gift-shine {
+  background: linear-gradient(110deg, #059669 0%, #10B981 30%, #6EE7B7 50%, #10B981 70%, #059669 100%);
+  background-size: 200% 100%;
+  animation: continuous-shine 2.5s infinite linear;
+}
+
+.spin-teaser-btn-go:hover:not(:disabled) {
+  background: #10b981;
+}
+
+.spin-teaser-btn-go.animate-gift-shine:hover {
+  background: linear-gradient(110deg, #059669 0%, #10B981 30%, #6EE7B7 50%, #10B981 70%, #059669 100%);
+}
+
+.spin-teaser-btn-go:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .spin-teaser-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 14px;
+    padding: 20px 16px;
+  }
+
+  .spin-teaser-title {
+    justify-content: center;
+    font-size: 17px;
+  }
+
+  .spin-teaser-btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
