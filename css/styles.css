@@ -9112,6 +9112,19 @@ main.account-view-active > section {
   border: none;
 }
 
+/* Mobile: status badge hugs the left, "Download Receipt" is pushed flush
+   right (ml-auto across the wrapped full-width action bar). */
+@media (max-width: 768px) {
+  .order-card-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .order-card-actions .order-pdf-btn {
+    margin-left: auto;
+  }
+}
+
 /* Tighter footprint inside narrow mobile containers */
 @media (max-width: 480px) {
   .order-items-table thead th { padding: 7px 6px; font-size: 9px; }

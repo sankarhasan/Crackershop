@@ -4615,7 +4615,7 @@ function renderOrderCard(order) {
           <span class="bg-gray-100 text-gray-800 font-extrabold text-xs px-2.5 py-1 rounded-md">#${escapeHtml(order.orderId || order.id)}</span>
           <span class="text-xs font-semibold text-gray-400">${escapeHtml(order.date || 'Recent')}</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 order-card-actions">
           <span class="bg-amber-100 text-amber-800 font-bold text-xs px-3 py-1 rounded-full">${escapeHtml(order.statusLabel || friendlyOrderStatus(order.status))}</span>
           <button onclick="downloadReceipt('${order.id}')" class="order-pdf-btn bg-amber-400 hover:bg-amber-500 text-gray-900 font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
             <i class="fa-solid fa-file-pdf"></i> Download Receipt
