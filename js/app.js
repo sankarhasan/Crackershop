@@ -1865,11 +1865,22 @@ function updateCartUI() {
     if (isGiftCartItem(item)) {
       itemRow.className = 'cart-item cart-gift-item';
 
-      // Same thumbnail footprint as a regular product row; FA gift tile only
-      // when the won product carries no image.
-      let giftImgContent = `<div class="cart-gift-img-fallback"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>`;
+      // Real product photo inside the standard thumbnail plate (80×56);
+      // onerror swaps to the hidden FA gift fallback so a broken URL can
+      // never leave an empty box in the banner.
+      let giftImgContent;
       if (item.image) {
-        giftImgContent = `<img src="${item.image}" alt="${item.name}" class="cart-gift-img">`;
+        giftImgContent = `
+          <div class="cart-gift-thumb">
+            <img src="${item.image}" alt="${item.name}" class="cart-gift-img"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <span class="cart-gift-thumb-fallback" aria-hidden="true"><i class="fa-solid fa-gift"></i></span>
+          </div>`;
+      } else {
+        giftImgContent = `
+          <div class="cart-gift-thumb">
+            <span class="cart-gift-thumb-fallback shown" aria-hidden="true"><i class="fa-solid fa-gift"></i></span>
+          </div>`;
       }
 
       itemRow.innerHTML = `

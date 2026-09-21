@@ -93,7 +93,7 @@
           </div>
 
           <div class="spin-info-box">
-            <div class="spin-info-gift-icon">🎁</div>
+            <div class="spin-info-gift-icon"><i class="fa-solid fa-gift" aria-hidden="true"></i></div>
             <h4 class="spin-info-heading">Spin Wheel Info</h4>
             <p class="spin-info-text">
               Win a prize? It will be automatically added below non-discount items in your address box and bill.
@@ -105,12 +105,17 @@
           </div>
 
           <div class="spin-info-actions">
+            <!-- Dual-state CTA: "SPIN NOW" (green, shining) ⇄ live HH:MM:SS
+                 cooldown countdown (red, disabled) — managed by the functions
+                 in section 3 below. No static warning text anymore. -->
             <button type="button" id="spin-open-wheel-btn" class="spin-btn-primary" onclick="handleSpinNowClick()">
-              Spin Now 🎡
+              <span id="spin-cta-label">SPIN NOW</span>
+              <i class="fa-solid fa-rotate" aria-hidden="true"></i>
             </button>
             <p id="spin-lock-hint" class="spin-lock-hint hidden"></p>
             <button type="button" class="spin-btn-secondary" onclick="closeSpinInfoModal()">
-              Skip Spin &amp; Go to Products Catalogue →
+              <span>Skip Spin &amp; Go to Products Catalogue</span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -130,12 +135,29 @@
             <div class="spin-wheel-pointer" aria-hidden="true"></div>
             <canvas id="wheel-canvas" width="280" height="280"></canvas>
             <button type="button" id="spin-start-btn" class="spin-start-btn" onclick="executeWheelSpin()">
-              <span id="spin-start-label">START</span>
-              <span class="spin-start-sub">SPIN</span>
+              <span id="spin-start-label">SPIN</span>
             </button>
           </div>
 
           <p id="spin-result-msg" class="spin-result-msg"></p>
+        </div>
+      </div>
+
+      <!-- WINNING REWARD POPUP (WINDOW 3) — gradient card shown right after
+           the wheel stops on a product prize. The gift is ALREADY in the cart
+           when this appears; Claim just fires confetti and closes. -->
+      <div id="spin-reward-modal" class="spin-modal-overlay spin-reward-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="spin-reward-card">
+          <button type="button" class="spin-close-btn" onclick="closeSpinRewardModal()" aria-label="Close">&times;</button>
+
+          <div class="spin-reward-img-wrap" id="spin-reward-img-wrap"></div>
+          <h3 class="spin-reward-name" id="spin-reward-name"></h3>
+          <span class="spin-reward-badge"><i class="fa-solid fa-gift" aria-hidden="true"></i> YOU WON FREE GIFT</span>
+          <p class="spin-reward-note">Your gift is already waiting in the cart — it rides along with your order enquiry.</p>
+
+          <button type="button" class="spin-claim-btn" onclick="claimSpinReward()">
+            <i class="fa-solid fa-box-open" aria-hidden="true"></i> Claim Reward
+          </button>
         </div>
       </div>
     `);
@@ -238,9 +260,10 @@
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     lockScroll();
-    // No pre-emptive gating here: the 24h lock and sign-in validation run
-    // ONLY when "Spin Now" is clicked (see handleSpinNowClick).
     showLockHint('');
+    // Decide the CTA mode for the account whose popup this is: SPIN NOW
+    // (green/shining) or the live red countdown.
+    refreshInfoModalAvailability();
   }
 
   function closeSpinInfoModal() {
@@ -249,6 +272,7 @@
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
     unlockScroll();
+    stopCtaTimer(); // no interval left running behind a closed modal
   }
 
   // app.js calls this from closeNoticeModal() — every time the notice closes.
@@ -308,11 +332,109 @@
   }
 
   /* ==========================================================================
-     4. "Spin Now" — auth gate + wheel modal (Window 2)
+     4. "Spin Now" — dual-state CTA (live countdown ⇄ shining button),
+        auth gate and wheel modal (Window 2)
      ========================================================================== */
-  function buildCooldownMessage(user, record) {
-    const hoursLeft = lockHoursRemaining(record);
-    return `⏳ This account (${user && user.email ? user.email : 'this user'}) has already spun today! Please try again in ${hoursLeft} hour${hoursLeft === 1 ? '' : 's'}.`;
+  let spinCtaInterval = null; // one guarded 1s tick; cleared on close/switch
+
+  function stopCtaTimer() {
+    if (spinCtaInterval) {
+      clearInterval(spinCtaInterval);
+      spinCtaInterval = null;
+    }
+  }
+
+  /** Milliseconds → "HH:MM:SS" (zero-padded; max 24h so HH stays 2 digits). */
+  function formatHms(msLeft) {
+    const totalSec = Math.max(0, Math.floor(msLeft / 1000));
+    const pad = (n) => (n < 10 ? '0' + n : '' + n);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return pad(h) + ':' + pad(m) + ':' + pad(s);
+  }
+
+  /** GREEN shining "SPIN NOW" state (also used the instant a countdown ends). */
+  function setSpinCtaToSpinNow() {
+    stopCtaTimer();
+    const btn = document.getElementById('spin-open-wheel-btn');
+    if (!btn) return;
+    btn.disabled = false;
+    btn.classList.remove('spin-btn-cooldown');
+    btn.classList.add('animate-gift-shine'); // emerald shimmer sweep
+    btn.innerHTML = '<span id="spin-cta-label">SPIN NOW</span> <i class="fa-solid fa-rotate" aria-hidden="true"></i>';
+  }
+
+  /** Neutral waiting face while the cooldown check runs — styled like the
+      red countdown pill so a "SPIN NOW" green flash never appears first. */
+  function setSpinCtaToPending() {
+    stopCtaTimer();
+    const btn = document.getElementById('spin-open-wheel-btn');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.classList.remove('animate-gift-shine');
+    btn.classList.add('spin-btn-cooldown');
+    btn.innerHTML = '<i class="fa-solid fa-clock" aria-hidden="true"></i> <span id="spin-cta-label">CHECKING&hellip;</span>';
+  }
+
+  /** RED disabled countdown state: "🕒 Next Spin in HH:MM:SS", ticking live. */
+  function setSpinCtaToCountdown(endsAt) {
+    const btn = document.getElementById('spin-open-wheel-btn');
+    if (!btn) return;
+    stopCtaTimer(); // never stack intervals on re-entry
+    btn.disabled = true;
+    btn.classList.remove('animate-gift-shine');
+    btn.classList.add('spin-btn-cooldown');
+    btn.innerHTML = '<i class="fa-solid fa-clock" aria-hidden="true"></i> <span id="spin-cta-label"></span>';
+
+    const label = document.getElementById('spin-cta-label'); // cached ref —
+                                                              // tick only touches textContent
+    const tick = () => {
+      const diff = endsAt - Date.now();
+      if (diff <= 0) {
+        setSpinCtaToSpinNow(); // auto-flip the moment the cooldown expires
+        return;
+      }
+      if (label) label.textContent = 'Next Spin in ' + formatHms(diff);
+    };
+    tick();
+    spinCtaInterval = setInterval(tick, 1000);
+  }
+
+  /**
+   * Requirement 1: the cooldown check happens IMMEDIATELY as the info modal
+   * opens — a locked-in account sees the RED timer button on load, never a
+   * "SPIN NOW" flash. A record already verified this page session paints
+   * synchronously; otherwise the pending (red-family) face holds until the
+   * live users/{uid} read resolves. Signed-out visitors get SPIN NOW at once
+   * (they have no cooldown; the login gate runs on click).
+   */
+  function applyAvailability(record) {
+    if (isLockActive(record)) {
+      const ts = toMillis(record.last_spun_at);
+      // Pending serverTimestamp (ts === null) → a spin JUST landed; show the
+      // worst-case 24h countdown; it self-corrects on the next open.
+      setSpinCtaToCountdown(ts !== null ? ts + TWENTY_FOUR_HOURS_MS : Date.now() + TWENTY_FOUR_HOURS_MS);
+    } else {
+      setSpinCtaToSpinNow();
+    }
+  }
+
+  function refreshInfoModalAvailability() {
+    const user = authUser();
+    if (!user) { setSpinCtaToSpinNow(); return; }
+
+    if (spinCheck && spinCheck.uid === user.uid) {
+      applyAvailability(spinCheck.record); // instant, no re-fetch, no flash
+      return;
+    }
+
+    setSpinCtaToPending();
+    fetchUserSpinRecord().then(result => {
+      if (!result.ok) { setSpinCtaToSpinNow(); return; } // click re-verifies
+      spinCheck = { uid: user.uid, record: result.record };
+      applyAvailability(result.record);
+    });
   }
 
   /**
@@ -351,8 +473,10 @@
       spinCheck = { uid: user.uid, record: result.record };
 
       if (isLockActive(result.record)) {
-        // Cooldown message stays INSIDE the info modal (custom UI, no alert()).
-        showLockHint(buildCooldownMessage(user, result.record));
+        // Cooldown surfaced as the live red countdown button — no text message.
+        showLockHint('');
+        const ts = toMillis(result.record.last_spun_at);
+        setSpinCtaToCountdown(ts !== null ? ts + TWENTY_FOUR_HOURS_MS : Date.now() + TWENTY_FOUR_HOURS_MS);
         return;
       }
 
@@ -386,6 +510,58 @@
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
     unlockScroll();
+  }
+
+  /* ---------- Window 3: winning reward popup card ---------- */
+  function openSpinRewardModal(prod) {
+    if (!prod) return;
+    const modal = document.getElementById('spin-reward-modal');
+    const imgWrap = document.getElementById('spin-reward-img-wrap');
+    const nameEl = document.getElementById('spin-reward-name');
+    if (!modal || !imgWrap || !nameEl) return;
+
+    // Product image keeps its ORIGINAL aspect ratio; FA gift icon fallback
+    // covers both a missing URL and a failed image load.
+    imgWrap.innerHTML = '';
+    const fallbackIcon = document.createElement('i');
+    fallbackIcon.className = 'fa-solid fa-gift';
+    fallbackIcon.setAttribute('aria-hidden', 'true');
+    if (prod.image) {
+      const img = document.createElement('img');
+      img.src = prod.image;
+      img.alt = prod.name || 'Won product';
+      img.className = 'spin-reward-img';
+      img.onerror = function () {
+        img.onerror = null;
+        img.replaceWith(fallbackIcon); // crisp icon instead of a broken frame
+      };
+      imgWrap.appendChild(img);
+    } else {
+      imgWrap.appendChild(fallbackIcon);
+    }
+    nameEl.textContent = prod.name || 'Mystery Prize';
+
+    // Open the reward card BEFORE closing the wheel so the scroll-lock
+    // counter never drops to zero mid-swap.
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    lockScroll();
+    closeSpinWheelModal();
+  }
+
+  function closeSpinRewardModal() {
+    const modal = document.getElementById('spin-reward-modal');
+    if (!modal || !modal.classList.contains('open')) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    unlockScroll();
+  }
+
+  /** "Claim Reward" — confetti celebration + dismiss (gift already in cart). */
+  function claimSpinReward() {
+    fireConfetti();
+    closeSpinRewardModal();
+    toast('🎁 Reward claimed — your free gift is in the cart!', 'success');
   }
 
   /* ==========================================================================
@@ -490,7 +666,7 @@
       ctx.stroke();
       ctx.restore();
 
-      // --- C. MULTI-LINE WHITE TEXT RENDERING (along the radius) ---
+      // --- C. MULTI-LINE TEXT RENDERING (along the radius) ---
       ctx.save();
       ctx.translate(centerX, centerY);
       ctx.rotate(angle + arcSize / 2);
@@ -498,14 +674,14 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#FFFFFF'; // Pure White Text
-      ctx.font = '900 10px sans-serif'; // Compact Bold Font
+      ctx.font = '500 8px sans-serif'; // Compact MEDIUM weight (was 900 bold)
       // Faint dark glow keeps white labels legible on the light-yellow slices
       ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
       ctx.shadowBlur = 3;
 
       const lines = wrapWheelText(resolveSegmentLabel(segs[i]).toUpperCase(), 11);
       const radiusPos = outerRadius * 0.62;
-      const lineHeight = 11;
+      const lineHeight = 9;                  // tightened for the smaller medium text
       const startY = -((lines.length - 1) * lineHeight) / 2;
 
       lines.forEach((line, index) => {
@@ -556,7 +732,10 @@
       return;
     }
     if (isLockActive(spinCheck.record)) {
-      msg.textContent = buildCooldownMessage(user, spinCheck.record);
+      msg.textContent = 'Cooldown is active for this account. Please try again later.';
+      // Also re-arm the info modal's red countdown for when it reopens.
+      const cdTs = toMillis(spinCheck.record.last_spun_at);
+      if (cdTs !== null) setSpinCtaToCountdown(cdTs + TWENTY_FOUR_HOURS_MS);
       return;
     }
 
@@ -697,14 +876,23 @@
 
       persistSpinResult(slot).then(() => {
         if (slot.indexOf('product:') === 0) {
+          // Requirement 4: the gift lands in the cart THE MOMENT the wheel
+          // stops on a win — even if the popup is closed without claiming.
           const won = addGiftToCart(slot);
-          fireConfetti();
-          msg.textContent = won ? `🎉 You won ${won.name}! It's in your cart.` : '🎉 Prize recorded — please contact the store.';
-          toast(won ? `🎁 ${won.name} added to your cart as a FREE GIFT!` : 'Spin prize saved.', 'success');
-          setTimeout(closeSpinWheelModal, 3200);
+          if (won) {
+            // Exclusive transition: openSpinRewardModal() fully hides the
+            // wheel card (badge, title, subtitle, canvas) before/while the
+            // reward card shows — ONLY the popup is on screen.
+            openSpinRewardModal(won);
+          } else {
+            msg.textContent = '🎉 Prize recorded — please contact the store.';
+            setTimeout(closeSpinWheelModal, 2400);
+          }
         } else {
           msg.textContent = '😅 Better luck next time! Come back in 24 hours.';
-          setSpinButtonEnabled(false, 'LOCKED');
+          // Center pin shows exactly SPINNING/SPIN — no extra words; the
+          // disabled state (not a "LOCKED" label) conveys the cooldown.
+          setSpinButtonEnabled(false, 'SPIN');
           setTimeout(closeSpinWheelModal, 2400);
         }
       });
@@ -786,4 +974,7 @@
   window.closeSpinWheelModal = closeSpinWheelModal;
   window.executeWheelSpin = executeWheelSpin;
   window.openSpinWheelModal = openSpinWheelModal;
+  window.openSpinRewardModal = openSpinRewardModal;
+  window.closeSpinRewardModal = closeSpinRewardModal;
+  window.claimSpinReward = claimSpinReward;
 })();

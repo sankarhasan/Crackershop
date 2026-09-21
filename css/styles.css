@@ -3461,29 +3461,47 @@ select.form-control {
   box-shadow: 0 6px 12px -4px rgba(0, 0, 0, 0.35);
 }
 
-/* Thumbnail: exact same box as the regular cart item image (80px, 18/13) */
-.cart-gift-img {
+/* Thumbnail plate: same 80×56 box / ratio as the regular product rows,
+   translucent frosted white so the real product photo stays crisp on the
+   gradient banner (rounded-xl + p-1 equivalent padding + overflow clip). */
+.cart-gift-thumb {
   width: 80px;
-  aspect-ratio: 18 / 13;
-  object-fit: contain;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
+  height: 56px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2); /* bg-white/20 */
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.1);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-.cart-gift-img-fallback {
-  width: 80px;
-  height: 58px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  display: flex;
+.cart-gift-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;               /* original proportions, never cropped */
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+/* Hidden by default; revealed by the img onerror or when no URL exists */
+.cart-gift-thumb-fallback {
+  display: none;
+  width: 100%;
+  height: 100%;
   align-items: center;
   justify-content: center;
   color: #ffffff;
   font-size: 20px;
+}
+
+.cart-gift-thumb-fallback.shown {
+  display: flex;
 }
 
 /* Name column takes the leftover width; badge hugs beneath it */
@@ -3558,20 +3576,11 @@ select.form-control {
     border-radius: 14px;
   }
 
-  /* 1. Thumbnail: square w-12 (48px) instead of the wide desktop box */
-  .cart-gift-img {
-    width: 48px;
-    height: 48px;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    border-radius: 10px;
-  }
-
-  .cart-gift-img-fallback {
+  /* 1. Thumbnail plate: compact 48px square instead of the wide desktop box */
+  .cart-gift-thumb {
     width: 48px;
     height: 48px;
     border-radius: 10px;
-    font-size: 16px;
   }
 
   /* 2. Title: 1 line when short, hard-clamped to 2 lines when long */
@@ -3612,11 +3621,14 @@ select.form-control {
 }
 
 @media (min-width: 641px) and (max-width: 768px) {
-  /* sm: tier — slightly larger 56px thumb (w-14 h-14) on big phones/tablets */
-  .cart-gift-img,
-  .cart-gift-img-fallback {
+  /* sm: tier — slightly larger 56px plate (w-14 h-14) on big phones/tablets */
+  .cart-gift-thumb {
     width: 56px;
     height: 56px;
+  }
+
+  .cart-gift-thumb-fallback {
+    font-size: 16px;
   }
 
   .cart-gift-name {

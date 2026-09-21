@@ -118,7 +118,7 @@
                   count += saved[i].quantity || 0;
                   total += (saved[i].price || 0) * (saved[i].quantity || 0);
                 }
-                document.getElementById('cart-count').textContent = count;
+                  document.getElementById('cart-count').textContent = count;
                 document.getElementById('cart-total').textContent = '₹' + total.toLocaleString();
               } catch (e) { /* keep static ₹0 markup on any failure */ }
             })();

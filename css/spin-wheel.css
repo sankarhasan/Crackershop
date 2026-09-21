@@ -111,7 +111,7 @@
   border-radius: 50%;
   background: #fef3c7; /* amber-100 */
   color: #d97706; /* amber-600 */
-  font-size: 20px;
+  font-size: 22px;                /* text-2xl-scale FA gift icon */
   margin-bottom: 8px;
 }
 
@@ -147,35 +147,60 @@
 .spin-btn-primary {
   width: 100%;
   padding: 14px 12px;
-  border: none;
+  border: 1px solid rgba(110, 231, 183, 0.4);
   outline: none;
   border-radius: 12px;
-  background: #fbbf24; /* amber-400 */
-  color: #020617;
+  background: #059669; /* emerald-600 solid — "SPIN NOW" available state */
+  color: #ffffff;
   font-family: 'Poppins', sans-serif;
   font-size: 14px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
   transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.spin-btn-primary:hover {
-  background: #fcd34d;
+/* Shimmer sweep while eligible. Two-class selector so it out-specifies
+   .spin-btn-primary's own background (spin-wheel.css loads AFTER the
+   styles.css file that defines .animate-gift-shine). */
+.spin-btn-primary.animate-gift-shine {
+  background: linear-gradient(110deg, #059669 0%, #10B981 30%, #6EE7B7 50%, #10B981 70%, #059669 100%);
+  background-size: 200% 100%;
+  animation: continuous-shine 2.5s infinite linear;
 }
 
-.spin-btn-primary:active {
+.spin-btn-primary:hover:not(:disabled) {
+  background: #10b981; /* emerald-500 */
+}
+
+.spin-btn-primary:active:not(:disabled) {
   transform: scale(0.95);
 }
 
-.spin-btn-primary:disabled,
-.spin-btn-primary.is-locked {
-  background: #78716c;
-  color: #d6d3d1;
+/* Cooldown state: solid red, live HH:MM:SS countdown, no shine */
+.spin-btn-cooldown,
+.spin-btn-primary.spin-btn-cooldown,
+.spin-btn-cooldown.animate-gift-shine {
+  background: #e11d48; /* rose-600 solid */
+  animation: none;
+  color: #ffffff;
+  font-weight: 700;
   cursor: not-allowed;
-  box-shadow: none;
+  opacity: 0.95;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.3);
+  font-variant-numeric: tabular-nums; /* HH:MM:SS digits never jitter */
+}
+
+.spin-btn-cooldown:hover,
+.spin-btn-cooldown:active {
+  transform: none;
 }
 
 .spin-lock-hint {
@@ -189,7 +214,7 @@
 .spin-btn-secondary {
   width: 100%;
   padding: 10px 12px;
-  border: none;
+  border: 1px solid rgba(167, 139, 250, 0.2);
   outline: none;
   border-radius: 12px;
   background: rgba(59, 7, 100, 0.6); /* purple-950/60 */
@@ -198,6 +223,10 @@
   font-weight: 700;
   letter-spacing: 0.025em;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;                /* text + FA arrow-right on one line */
   transition: background-color 0.2s ease;
 }
 
@@ -297,8 +326,23 @@
   align-items: center;
   justify-content: center;
   line-height: 1.15;
+  /* Fixed circle + hard clip: no state label can ever bleed outside the pin */
+  overflow: hidden;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35);
   transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* Longest state ("SPINNING") must fit the smallest circle (52px ⇒ ~40px text
+   box): cap the width, clamp to one line, and scale down before it clips. */
+#spin-start-label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  text-overflow: clip;
+  font-size: 10px;
+  line-height: 1.15;
 }
 
 .spin-start-btn:hover {
@@ -316,17 +360,134 @@
   box-shadow: none;
 }
 
-.spin-start-sub {
-  font-size: 8px;
-  font-weight: 700;
-}
-
 .spin-result-msg {
   font-size: 14px;
   font-weight: 700;
   color: #fcd34d;
   min-height: 24px;
   margin: 8px 0 0;
+}
+
+/* ==========================================================================
+   Window 3: WINNING REWARD POPUP CARD (gradient, product image, claim CTA)
+   ========================================================================== */
+.spin-reward-backdrop {
+  z-index: 1000460; /* above both wheel modals, still below the auth portal */
+}
+
+.spin-reward-card {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  /* Festive 4-stop gradient (same family as the cart gift card) */
+  background: linear-gradient(135deg, #FF5A57 0%, #E02F75 35%, #6700A3 70%, #050C38 100%);
+  color: #ffffff;
+  padding: 28px 22px 22px;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+/* Top: won product image, original aspect ratio preserved */
+.spin-reward-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
+  margin: 0 auto 14px;
+}
+
+.spin-reward-img {
+  display: block;
+  max-height: 144px;      /* max-h-36 */
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  margin: 0 auto;          /* mx-auto */
+  object-fit: contain;     /* original proportions, never stretched */
+  border-radius: 10px;     /* rounded-lg */
+  background: rgba(255, 255, 255, 0.92);
+  padding: 6px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.spin-reward-img-wrap > .fa-gift {
+  font-size: 44px;
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+/* Middle: product title */
+.spin-reward-name {
+  font-family: 'Poppins', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.3;
+  margin: 0 0 10px;
+  overflow-wrap: anywhere;
+}
+
+/* Below title: YOU WON FREE GIFT badge with FA gift icon */
+.spin-reward-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #059669; /* solid emerald */
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  border: 1px solid rgba(110, 231, 183, 0.45);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
+}
+
+.spin-reward-badge .fa-gift {
+  font-size: 10px;
+}
+
+.spin-reward-note {
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 12px auto 18px;
+  max-width: 260px;
+}
+
+/* Bottom: Claim Reward button */
+.spin-claim-btn {
+  width: 100%;
+  padding: 13px 12px;
+  border: none;
+  outline: none;
+  border-radius: 12px;
+  background: #fbbf24;
+  color: #020617;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.spin-claim-btn:hover {
+  background: #fcd34d;
+}
+
+.spin-claim-btn:active {
+  transform: scale(0.95);
 }
 
 /* ==========================================================================
@@ -355,6 +516,11 @@
     width: 58px;
     height: 58px;
   }
+
+  /* Tighter circle on mobile: shrink the state label to stay inside it */
+  #spin-start-label {
+    font-size: 8.5px;
+  }
 }
 
 @media (max-width: 400px) {
@@ -373,5 +539,22 @@
     width: 52px;
     height: 52px;
     font-size: 11px;
+  }
+
+  #spin-start-label {
+    font-size: 8px;
+  }
+
+  .spin-reward-card {
+    max-width: 300px;
+    padding: 24px 16px 18px;
+  }
+
+  .spin-reward-img {
+    max-height: 120px;
+  }
+
+  .spin-reward-name {
+    font-size: 16px;
   }
 }
