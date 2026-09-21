@@ -17,6 +17,13 @@
 
 // Global State variables
 let cart = [];
+
+// Own the scroll position explicitly (ScrollToTop equivalent): the browser
+// must never race our own placement on refresh, and deferred re-renders must
+// never move the page (see forceRevealEvents / no scrollTo in dashboard paint).
+if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+  try { window.history.scrollRestoration = 'manual'; } catch (e) {}
+}
 let activeCategory = 'all';
 let currentSlide = 0;
 let carouselInterval = null;
@@ -3128,11 +3135,20 @@ function revealAllFadeInUp() {
 /**
  * Trigger a synthetic scroll + resize event so any lazy-loaders,
  * IntersectionObservers, or scroll-triggered logic re-evaluate immediately.
- * Also forces window.scrollTo(0,0) — matching the "instant" scroll reset.
+ * Also forces window.scrollTo(0,0) — ONLY for genuine view-switch moments
+ * where jumping to the top is the intended UX (e.g. "show products").
  */
 function forceRevealScrollReset() {
   try { window.scrollTo(0, 0); } catch (e) {}
-  
+  forceRevealEvents();
+}
+
+/**
+ * Event wake-up WITHOUT touching scroll position — used by delayed fallback
+ * passes where the user may already be mid-scroll (a scrollTo there was the
+ * "page yanks back to top seconds after refresh" bug).
+ */
+function forceRevealEvents() {
   // Dispatch synthetic events so observers/listeners re-run instantly
   window.dispatchEvent(new Event('scroll'));
   window.dispatchEvent(new Event('resize'));
@@ -3179,9 +3195,11 @@ function initScrollAnimations() {
       // preloader overlay interfering with IntersectionObserver, etc.).
       setTimeout(() => {
         revealAllFadeInUp();
-        // Also dispatch synthetic scroll + resize so any other lazy-loaded
-        // content (images, iframes) is triggered to load immediately.
-        forceRevealScrollReset();
+        // Dispatch synthetic scroll + resize ONLY — no scrollTo(0,0) here:
+        // this fallback fires seconds after load, by which time the user may
+        // already be scrolling, and forcing top made the page snap back
+        // mid-scroll on refresh / first navigation.
+        forceRevealEvents();
       }, 3200);
     }, 100);
     
@@ -4274,7 +4292,9 @@ function showAccountDashboard(user) {
   // dashboard has painted, release the mask so it fades straight onto it.
   if (typeof unmaskHomeForDashboard === 'function') unmaskHomeForDashboard();
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // NOTE: intentionally NO window.scrollTo() here — this function also runs
+  // from the Firebase auth callback on every page load/refresh, and the
+  // deferred smooth-scroll yanked users back to the top mid-scroll.
 }
 
 /** Hide the dashboard (legacy index.html in-page view) and restore the normal homepage sections. */
@@ -5398,7 +5418,18 @@ function showDashboardTab(tab) {
   if (wishSection) wishSection.classList.toggle('hidden', !showWish);
 
   if (showWish) renderWishlistSection();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Bring the freshly-selected section into view instead of snapping to the
+  // top of the page — tab switching stays a local, in-place action.
+  const activeSection = showWish ? wishSection : ordersSection;
+  if (activeSection) {
+    try {
+      activeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      // Older browsers without options-object support
+      try { activeSection.scrollIntoView(true); } catch (e2) {}
+    }
+  }
 }
 
 /** Render the saved wishlist items (with Add to Cart / Remove actions). */
@@ -5431,20 +5462,40 @@ function renderWishlistSection() {
       imgContent = `<img src="${prod.image}" alt="${prod.name}" class="wishlist-item-img">`;
     }
 
+    // Same discount rules as the catalog grid: only the % badge shows —
+    // brand / green-cracker chips and the description are deliberately
+    // omitted from wishlist cards.
+    const hasValidDiscount = prod.discount && String(prod.discount).trim() !== '' && prod.discount !== 'Special';
+    const qty = getCartQty(prod.id);
+
     cards.push(`
-      <div class="wishlist-item-card${!prod.inStock ? ' out-of-stock' : ''}">
-        <div class="wishlist-item-imgwrap">${imgContent}</div>
+      <div class="wishlist-item-card${!prod.inStock ? ' out-of-stock' : ''}" onclick="openProductQuickView('${wishlistJsId(prod.id)}')" title="View product details">
+        <!-- Filled red heart (catalog style) = unlike. Its inline handler
+             already stopPropagation()s, so it never opens the modal; the
+             toggle re-renders this grid via updateWishlistUI(). -->
+        ${getWishlistBtnHTML(prod.id)}
+        <div class="card-img-container">
+          ${imgContent}
+          ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
+        </div>
         <div class="wishlist-item-body">
-          <h3 class="wishlist-item-name">${prod.name}</h3>
-          <span class="wishlist-item-qty">${prod.qty || ''}</span>
-          <p class="wishlist-item-price">₹${prod.price}</p>
-          <div class="wishlist-item-actions">
-            <button type="button" class="wishlist-btn-cart" onclick="wishlistAddToCart('${wishlistJsId(prod.id)}')"${!prod.inStock ? ' disabled' : ''}>
-              <i class="fa-solid fa-cart-shopping"></i> Add to Cart
-            </button>
-            <button type="button" class="wishlist-btn-remove" onclick="handleWishlistClick('${wishlistJsId(prod.id)}')">
-              <i class="fa-solid fa-trash-can"></i> Remove
-            </button>
+          <div class="wishlist-item-info">
+            <h3 class="wishlist-item-name" title="${escapeHtml(prod.name)}">${prod.name}</h3>
+            <!-- Catalog-identical badge row (Green Cracker / brand chips) -->
+            ${getProductBadgeRowHTML(prod)}
+            <span class="wishlist-item-qty">${prod.qty || ''}</span>
+          </div>
+          <!-- Price ⇄ ADD/stepper share one row on mobile, stack on desktop -->
+          <div class="wishlist-item-foot">
+            <p class="wishlist-item-price">₹${prod.price}${hasValidDiscount && prod.originalPrice ? ` <s class="wishlist-original-price">₹${prod.originalPrice}</s>` : ''}</p>
+            <div class="wishlist-item-actions">
+              <!-- Catalog-identical ADD ⇄ stepper toggle (globally synced by
+                   syncProductAction on every cart change). The wrapper swallows
+                   clicks so pressing anywhere in the action zone — including
+                   gaps and the qty count — never bubbles into the card's modal
+                   handler; the inner ADD/step buttons stopPropagation too. -->
+              <div class="action-container-right wishlist-action" data-action-for="${prod.id}" onclick="event.stopPropagation()">${buildProductActionInner(prod.id, qty, prod.inStock)}</div>
+            </div>
           </div>
         </div>
       </div>

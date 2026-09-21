@@ -7803,18 +7803,23 @@ main.account-view-active > section {
 /* Dashboard wishlist grid */
 .wishlist-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
 
 .wishlist-item-card {
-  background: #ffffff;
-  border: 1px solid rgba(229, 231, 235, 0.8);
-  border-radius: 14px;
+  /* "All Items" card skin, compact horizontal row at every breakpoint:
+     slim padding, image tile left, details right. */
+  background: #FFFDF0;
+  border: 1px solid rgba(253, 230, 138, 0.8);
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
 }
 
 .wishlist-item-card.out-of-stock {
@@ -7835,31 +7840,38 @@ main.account-view-active > section {
 }
 
 .wishlist-item-body {
-  padding: 14px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 1px;                /* tightened for the extra-compact card */
   flex: 1;
+  min-width: 0;
 }
 
 .wishlist-item-name {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;                /* text-[13px] slim title */
   font-weight: 700;
-  color: #111827;
+  color: #0f172a;                 /* slate-900 */
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 26px;            /* clearance for the absolute heart chip */
 }
 
 .wishlist-item-qty {
-  font-size: 11px;
+  font-size: 10px;                /* compact pack size */
   font-weight: 600;
-  color: #6b7280;
+  color: #64748b;
+  line-height: 1;                 /* leading-none */
 }
 
 .wishlist-item-price {
   margin: 0;
-  font-size: 16px;
-  font-weight: 800;
-  color: #047857;
+  font-size: 13px;                /* compact bold price */
+  font-weight: 900;
+  color: #0B7A3E;                 /* vivid emerald per Image-1 */
 }
 
 /* Tailwind-equivalent helpers used by getWishlistBtnHTML() */
@@ -7914,6 +7926,222 @@ main.account-view-active > section {
 
 .wishlist-btn-remove:hover {
   background: #fecaca;
+}
+
+/* ---- Wishlist card upgrades ---- */
+/* Entire card is the Quick View click target (buttons stopPropagation);
+   the card lifts on hover like the catalog grid does. position:relative
+   anchors the top-right heart unlike-button. */
+.wishlist-item-card {
+  cursor: pointer;
+  position: relative;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.wishlist-item-card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Action zone and Remove keep the standard cursor, not the card pointer */
+.wishlist-item-card .wishlist-item-actions button,
+.wishlist-item-card .jcs-stepper-wrap {
+  cursor: pointer;
+}
+
+/* Product name is plain text — the whole card is the click target, so no
+   link-like hover treatment on the title. */
+.wishlist-item-name {
+  text-decoration: none;
+}
+
+/* Strikethrough MRP beside the selling price (catalog price-row style) */
+.wishlist-original-price {
+  font-size: 9px;
+  font-weight: 700;
+  color: #94a3b8;                 /* slate-400 muted gray */
+  margin-left: 5px;
+}
+
+/* Reuse the catalog ADD ⇄ stepper block in normal flow (its catalog variant
+   is absolutely pinned to the image corner). The action zone hugs its own
+   content so ADD and the stepper are the same fixed box. */
+.wishlist-item-card .wishlist-action {
+  position: static !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+}
+
+/* Image tile: slim landscape box (sm:w-26 h-18 class sizes) — beats the
+   mobile-slider .card-img-container rules via equal-specificity ordering. */
+.wishlist-item-card .card-img-container {
+  width: 104px !important;
+  min-width: 104px !important;
+  max-width: 104px !important;
+  height: 72px !important;
+  min-height: 72px !important;
+  max-height: 72px !important;
+  aspect-ratio: auto !important;
+  border-radius: 8px;
+  background: #A83244;
+  flex-shrink: 0 !important;
+}
+
+/* Compact white heart chip at every width (mobile catalog card parity) */
+.wishlist-item-card .card-wishlist-btn {
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid rgba(255, 77, 109, 0.18);
+}
+
+.wishlist-item-card .card-wishlist-btn .fa-heart,
+.wishlist-item-card .card-wishlist-btn i {
+  font-size: 11px;
+}
+
+.wishlist-action .jcs-add-btn {
+  width: 100%;
+}
+
+/* ADD and the [− Qty +] counter are ONE exact 84×32 box — toggling states
+   never shifts size or alignment. !important beats the shared .jcs-* rules. */
+.wishlist-item-card .jcs-add-btn {
+  width: 84px !important;
+  height: 32px !important;
+  background: #0B7A3E !important;
+  color: #ffffff !important;
+  font-size: 12px !important;      /* text-xs — matches the counter type */
+  font-weight: 800 !important;
+  padding: 0 !important;
+  border-radius: 8px !important;   /* rounded-lg */
+  letter-spacing: 0.04em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.wishlist-item-card .jcs-add-btn:hover {
+  background: #065f33 !important;  /* emerald-800 */
+}
+
+.wishlist-item-card .jcs-add-btn:active {
+  transform: scale(0.95);
+}
+
+/* Matching compact stepper: emerald outline, IDENTICAL 84×32 footprint */
+.wishlist-item-card .jcs-stepper-wrap {
+  width: 84px !important;
+  height: 32px !important;
+  border: 1px solid #0B7A3E;
+  border-radius: 8px;
+  min-width: 0;
+  padding: 0 4px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.wishlist-item-card .jcs-step-btn {
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+}
+
+.wishlist-item-card .jcs-step-count {
+  font-size: 12px;
+  color: #0B7A3E;
+}
+
+.wishlist-action .jcs-stepper-wrap {
+  width: 100%;
+  justify-content: space-between;
+}
+
+/* Info / foot grouping: ultra-tight vertical rhythm for the compact card */
+.wishlist-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.wishlist-item-info .product-card-badges {
+  margin: 1px 0;
+}
+
+.wishlist-item-foot {
+  display: flex;
+  flex-direction: row;            /* price ⇄ ADD share one slim row everywhere */
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 0;
+}
+
+/* Action box nudged up slightly off the card's bottom edge (mb-1.5) */
+.wishlist-item-foot .wishlist-item-actions {
+  margin-top: 0;
+  padding-top: 0;
+  transform: translateY(-2px);
+}
+
+/* ---- MOBILE (≤768px): slim tier on top of the compact row-card base ---- */
+@media (max-width: 768px) {
+  .wishlist-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .wishlist-item-card {
+    gap: 10px;
+    padding: 8px;               /* p-2 */
+  }
+
+  /* Left: w-24 h-16 image tile (sm:/desktop tier stays 104×72 from base) */
+  .wishlist-item-card .card-img-container {
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    max-height: 64px !important;
+    border-radius: 8px;
+  }
+
+  .wishlist-item-name {
+    font-size: 12px;            /* text-xs on phones */
+  }
+
+  .wishlist-item-actions {
+    flex-shrink: 0;
+  }
+
+  /* ADD / counter keep the exact 84×32 footprint on the slim tier too */
+  .wishlist-action .jcs-add-btn,
+  .wishlist-action .jcs-stepper-wrap {
+    width: 84px !important;
+    height: 32px !important;
+  }
+}
+
+/* sm: tier (big phones / tablets / desktop) — slightly airier card padding,
+   matching the p-2 sm:p-2.5 spec pairing */
+@media (min-width: 641px) {
+  .wishlist-item-card {
+    padding: 10px;
+  }
 }
 
 /* Dashboard tabs: the inactive tab becomes a clearly clickable secondary pill */
