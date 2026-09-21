@@ -9139,6 +9139,137 @@ main.account-view-active > section {
 }
 
 /* ==========================================================================
+   ORDER SUCCESS MODAL — modern "osm" design (markup in js/components.js,
+   data filled by openSuccessModal() in js/app.js). Selectors reuse the
+   overlay's id+class lock so they out-specify the legacy rules above.
+   ========================================================================== */
+#success-modal-overlay.success-modal-overlay .success-modal.osm-card {
+  width: min(400px, calc(100vw - 32px));
+  border: none !important;          /* kills the legacy 6px green left line */
+  border-left: none !important;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
+  padding: 28px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Centered light-green verified badge — static, no animations. The tile is
+   tilted 12° while the check glyph counter-rotates so it reads upright
+   (rotate-12 / -rotate-12 reference design). */
+#success-modal-overlay.success-modal-overlay .osm-badge-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+#success-modal-overlay.success-modal-overlay .osm-badge {
+  width: 56px;
+  height: 56px;
+  background: rgba(163, 230, 205, 0.6);  /* #A3E6CD/60 soft mint */
+  color: #0B7A3E;                         /* brand dark green check */
+  border-radius: 16px;                    /* rounded-2xl */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(12deg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Checkmark counter-rotates so the glyph stands upright inside the tilt */
+#success-modal-overlay.success-modal-overlay .osm-badge .fa-check {
+  font-size: 22px;
+  font-weight: 900;
+  transform: rotate(-12deg);
+}
+
+#success-modal-overlay.success-modal-overlay .osm-title {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: #0f172a;
+  margin: 0 8px 18px;
+}
+
+/* Light-grey order details card: Order ID / Date & Time / Total rows */
+#success-modal-overlay.success-modal-overlay .osm-details {
+  width: 100%;
+  background: #f8fafc;               /* slate-50 */
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+#success-modal-overlay.success-modal-overlay .osm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+#success-modal-overlay.success-modal-overlay .osm-row strong {
+  color: #0f172a;
+  font-weight: 800;
+  text-align: right;
+  word-break: break-word;
+}
+
+#success-modal-overlay.success-modal-overlay .osm-row .osm-total {
+  font-size: 15px;
+  font-weight: 900;
+  color: #0B7A3E;
+}
+
+#success-modal-overlay.success-modal-overlay .osm-divider {
+  height: 1px;
+  background: rgba(226, 232, 240, 0.6);
+}
+
+#success-modal-overlay.success-modal-overlay .osm-note {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0 0 16px;
+}
+
+/* Brand-green "Go to my account" CTA */
+#success-modal-overlay.success-modal-overlay .osm-account-btn {
+  width: 100%;
+  background: #0B7A3E;
+  color: #ffffff;
+  border: none;
+  outline: none;
+  border-radius: 16px;
+  padding: 14px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(11, 122, 62, 0.28);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+#success-modal-overlay.success-modal-overlay .osm-account-btn:hover {
+  background: #065f33;               /* emerald-800 */
+}
+
+#success-modal-overlay.success-modal-overlay .osm-account-btn:active {
+  transform: scale(0.97);
+}
+
+/* Modal & badge are completely static per design spec — all osm-* keyframe
+   animations (pop / ring pulse / bounce) were intentionally removed. */
+
+/* ==========================================================================
    FONT AWESOME GLYPH RESTORE
    The global reset above ("* { font-family: 'Poppins', sans-serif !important; }")
    clobbers the font-family that Font Awesome assigns to its icon elements,

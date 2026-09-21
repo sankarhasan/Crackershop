@@ -250,16 +250,27 @@
     <div class="toast-container" id="toast-container"></div>
 
     <div id="success-modal-overlay" class="success-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
-      <div class="success-modal">
-        <div class="success-modal-icon" aria-hidden="true"><i class="fa-solid fa-champagne-glasses"></i></div>
-        <h2 class="success-modal-title">Thank you!</h2>
-        <p class="success-modal-message">
-          Your enquiry has been submitted successfully. Our team will contact you shortly.
-        </p>
-        <div class="success-modal-order-id" id="success-modal-order-id" style="display: none; margin-top: 12px; padding: 10px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-weight: 700; color: #166534; font-size: 1.1rem;"></div>
-        <button id="success-modal-ok" class="success-modal-ok-btn" type="button">
-          OK
-        </button>
+      <div class="success-modal osm-card">
+        <!-- Centered light-green verified badge (static tilted tile + upright
+             dark-green check, no animations) -->
+        <div class="osm-badge-wrap">
+          <span class="osm-badge" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+        </div>
+
+        <h2 class="osm-title">Your order has been successfully submitted</h2>
+
+        <!-- Order details card (no Payment Method by design) -->
+        <div class="osm-details">
+          <div class="osm-row"><span>Order ID</span><strong id="success-modal-order-id">—</strong></div>
+          <div class="osm-divider"></div>
+          <div class="osm-row"><span>Date &amp; Time</span><strong id="success-modal-datetime">—</strong></div>
+          <div class="osm-divider"></div>
+          <div class="osm-row"><span>Total</span><strong class="osm-total" id="success-modal-total">—</strong></div>
+        </div>
+
+        <p class="osm-note">Our team will contact you shortly.</p>
+
+        <button id="success-modal-ok" class="osm-account-btn" type="button">Go to my account</button>
       </div>
     </div>
 

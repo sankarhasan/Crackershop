@@ -2565,19 +2565,33 @@ function resetCouponState() {
 /* ==========================================================================
    7. Enquiry Form submission
    ========================================================================== */
-function openSuccessModal(orderId) {
+/**
+ * Modern order-success popup (osm-* markup injected by components.js).
+ * Shows Order ID, submission Date & Time and the order Total — payment
+ * method intentionally excluded — then "Go to my account" → dashboard.
+ */
+function openSuccessModal(orderId, grandTotal) {
   const overlay = document.getElementById('success-modal-overlay');
   if (!overlay) return;
 
-  // Display the branded Order ID (e.g. KPR-2026-8492) in the success modal
+  // Order ID cell (e.g. KPR-2026-8492)
   const orderIdEl = document.getElementById('success-modal-order-id');
-  if (orderIdEl) {
-    if (orderId) {
-      orderIdEl.textContent = 'Your Order ID: ' + orderId;
-      orderIdEl.style.display = 'block';
-    } else {
-      orderIdEl.style.display = 'none';
-    }
+  if (orderIdEl) orderIdEl.textContent = orderId || 'Pending';
+
+  // Date & Time — captured NOW, at the success moment
+  const dtEl = document.getElementById('success-modal-datetime');
+  if (dtEl) {
+    dtEl.textContent = new Date().toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  // Total cell (₹ formatted, Indian digit grouping)
+  const totalEl = document.getElementById('success-modal-total');
+  if (totalEl) {
+    const amount = Number(grandTotal || 0);
+    totalEl.textContent = '\u20B9' + amount.toLocaleString('en-IN');
   }
 
   overlay.classList.add('open');
@@ -2593,11 +2607,13 @@ function openSuccessModal(orderId) {
   if (!overlay.dataset.handlersBound) {
     overlay.dataset.handlersBound = 'true';
 
-    // OK button
+    // "Go to my account" — dismiss, then land on the client dashboard
+    // (renders the guest layout automatically when the session is signed out)
     if (okBtn) {
       okBtn.addEventListener('click', (evt) => {
         evt.preventDefault();
         closeSuccessModal();
+        window.location.href = 'dashboard.html';
       });
     }
 
@@ -2627,16 +2643,19 @@ function closeSuccessModal() {
 }
 
 function triggerSuccessConfetti() {
-  // canvas-confetti is expected to be loaded via CDN in index.html
+  // canvas-confetti is loaded via CDN on every storefront page
   try {
     if (typeof window.confetti !== 'function') return;
 
-    window.confetti({
-      particleCount: 150,
-      spread: 80,
-      origin: { y: 0.6 },
-      colors: ['#FFC107', '#004d40', '#d32f2f', '#ffffff']
-    });
+    const festive = ['#FFC107', '#004d40', '#d32f2f', '#ffffff', '#0B7A3E'];
+    window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: festive });
+    // Twin side cannons for the celebratory "burst" feel
+    setTimeout(() => {
+      try {
+        window.confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: festive });
+        window.confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: festive });
+      } catch (e) { /* cosmetic only */ }
+    }, 180);
   } catch (e) {
     // Fail silently if confetti script is blocked/unavailable
   }
@@ -2832,9 +2851,9 @@ function initEnquiryForm() {
           // Reset the Order Summary card to zero state after submission
           populateOrderSummaryFromCart();
           
-          // Trigger the existing Thank You pop-up (Success Modal) with the
-          // branded Order ID so the customer sees their reference number.
-          openSuccessModal(generatedOrderId);
+          // Pop the modern success modal (Order ID, Date & Time, Total) and
+          // fire the festive confetti burst together.
+          openSuccessModal(generatedOrderId, orderSummary.grandTotal);
           
           // Trigger explosive festive confetti animation (fullscreen)
           triggerSuccessConfetti();
