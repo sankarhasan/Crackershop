@@ -5476,7 +5476,6 @@ function renderWishlistSection() {
         ${getWishlistBtnHTML(prod.id)}
         <div class="card-img-container">
           ${imgContent}
-          ${hasValidDiscount ? `<span class="card-discount-badge">${prod.discount}</span>` : ''}
         </div>
         <div class="wishlist-item-body">
           <div class="wishlist-item-info">
@@ -5485,9 +5484,11 @@ function renderWishlistSection() {
             ${getProductBadgeRowHTML(prod)}
             <span class="wishlist-item-qty">${prod.qty || ''}</span>
           </div>
-          <!-- Price ⇄ ADD/stepper share one row on mobile, stack on desktop -->
+          <!-- Price ⇄ ADD/stepper share one row on mobile, stack on desktop.
+               The offer chip lives inline next to the strike-through price —
+               the image tile stays clean (no overlay). -->
           <div class="wishlist-item-foot">
-            <p class="wishlist-item-price">₹${prod.price}${hasValidDiscount && prod.originalPrice ? ` <s class="wishlist-original-price">₹${prod.originalPrice}</s>` : ''}</p>
+            <p class="wishlist-item-price">₹${prod.price}${hasValidDiscount && prod.originalPrice ? ` <s class="wishlist-original-price">₹${prod.originalPrice}</s>` : ''}${hasValidDiscount ? ` <span class="wishlist-offer-badge">${prod.discount}</span>` : ''}</p>
             <div class="wishlist-item-actions">
               <!-- Catalog-identical ADD ⇄ stepper toggle (globally synced by
                    syncProductAction on every cart change). The wrapper swallows

@@ -7963,6 +7963,37 @@ main.account-view-active > section {
   margin-left: 5px;
 }
 
+/* Compact red offer chip inline next to the price (moved off the image —
+   the wishlist image tile stays overlay-free). Flex-centering on a fixed
+   height keeps "80% OFF" dead-center vertically AND horizontally. */
+.wishlist-offer-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 18px;                   /* h-4.5 pill */
+  margin-left: 6px;
+  background: #e11d48;            /* rose-600 */
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 0 6px;
+  border-radius: 6px;             /* rounded-md */
+  line-height: 1;                 /* leading-none */
+  white-space: nowrap;
+  vertical-align: middle;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 768px) {
+  .wishlist-offer-badge {
+    font-size: 9px;               /* text-[9px] on phones */
+    height: 16px;
+    padding: 0 5px;
+    margin-left: 5px;
+  }
+}
+
 /* Reuse the catalog ADD ⇄ stepper block in normal flow (its catalog variant
    is absolutely pinned to the image corner). The action zone hugs its own
    content so ADD and the stepper are the same fixed box. */
