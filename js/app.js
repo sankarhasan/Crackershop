@@ -4583,7 +4583,7 @@ function friendlyOrderStatus(status) {
 /**
  * One FULL DETAILED dashboard order card (amber accent border, products
  * table and footer summary). The fetched order is cached in
- * window.dashOrdersCache so "Download PDF Receipt" can print a complete
+ * window.dashOrdersCache so "Download Receipt" can print a complete
  * receipt without another Firestore read.
  */
 function renderOrderCard(order) {
@@ -4618,7 +4618,7 @@ function renderOrderCard(order) {
         <div class="flex items-center gap-2">
           <span class="bg-amber-100 text-amber-800 font-bold text-xs px-3 py-1 rounded-full">${escapeHtml(order.statusLabel || friendlyOrderStatus(order.status))}</span>
           <button onclick="downloadReceipt('${order.id}')" class="order-pdf-btn bg-amber-400 hover:bg-amber-500 text-gray-900 font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
-            <i class="fa-solid fa-file-pdf"></i> Download PDF Receipt
+            <i class="fa-solid fa-file-pdf"></i> Download Receipt
           </button>
         </div>
       </div>
@@ -5540,12 +5540,22 @@ function downloadOrderReceipt(docId) {
   const breakdown = order.breakdown || {};
   const items = Array.isArray(order.items) ? order.items : [];
 
+  // Spin-wheel free-gift detection on saved order lines: explicit flags,
+  // a ₹0 unit price, or the GIFT- id prefix (older snapshots). Also strips
+  // any legacy " (FREE GIFT 🎁)" name suffix so the (FREE) tag stays uniform.
+  const isFreeReceiptLine = (it) => Number(it.unitPrice || 0) === 0
+    || !!(it.isGift || it.isFreeGift || it.isSpinReward || it.isFree)
+    || String(it.id || '').indexOf('GIFT-') === 0;
+  const cleanReceiptName = (nm) => String(nm || 'Item').replace(/\s*\((FREE GIFT|FREE)[^)]*\)\s*$/i, '').trim() || 'Item';
+
   const itemRows = items.length
     ? items.map((it) => {
         const qty = Number(it.quantity || 0);
         const unit = Number(it.unitPrice || 0);
         const lineTotal = Number(it.totalPrice || (qty * unit));
-        return '<tr><td>' + escapeHtml(it.productName || 'Item') + '</td>'
+        const rawName = it.productName || it.name || 'Item';
+        const dispName = isFreeReceiptLine(it) ? cleanReceiptName(rawName) + ' (FREE)' : rawName;
+        return '<tr><td>' + escapeHtml(dispName) + '</td>'
           + '<td style="text-align:center;">' + qty + '</td>'
           + '<td style="text-align:right;">₹' + escapeHtml(unit.toLocaleString('en-IN')) + '</td>'
           + '<td style="text-align:right;">₹' + escapeHtml(lineTotal.toLocaleString('en-IN')) + '</td></tr>';
@@ -5557,10 +5567,22 @@ function downloadOrderReceipt(docId) {
     : '<tr><td colspan="3" style="text-align:right;">' + escapeHtml(label) + '</td>'
       + '<td style="text-align:right;">₹' + escapeHtml(Number(value || 0).toLocaleString('en-IN')) + '</td></tr>';
 
+  // "Spin Wheel Reward" row: shows the FREE product's name instead of a ₹0
+  // amount. Falls back to the legacy money row only for older orders that
+  // recorded a discount figure but no gift line.
+  const giftLine = items.find(isFreeReceiptLine);
+  const spinRewardName = giftLine
+    ? cleanReceiptName(giftLine.productName || giftLine.name || 'Free Gift')
+    : (breakdown.spinWheelRewardName || order.spinWheelRewardName || null);
+  const spinRow = spinRewardName
+    ? '<tr><td colspan="3" style="text-align:right;">Spin Wheel Reward</td>'
+      + '<td style="text-align:right;">' + escapeHtml(spinRewardName) + '</td></tr>'
+    : moneyRow('Spin Wheel Reward', breakdown.spinWheelDiscount);
+
   const breakdownRows = moneyRow('Total (original)', breakdown.totalOriginal)
     + moneyRow('Discounted Total', breakdown.totalDiscounted)
     + moneyRow('Coupon Discount', breakdown.couponDiscount)
-    + moneyRow('Spin Wheel Discount', breakdown.spinWheelDiscount)
+    + spinRow
     + moneyRow('Non-Discounted Items', breakdown.nonDiscountedTotal);
 
   const win = window.open('', '_blank', 'width=820,height=940');
