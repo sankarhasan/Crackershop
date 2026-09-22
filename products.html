@@ -166,24 +166,61 @@
     <!-- Product Catalog Section -->
     <section id="products" class="products-section fade-in-up">
       <div class="container">
-        <div class="section-header">
-          <h4 class="section-subtitle">EXPLORE SHOP</h4>
-          <h2 class="section-title">Our Premium Crackers</h2>
-          <p class="section-desc">Add safety-tested, beautiful firecrackers to your cart. Select category to filter.</p>
-        </div>
-
-        <!-- Scroll anchor for "Our Premium Crackers" -->
+        <!-- Scroll anchor for the catalogue (post-order smooth-scroll target
+             in js/app.js); invisible, so the filter panel now sits right at
+             the top of the shop view. The old "EXPLORE SHOP / Our Premium
+             Crackers" banner was intentionally removed. -->
         <div id="premium-crackers" aria-hidden="true" style="position: relative; top: -100px; height: 1px;"></div>
 
-        <!-- Filter Controls -->
-        <div class="filter-controls-container">
-          <div class="search-bar-container">
-            <input type="text" id="product-search" placeholder="Search firecrackers..." class="form-control search-input">
-            <span class="search-icon-btn"><i class="fa-solid fa-magnifying-glass"></i></span>
+        <!-- Legacy filter bar kept as a hidden mount: renderFilterButtons() and the
+             realtime listeners still drive category state through it; the visible
+             UI is the advanced Catalogue Filter Panel below. -->
+        <div class="filter-bar" id="filter-bar" hidden></div>
+
+        <!-- Advanced Catalogue Filter Bar (dynamic: renderCatalogueFilters()) -->
+        <div class="catalogue-filter-panel" id="catalogue-filter-panel">
+          <div class="cfp-top">
+            <div class="cfp-heading">
+              <div class="cfp-heading-text">
+                <h2 class="cfp-title">Our Fireworks Catalogue</h2>
+                <p class="cfp-subtitle">Explore all fireworks from our catalogue</p>
+              </div>
+              <button type="button" class="cfp-download-btn" onclick="downloadPriceList()" title="Download the latest KPR Crackers price list (PDF)">
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Download Price List
+              </button>
+            </div>
+            <select id="catalogue-category-select" class="cfp-select" aria-label="Select category">
+              <option value="all">All Categories</option>
+            </select>
           </div>
-          <div class="filter-bar" id="filter-bar">
-            <!-- Filter buttons loaded by JS -->
-            <button class="filter-btn active" data-category="all">All Items</button>
+
+          <div class="cfp-divider"></div>
+
+          <div class="cfp-pill-group">
+            <span class="cfp-label">Brand Filter:</span>
+            <div class="cfp-pills" id="catalogue-brand-pills">
+              <button type="button" class="cfp-pill cfp-pill-brand active" data-brand="all">All Brands</button>
+            </div>
+          </div>
+
+          <div class="cfp-divider"></div>
+
+          <!-- Price Filter pills (replaces the old Sort dropdown; mirrors the
+               catalogueSortOption states: standard / lowToHigh / highToLow) -->
+          <div class="cfp-pill-group">
+            <span class="cfp-label">Price Filter:</span>
+            <div class="cfp-pills" id="catalogue-price-pills">
+              <button type="button" class="cfp-pill cfp-pill-price active" data-price="standard">All Price</button>
+              <button type="button" class="cfp-pill cfp-pill-price" data-price="lowToHigh">Low to High</button>
+              <button type="button" class="cfp-pill cfp-pill-price" data-price="highToLow">High to Low</button>
+            </div>
+          </div>
+
+          <div class="cfp-search-row">
+            <div class="cfp-search-wrap">
+              <i class="fa-solid fa-magnifying-glass cfp-search-icon" aria-hidden="true"></i>
+              <input type="text" id="product-search" class="cfp-search-input" placeholder="Search products by keyword (e.g. Ashoka, Garland, Bijili, Fountain)">
+            </div>
           </div>
         </div>
 

@@ -31,6 +31,10 @@ let selectedState = '';
 let CURRENT_MIN_LIMIT = 3000; // Default minimum order value
 let MINIMUM_ORDER_VALUE = 3000; // Default fallback for Tamil Nadu / initial load
 
+/* Advanced Catalogue Filter Bar state (products page) */
+let catalogueBrandFilter = 'all';    // lowercased brand name or 'all'
+let catalogueSortOption = 'standard';// 'standard' | 'lowToHigh' | 'highToLow'
+
 /**
  * Get the current minimum order limit based on selected state.
  * @returns {number} - The minimum order value
@@ -946,6 +950,100 @@ function renderFilterButtons() {
   // Center the active pill within the scrollable filter bar after render
   // (covers initial load, ?category= deep-link, and Firestore realtime re-renders).
   setTimeout(scrollToActiveCategoryPill, 100);
+
+  // Keep the advanced Catalogue Filter Panel in sync (counts, brand pills, sort).
+  renderCatalogueFilters();
+}
+
+/**
+ * Populate the advanced Catalogue Filter Bar on the products page:
+ * category dropdown with per-category item counts, dynamically extracted
+ * brand pills (unique non-empty `brand` values from the admin product list),
+ * and the price filter pills (All Price / Low to High / High to Low, which
+ * replaced the old Sort dropdown). Called from renderFilterButtons() so
+ * initial load, Firestore realtime updates, and ?category= deep-links all
+ * refresh it through the existing pipeline.
+ */
+function renderCatalogueFilters() {
+  const catSelect = document.getElementById('catalogue-category-select');
+  if (!catSelect) return; // panel only exists on the products page
+
+  const products = getProducts();
+  const categories = getCategories();
+  const current = (activeCategory || 'all').toString().trim().toLowerCase();
+
+  // Category dropdown — "All Categories (N Items)" + per-category counts
+  let catHtml = '<option value="all">All Categories (' + products.length + ' Items)</option>';
+  categories.forEach(cat => {
+    const slug = (cat.slug || '').toString().trim().toLowerCase();
+    const count = products.filter(p => String(p.categoryId).toUpperCase() === String(cat.id).toUpperCase()).length;
+    catHtml += '<option value="' + escapeHtml(slug) + '"' + (slug === current ? ' selected' : '') + '>'
+      + escapeHtml(cat.name) + ' (' + count + ')</option>';
+  });
+  catSelect.innerHTML = catHtml;
+  if (!catSelect.dataset.cfpBound) {
+    catSelect.dataset.cfpBound = 'true';
+    catSelect.addEventListener('change', () => filterByCategory(catSelect.value));
+  }
+
+  // Brand pills — unique brands straight from the (admin-synced) product list
+  const brandWrap = document.getElementById('catalogue-brand-pills');
+  if (brandWrap) {
+    const brands = Array.from(new Set(
+      products.map(p => String(p.brand || p.brandName || '').trim()).filter(b => b !== '' && b.toLowerCase() !== 'special')
+    ));
+    let html = '<button type="button" class="cfp-pill cfp-pill-brand' + (catalogueBrandFilter === 'all' ? ' active' : '') + '" data-brand="all">All Brands</button>';
+    brands.forEach(b => {
+      html += '<button type="button" class="cfp-pill cfp-pill-brand' + (catalogueBrandFilter === b.toLowerCase() ? ' active' : '') + '" data-brand="' + escapeHtml(b) + '">' + escapeHtml(b) + '</button>';
+    });
+    brandWrap.innerHTML = html;
+    brandWrap.querySelectorAll('.cfp-pill-brand').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const raw = btn.getAttribute('data-brand') || 'all';
+        catalogueBrandFilter = (raw === 'all') ? 'all' : raw.toLowerCase();
+        renderCatalogueFilters();
+        renderProductsCatalog();
+      });
+    });
+  }
+
+  // Price filter pills — replaces the old Sort dropdown; the data-price
+  // values map 1:1 onto catalogueSortOption states ('standard' = All Price)
+  const priceWrap = document.getElementById('catalogue-price-pills');
+  if (priceWrap) {
+    priceWrap.querySelectorAll('.cfp-pill-price').forEach(btn => {
+      const value = btn.getAttribute('data-price') || 'standard';
+      btn.classList.toggle('active', value === catalogueSortOption);
+      if (!btn.dataset.cfpBound) {
+        btn.dataset.cfpBound = 'true';
+        btn.addEventListener('click', () => {
+          catalogueSortOption = btn.getAttribute('data-price') || 'standard';
+          renderCatalogueFilters();
+          renderProductsCatalog();
+        });
+      }
+    });
+  }
+}
+
+/**
+ * "Download Price List" — saves the static PDF price list asset from the
+ * site's assets folder via a temporary <a download> anchor. The file is
+ * served same-origin, so it stays inside the CSP's img/connect allowances.
+ */
+function downloadPriceList() {
+  try {
+    const link = document.createElement('a');
+    link.href = 'assets/KPR_Crackers_Price_List.pdf';
+    link.download = 'KPR_Crackers_Price_List.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    if (typeof showToast === 'function') showToast('Price list download started.', 'success');
+  } catch (e) {
+    console.error('[PriceList] \u2717 Download failed:', e);
+    if (typeof showToast === 'function') showToast('Could not start the price list download.', 'error');
+  }
 }
 
 function renderProductsCatalog() {
@@ -976,12 +1074,25 @@ function renderProductsCatalog() {
     }
   }
 
-  // Search filter (name or description)
+  // Search filter (name, description or brand keyword)
   if (searchQuery.trim() !== '') {
     filtered = filtered.filter(p =>
       (p.name || '').toLowerCase().includes(searchQuery) ||
-      (p.description || '').toLowerCase().includes(searchQuery)
+      (p.description || '').toLowerCase().includes(searchQuery) ||
+      String(p.brand || '').toLowerCase().includes(searchQuery)
     );
+  }
+
+  // Brand filter (dynamic pills from the admin product list)
+  if (catalogueBrandFilter !== 'all') {
+    filtered = filtered.filter(p => String(p.brand || p.brandName || '').trim().toLowerCase() === catalogueBrandFilter);
+  }
+
+  // Sort (standard keeps the admin sequence; price sorts copy the array first)
+  if (catalogueSortOption === 'lowToHigh') {
+    filtered = filtered.slice().sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+  } else if (catalogueSortOption === 'highToLow') {
+    filtered = filtered.slice().sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
   }
 
   if (filtered.length === 0) {

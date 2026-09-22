@@ -9283,3 +9283,283 @@ main.account-view-active > section {
   font-family: "Font Awesome 6 Brands" !important;
 }
 
+/* ==========================================================================
+   ADVANCED DYNAMIC CATALOGUE FILTER BAR  (products.html)
+   Rendered/populated by renderCatalogueFilters() in js/app.js.
+   ========================================================================== */
+.catalogue-filter-panel {
+  background-color: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 28px;
+  width: 100%; /* full-bleed: aligns with the category pills above and the product grid below */
+  margin: 0 0 40px;
+}
+
+/* Top header row + category dropdown */
+.cfp-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Title block: slim heading + download chip share one wrapping row */
+.cfp-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap; /* button drops below the title on narrow screens */
+  min-width: 0;
+}
+
+.cfp-title {
+  font-size: 1.2rem;              /* text-xl: reduced from 1.7rem */
+  font-weight: 800;
+  color: var(--text-dark);
+  line-height: 1.25;
+}
+
+.cfp-subtitle {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Soft-emerald PDF download chip beside the catalogue title */
+.cfp-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #ecfdf5;      /* emerald-50 tint */
+  color: var(--deep-green);
+  border: 1px solid #a7f3d0;      /* emerald-200 */
+  border-radius: var(--radius-md);
+  padding: 7px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.cfp-download-btn:hover {
+  background-color: #d1fae5;      /* emerald-100 */
+}
+
+.cfp-download-btn:active {
+  transform: scale(0.97);
+}
+
+.cfp-select {
+  background-color: var(--light-gray);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  cursor: pointer;
+  outline: none;
+  transition: var(--transition);
+  min-width: 200px;
+}
+
+.cfp-select:focus {
+  border-color: var(--deep-green);
+  box-shadow: 0 0 0 3px rgba(24, 92, 43, 0.15);
+}
+
+.cfp-divider {
+  border-top: 1px solid var(--border-color);
+  margin: 18px 0;
+}
+
+/* Pill groups (brand + price) */
+.cfp-pill-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  overflow: hidden; /* rail itself owns the horizontal scroll, never the row */
+  margin-bottom: 6px;
+}
+
+.cfp-label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 96px;
+  flex-shrink: 0; /* label never scrolls away or squeezes */
+}
+
+/* Scrollable pill rail: single horizontal row, hidden scrollbar */
+.cfp-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0; /* lets the rail shrink to the row and own the overflow */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 4px 0; /* py-1 breathing room so pill shadows aren't clipped */
+  scrollbar-width: none;           /* Firefox */
+  -ms-overflow-style: none;        /* IE / old Edge */
+}
+
+.cfp-pills::-webkit-scrollbar {
+  display: none;                   /* Chrome / Safari / new Edge */
+}
+
+.cfp-pill {
+  padding: 8px 16px;
+  flex-shrink: 0; /* pills keep their size instead of squishing inside the rail */
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: var(--transition);
+  white-space: nowrap;
+  background-color: var(--light-gray);
+  color: var(--text-dark);
+}
+
+/* Brand pills: neutral idle, deep-green active */
+.cfp-pill-brand {
+  background-color: var(--light-gray);
+  color: var(--text-dark);
+  border-color: var(--border-color);
+}
+
+.cfp-pill-brand:hover {
+  border-color: var(--deep-green);
+  color: var(--deep-green);
+}
+
+.cfp-pill-brand.active {
+  background-color: var(--deep-green);
+  color: var(--white);
+  border-color: var(--deep-green);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Price pills: neutral idle, golden active */
+.cfp-pill-price {
+  background-color: var(--light-gray);
+  color: var(--text-dark);
+  border-color: var(--border-color);
+}
+
+.cfp-pill-price:hover {
+  border-color: var(--golden-dark);
+  color: var(--golden-dark);
+}
+
+.cfp-pill-price.active {
+  background-color: var(--golden-yellow);
+  color: var(--text-dark);
+  border-color: var(--golden-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Search row */
+.cfp-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.cfp-search-wrap {
+  position: relative;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.cfp-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.cfp-search-input {
+  width: 100%;
+  background-color: var(--light-gray);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 13px 16px 13px 42px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  outline: none;
+  transition: var(--transition);
+}
+
+.cfp-search-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.cfp-search-input:focus {
+  border-color: var(--deep-green);
+  box-shadow: 0 0 0 3px rgba(24, 92, 43, 0.15);
+}
+
+/* Mobile (≤768px): filter rows stack the label ABOVE the pill rail so the
+   rails are 100% visible — no clipping — and scroll smoothly under touch */
+@media (max-width: 768px) {
+  .cfp-pill-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    overflow: visible;
+  }
+
+  .cfp-pills {
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cfp-label {
+    min-width: 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .catalogue-filter-panel {
+    padding: 20px 16px;
+  }
+
+  .cfp-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cfp-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .cfp-label {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
