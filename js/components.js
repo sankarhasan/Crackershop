@@ -251,10 +251,11 @@
 
     <div id="success-modal-overlay" class="success-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
       <div class="success-modal osm-card">
-        <!-- Centered light-green verified badge (static tilted tile + upright
-             dark-green check, no animations) -->
+        <!-- Custom approved icon from Icons/ (static, centered; hidden if the
+             asset fails to load) -->
         <div class="osm-badge-wrap">
-          <span class="osm-badge" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+          <img src="Icons/approved.png" alt="Order Approved" class="osm-approved-img"
+               onerror="this.style.display='none';">
         </div>
 
         <h2 class="osm-title">Your order has been successfully submitted</h2>
@@ -264,6 +265,8 @@
           <div class="osm-row"><span>Order ID</span><strong id="success-modal-order-id">—</strong></div>
           <div class="osm-divider"></div>
           <div class="osm-row"><span>Date &amp; Time</span><strong id="success-modal-datetime">—</strong></div>
+          <div class="osm-divider"></div>
+          <div class="osm-row"><span>Payment</span><span class="osm-payment-pending">Pending</span></div>
           <div class="osm-divider"></div>
           <div class="osm-row"><span>Total</span><strong class="osm-total" id="success-modal-total">—</strong></div>
         </div>

@@ -9156,9 +9156,8 @@ main.account-view-active > section {
   text-align: center;
 }
 
-/* Centered light-green verified badge — static, no animations. The tile is
-   tilted 12° while the check glyph counter-rotates so it reads upright
-   (rotate-12 / -rotate-12 reference design). */
+/* Custom approved icon from Icons/approved.png — static, top-center of the
+   modal, no badge tile / animations (per design spec) */
 #success-modal-overlay.success-modal-overlay .osm-badge-wrap {
   display: flex;
   align-items: center;
@@ -9166,24 +9165,10 @@ main.account-view-active > section {
   margin-bottom: 20px;
 }
 
-#success-modal-overlay.success-modal-overlay .osm-badge {
-  width: 56px;
-  height: 56px;
-  background: rgba(163, 230, 205, 0.6);  /* #A3E6CD/60 soft mint */
-  color: #0B7A3E;                         /* brand dark green check */
-  border-radius: 16px;                    /* rounded-2xl */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: rotate(12deg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-/* Checkmark counter-rotates so the glyph stands upright inside the tilt */
-#success-modal-overlay.success-modal-overlay .osm-badge .fa-check {
-  font-size: 22px;
-  font-weight: 900;
-  transform: rotate(-12deg);
+#success-modal-overlay.success-modal-overlay .osm-approved-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
 }
 
 #success-modal-overlay.success-modal-overlay .osm-title {
@@ -9226,6 +9211,18 @@ main.account-view-active > section {
   font-size: 15px;
   font-weight: 900;
   color: #0B7A3E;
+}
+
+/* Payment status pill: bold red "Pending" on a faint red chip */
+#success-modal-overlay.success-modal-overlay .osm-payment-pending {
+  color: #dc2626;                  /* red-600 */
+  font-weight: 800;
+  background: #fef2f2;              /* red-50 */
+  border: 1px solid #fee2e2;        /* red-100 */
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 #success-modal-overlay.success-modal-overlay .osm-divider {
