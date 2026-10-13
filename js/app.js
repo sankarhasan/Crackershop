@@ -1003,6 +1003,7 @@ function renderCatalogueFilters() {
         catalogueBrandFilter = (raw === 'all') ? 'all' : raw.toLowerCase();
         renderCatalogueFilters();
         renderProductsCatalog();
+        renderMobileSlider(); // mobile list lives in its own slider renderer
       });
     });
   }
@@ -1020,6 +1021,7 @@ function renderCatalogueFilters() {
           catalogueSortOption = btn.getAttribute('data-price') || 'standard';
           renderCatalogueFilters();
           renderProductsCatalog();
+          renderMobileSlider(); // mobile list lives in its own slider renderer
         });
       }
     });
@@ -1046,6 +1048,41 @@ function downloadPriceList() {
   }
 }
 
+/**
+ * Single source of truth filter pipeline shared by the desktop grid AND the
+ * mobile slider lists (vanilla equivalent of one `displayedProducts` state
+ * passed to every list view): search keyword → brand pills → price sort
+ * pills. Category scoping is deliberately NOT here — the desktop grid slices
+ * by activeCategory itself and the mobile slider builds per-category slides.
+ */
+function applyCatalogueFilters(list) {
+  let out = Array.isArray(list) ? list.slice() : [];
+  const searchQuery = (document.getElementById('product-search')?.value || '').toLowerCase().trim();
+
+  // Search filter (name, description or brand keyword)
+  if (searchQuery !== '') {
+    out = out.filter(p =>
+      (p.name || '').toLowerCase().includes(searchQuery) ||
+      (p.description || '').toLowerCase().includes(searchQuery) ||
+      String(p.brand || '').toLowerCase().includes(searchQuery)
+    );
+  }
+
+  // Brand filter (dynamic pills from the admin product list)
+  if (catalogueBrandFilter !== 'all') {
+    out = out.filter(p => String(p.brand || p.brandName || '').trim().toLowerCase() === catalogueBrandFilter);
+  }
+
+  // Price pills (standard keeps the admin sequence; others copy-sorted)
+  if (catalogueSortOption === 'lowToHigh') {
+    out.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+  } else if (catalogueSortOption === 'highToLow') {
+    out.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+  }
+
+  return out;
+}
+
 function renderProductsCatalog() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
@@ -1055,7 +1092,6 @@ function renderProductsCatalog() {
 
   const products = getProducts();
   const categories = getCategories();
-  const searchQuery = document.getElementById('product-search')?.value.toLowerCase() || '';
 
   grid.innerHTML = '';
 
@@ -1074,26 +1110,8 @@ function renderProductsCatalog() {
     }
   }
 
-  // Search filter (name, description or brand keyword)
-  if (searchQuery.trim() !== '') {
-    filtered = filtered.filter(p =>
-      (p.name || '').toLowerCase().includes(searchQuery) ||
-      (p.description || '').toLowerCase().includes(searchQuery) ||
-      String(p.brand || '').toLowerCase().includes(searchQuery)
-    );
-  }
-
-  // Brand filter (dynamic pills from the admin product list)
-  if (catalogueBrandFilter !== 'all') {
-    filtered = filtered.filter(p => String(p.brand || p.brandName || '').trim().toLowerCase() === catalogueBrandFilter);
-  }
-
-  // Sort (standard keeps the admin sequence; price sorts copy the array first)
-  if (catalogueSortOption === 'lowToHigh') {
-    filtered = filtered.slice().sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
-  } else if (catalogueSortOption === 'highToLow') {
-    filtered = filtered.slice().sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
-  }
+  // Shared pipeline with the mobile slider: search + brand + price pills
+  filtered = applyCatalogueFilters(filtered);
 
   if (filtered.length === 0) {
     grid.innerHTML = `
@@ -1165,31 +1183,19 @@ function renderMobileSlider() {
 
   const products = getProducts();
   const categories = getCategories();
-  const searchQuery = document.getElementById('product-search')?.value.toLowerCase() || '';
 
-  // Build slide data: "All Items" + each category
+  // Build slide data: "All Items" + each category. Every slide list runs
+  // through applyCatalogueFilters() — the SAME pipeline as the desktop grid —
+  // so brand/price pill taps repaint the mobile view too.
   const slides = [];
 
   // All Items slide
-  let allProducts = [...products];
-  if (searchQuery.trim() !== '') {
-    allProducts = allProducts.filter(p =>
-      (p.name || '').toLowerCase().includes(searchQuery) ||
-      (p.description || '').toLowerCase().includes(searchQuery)
-    );
-  }
-  slides.push({ slug: 'all', name: 'ALL ITEMS', products: allProducts });
+  slides.push({ slug: 'all', name: 'ALL ITEMS', products: applyCatalogueFilters(products) });
 
   // Category slides
   categories.forEach(cat => {
-    let catProducts = products.filter(p => String(p.categoryId).toUpperCase() === String(cat.id).toUpperCase());
-    if (searchQuery.trim() !== '') {
-      catProducts = catProducts.filter(p =>
-        (p.name || '').toLowerCase().includes(searchQuery) ||
-        (p.description || '').toLowerCase().includes(searchQuery)
-      );
-    }
-    slides.push({ slug: cat.slug, name: cat.name.toUpperCase(), products: catProducts });
+    const catProducts = products.filter(p => String(p.categoryId).toUpperCase() === String(cat.id).toUpperCase());
+    slides.push({ slug: cat.slug, name: cat.name.toUpperCase(), products: applyCatalogueFilters(catProducts) });
   });
 
   const totalSlides = slides.length;

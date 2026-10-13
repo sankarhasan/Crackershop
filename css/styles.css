@@ -9433,6 +9433,9 @@ main.account-view-active > section {
   white-space: nowrap;
   background-color: var(--light-gray);
   color: var(--text-dark);
+  /* Mobile touch responsiveness: kills the 300ms double-tap-zoom delay */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Brand pills: neutral idle, deep-green active */
