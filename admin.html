@@ -147,6 +147,39 @@
           <!-- Section-scoped header controls (.active toggled per section by
                showDashboardSection in js/admin.js); IDs unchanged so all
                existing listeners apply. -->
+          <!-- Dashboard compact stat pills (side-by-side with title); visible only
+               on the dashboard section via .active toggle in showDashboardSection(). -->
+          <div class="header-section-controls dashboard-stat-pills" id="header-dashboard-controls">
+            <!-- Total Firecrackers -->
+            <div class="stat-pill stat-pill-blue">
+              <div class="stat-pill-icon"><img src="Icons/products.png" alt="" class="stat-pill-icon-img" onerror="this.onerror=null; this.src='Icons/product.png'; this.addEventListener('error', () => this.style.display='none', { once: true });"></div>
+              <div class="stat-pill-data">
+                <span class="stat-pill-label">TOTAL FIRECRACKERS</span>
+                <span class="stat-pill-value" id="stat-products-count">0</span>
+              </div>
+            </div>
+            <!-- Active Categories -->
+            <div class="stat-pill stat-pill-green">
+              <div class="stat-pill-icon"><img src="Icons/categories.png" alt="" class="stat-pill-icon-img"></div>
+              <div class="stat-pill-data">
+                <span class="stat-pill-label">ACTIVE CATEGORIES</span>
+                <span class="stat-pill-value" id="stat-categories-count">0</span>
+              </div>
+            </div>
+            <!-- Est. Revenue Pool (with eye toggle) -->
+            <div class="stat-pill stat-pill-gold">
+              <div class="stat-pill-icon stat-pill-icon-rupee">₹</div>
+              <div class="stat-pill-data">
+                <div class="stat-pill-label-row">
+                  <span class="stat-pill-label">EST. REVENUE POOL</span>
+                  <button type="button" class="revenue-eye-toggle" id="revenueEyeToggle" onclick="toggleRevenueVisibility()" title="Hide Revenue">
+                    <i class="fa-solid fa-eye" id="revenueEyeIcon"></i>
+                  </button>
+                </div>
+                <span class="stat-pill-value stat-pill-value-revenue" id="stat-revenue-pool">₹0</span>
+              </div>
+            </div>
+          </div>
           <div class="header-section-controls" id="header-products-controls">
             <input type="text" id="admin-product-search" placeholder="Search firecrackers by name..." class="form-control-admin search-admin-input">
             <select id="admin-product-filter-cat" class="form-control-admin">
@@ -206,25 +239,25 @@
           </div>
         </div>
         <div class="header-right">
-          <!-- Administrator profile dropdown (Back to Storefront + Logout) -->
+          <!-- Administrator icon-only profile button with dropdown menu -->
           <div class="admin-profile-wrap" id="adminProfileWrap">
-            <button type="button" class="admin-profile" id="adminProfileBtn"
+            <button type="button" class="admin-profile admin-profile-icon-only" id="adminProfileBtn"
                     aria-haspopup="true" aria-expanded="false" aria-controls="adminProfileDropdown"
-                    onclick="toggleAdminProfileMenu()">
+                    onclick="toggleAdminProfileMenu()" title="Admin Options">
               <img src="Icons/user-gear.png" alt="Administrator" class="admin-avatar-img">
-              <div class="admin-meta">
-                <h4>Administrator <i class="fa-solid fa-chevron-down admin-profile-caret" aria-hidden="true"></i></h4>
-                <p>System Manager</p>
-              </div>
             </button>
             <div class="admin-profile-dropdown" id="adminProfileDropdown" role="menu" aria-labelledby="adminProfileBtn">
+              <div class="admin-dropdown-header">
+                <p class="admin-dropdown-name">Administrator</p>
+                <p class="admin-dropdown-role">System Manager</p>
+              </div>
               <button type="button" class="admin-profile-menu-item admin-profile-menu-pdf" role="menuitem"
                       onclick="adminProfileDownloadPDF()">
                 <img src="Icons/price-list.png" alt="Price List" class="admin-profile-menu-icon"> Download Price List
               </button>
               <div class="admin-profile-menu-divider"></div>
               <a href="index.html" class="admin-profile-menu-item" role="menuitem">
-                <img src="Icons/shop.png" alt="" class="admin-profile-menu-icon"> Back to Storefront
+                <img src="Icons/shop.png" alt="" class="admin-profile-menu-icon"> Visit Storefront
               </a>
               <div class="admin-profile-menu-divider"></div>
               <button type="button" class="admin-profile-menu-item admin-profile-menu-logout" role="menuitem"
@@ -238,43 +271,7 @@
 
       <!-- Section A: Dashboard Overview Statistics -->
       <section id="section-dashboard" class="dashboard-section animate-fade">
-        <div class="stats-grid">
-          <!-- Total Products -->
-          <div class="stat-card blue">
-            <div class="stat-icon-box"><img src="Icons/products.png" alt="" class="stat-icon-img" onerror="this.onerror=null; this.src='Icons/product.png'; this.addEventListener('error', () => this.style.display='none', { once: true });"></div>
-            <div class="stat-data">
-              <span class="stat-label">Total Firecrackers</span>
-              <h3 class="stat-number" id="stat-products-count">0</h3>
-            </div>
-          </div>
-          
-          <!-- Categories Count -->
-          <div class="stat-card green">
-            <div class="stat-icon-box"><img src="Icons/categories.png" alt="" class="stat-icon-img"></div>
-            <div class="stat-data">
-              <span class="stat-label">Active Categories</span>
-              <h3 class="stat-number" id="stat-categories-count">0</h3>
-            </div>
-          </div>
-          
-          <!-- Enquiries Count -->
-          <div class="stat-card orange">
-            <div class="stat-icon-box"><img src="Icons/enquires.png" alt="" class="stat-icon-img"></div>
-            <div class="stat-data">
-              <span class="stat-label">New Enquiries</span>
-              <h3 class="stat-number" id="stat-enquiries-count">0</h3>
-            </div>
-          </div>
-
-          <!-- Total Estimations Value -->
-          <div class="stat-card gold">
-            <div class="stat-icon-box"><img src="Icons/rupee-sign.png" alt="" class="stat-icon-img"></div>
-            <div class="stat-data">
-              <span class="stat-label">Est. Revenue Pool</span>
-              <h3 class="stat-number" id="stat-revenue-pool">₹0</h3>
-            </div>
-          </div>
-        </div>
+        <!-- Stat cards now live in the sticky header row (#header-dashboard-controls). -->
 
         <!-- Recent enquiries mini widget list -->
         <div class="recent-enquiries-box">

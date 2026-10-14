@@ -463,6 +463,106 @@ textarea.form-control-admin {
   justify-content: flex-end;
 }
 
+/* --- Compact Dashboard Stat Pills (header row) --- */
+.dashboard-stat-pills.active {
+  gap: 12px;
+  justify-content: flex-end;
+  flex: 0 1 auto;
+}
+
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 8px 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.stat-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.stat-pill-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-pill-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.stat-pill-icon-rupee {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #FFD700;
+}
+
+.stat-pill-blue .stat-pill-icon { background-color: rgba(88, 166, 255, 0.12); border: 1px solid rgba(88, 166, 255, 0.2); }
+.stat-pill-green .stat-pill-icon { background-color: rgba(35, 134, 54, 0.12); border: 1px solid rgba(35, 134, 54, 0.2); }
+.stat-pill-gold .stat-pill-icon { background-color: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.2); }
+
+.stat-pill-data {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-pill-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--admin-text-muted);
+}
+
+.stat-pill-value {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--admin-text);
+  line-height: 1;
+}
+
+.stat-pill-value-revenue {
+  color: #34d399;
+}
+
+.stat-pill-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.revenue-eye-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: var(--admin-text-muted);
+  font-size: 0.7rem;
+  transition: color 0.15s ease;
+  line-height: 1;
+}
+
+.revenue-eye-toggle:hover {
+  color: #34d399;
+}
+
+/* --- End Dashboard Stat Pills --- */
+
 .header-left h1 {
   font-size: 1.8rem;
   color: var(--admin-text);
@@ -492,6 +592,21 @@ textarea.form-control-admin {
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
 }
 
+/* Icon-only variant: compact rounded button, no text */
+.admin-profile-icon-only {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  gap: 0;
+  border-radius: 12px;
+  justify-content: center;
+}
+
+.admin-profile-icon-only:hover {
+  border-color: rgba(52, 211, 153, 0.5);
+  transform: scale(1.05);
+}
+
 .admin-profile:hover {
   background-color: var(--admin-sidebar);
 }
@@ -508,9 +623,9 @@ textarea.form-control-admin {
 
 /* Custom user-gear.png avatar image (w-7 h-7 rounded-lg equivalent) */
 .admin-avatar-img {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -549,6 +664,26 @@ textarea.form-control-admin {
 @keyframes adminProfileFade {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Dropdown header showing admin name/role (moved from the button) */
+.admin-dropdown-header {
+  padding: 8px 12px 8px;
+  border-bottom: 1px solid var(--admin-border);
+  margin-bottom: 4px;
+}
+
+.admin-dropdown-name {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--admin-text);
+  line-height: 1.2;
+}
+
+.admin-dropdown-role {
+  font-size: 0.7rem;
+  color: var(--admin-text-muted);
+  margin-top: 2px;
 }
 
 .admin-profile-menu-item {
@@ -2754,6 +2889,29 @@ textarea.form-control-admin {
 @media (max-width: 600px) {
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-stat-pills.active {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    gap: 8px;
+  }
+
+  .stat-pill {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .stat-pill-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .stat-pill-value {
+    font-size: 0.8rem;
   }
   
   .form-row-admin-2,

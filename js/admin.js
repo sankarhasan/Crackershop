@@ -1404,6 +1404,7 @@ function showDashboardSection(sectionName) {
   // state rules) live in the sticky header row — only the active section's
   // cluster is shown.
   const sectionControlMap = {
+    'dashboard': 'header-dashboard-controls',
     'products': 'header-products-controls',
     'categories': 'header-category-controls',
     'coupons': 'header-coupon-controls',
@@ -1471,18 +1472,31 @@ function updateDashboardStats() {
   // Count stats
   const totalProducts = products.length;
   const totalCategories = categories.length;
-  const newEnquiriesCount = enquiries.filter(e => e.status === 'new').length;
+  const newEnquiriesCount = enquiries.filter(e => (e.status || 'new').toLowerCase() === 'new').length;
   
-  // Sum up estimated revenue pool — prefer structured financialBreakdown, fallback to message parsing
+  // Sum estimated revenue pool — ONLY for confirmed/resolved/packed/dispatched/transit/reached/delivered orders.
+  // Excludes 'new' and 'contacted' orders from the pool.
+  const CONFIRMED_STATUSES = ['resolved', 'packing', 'dispatched', 'in_transit', 'reached_destination', 'delivered'];
   let revenuePoolVal = 0;
   enquiries.forEach(enq => {
-    // New structured format: use grandTotal from financialBreakdown
-    if (enq.financialBreakdown && enq.financialBreakdown.grandTotal) {
+    const status = (enq.status || '').toLowerCase();
+    const trackingStatus = (enq.trackingStatus || '').toLowerCase();
+    const effectiveStatus = trackingStatus || status;
+    
+    if (!CONFIRMED_STATUSES.includes(effectiveStatus)) return;
+    
+    // Prefer structured financialBreakdown.grandTotal
+    if (enq.financialBreakdown && typeof enq.financialBreakdown.grandTotal === 'number') {
       revenuePoolVal += enq.financialBreakdown.grandTotal;
     }
+    // Fallback: calculate from cartItems
+    else if (enq.cartItems && enq.cartItems.length > 0) {
+      const total = enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+      revenuePoolVal += total;
+    }
     // Fallback: parse from message string "Total Est: ₹XXXX"
-    else if (enq.message && enq.message.includes('Total Est: ₹')) {
-      const parts = enq.message.split('Total Est: ₹');
+    else if (enq.message && enq.message.includes('Total Est: \u20B9')) {
+      const parts = enq.message.split('Total Est: \u20B9');
       if (parts.length > 1) {
         const val = parseInt(parts[1].replace(/,/g, ''));
         if (!isNaN(val)) revenuePoolVal += val;
@@ -1490,13 +1504,19 @@ function updateDashboardStats() {
     }
   });
   
+  // Store the raw value on window for the eye-toggle to reference
+  window._revenuePoolVal = revenuePoolVal;
+  
   // Set DOM text
   document.getElementById('stat-products-count').innerText = totalProducts;
   document.getElementById('stat-categories-count').innerText = totalCategories;
-  document.getElementById('stat-enquiries-count').innerText = newEnquiriesCount;
-  document.getElementById('stat-revenue-pool').innerText = `₹${revenuePoolVal.toLocaleString('en-IN')}`;
+  // Revenue respects the eye-toggle mask state
+  const revenueEl = document.getElementById('stat-revenue-pool');
+  if (revenueEl) {
+    revenueEl.innerText = window._showRevenue !== false ? `\u20B9${revenuePoolVal.toLocaleString('en-IN')}` : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
+  }
   
-  // Sidebar notification badge
+  // Sidebar notification badge (still uses newEnquiriesCount)
   const sidebarBadge = document.getElementById('enquiry-badge-count');
   if (sidebarBadge) {
     sidebarBadge.innerText = newEnquiriesCount;
@@ -1504,6 +1524,32 @@ function updateDashboardStats() {
   }
   
   renderRecentEnquiriesMiniTable();
+}
+
+/* Eye-icon toggle: mask/unmask the Est. Revenue Pool value in the header pill. */
+function toggleRevenueVisibility() {
+  // Default is visible (true); toggle to false hides.
+  window._showRevenue = window._showRevenue === false ? true : false;
+
+  const revenueEl = document.getElementById('stat-revenue-pool');
+  const eyeIcon = document.getElementById('revenueEyeIcon');
+  const eyeBtn = document.getElementById('revenueEyeToggle');
+
+  if (revenueEl) {
+    if (window._showRevenue) {
+      const val = window._revenuePoolVal || 0;
+      revenueEl.innerText = `\u20B9${val.toLocaleString('en-IN')}`;
+    } else {
+      revenueEl.innerText = '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
+    }
+  }
+
+  if (eyeIcon) {
+    eyeIcon.className = window._showRevenue ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+  }
+  if (eyeBtn) {
+    eyeBtn.title = window._showRevenue ? 'Hide Revenue' : 'Show Revenue';
+  }
 }
 
 function renderRecentEnquiriesMiniTable() {
