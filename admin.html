@@ -401,7 +401,7 @@
             <button type="button" class="enquiry-search-clear" aria-label="Clear search" onclick="clearEnquirySearch()" style="display: none;">&times;</button>
           </div>
 
-          <input type="date" id="admin-enquiry-date-custom" class="enquiry-date-custom" onchange="setEnquiryCustomDate(this.value)" onclick="openEnquiryDatePicker(this)">
+          <div class="kpr-dp" id="admin-enquiry-date-custom"></div>
         </div>
 
         <div class="table-responsive">
@@ -455,7 +455,7 @@
             <button type="button" class="enquiry-search-clear tracking-search-clear" aria-label="Clear search" onclick="clearTrackingSearch()" style="display: none;">&times;</button>
           </div>
 
-          <input type="date" id="admin-tracking-date-custom" class="enquiry-date-custom" onchange="setTrackingCustomDate(this.value)" onclick="openEnquiryDatePicker(this)">
+          <div class="kpr-dp" id="admin-tracking-date-custom"></div>
         </div>
 
         <div class="table-responsive">
@@ -495,7 +495,15 @@
              date are sufficient context for this section. -->
 
         <div class="table-responsive">
-          <table class="table-admin">
+          <table class="table-admin table-reviews">
+            <colgroup>
+              <col style="width: 22%">   <!-- Product Name -->
+              <col style="width: 16%">   <!-- Customer Name -->
+              <col style="width: 15%">   <!-- Rating -->
+              <col style="width: 27%">   <!-- Review Comment -->
+              <col style="width: 12%">   <!-- Date -->
+              <col style="width: 60px">  <!-- Actions -->
+            </colgroup>
             <thead>
               <tr>
                 <th>Product Name</th>

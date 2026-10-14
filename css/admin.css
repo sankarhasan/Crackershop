@@ -1345,6 +1345,170 @@ textarea.form-control-admin {
   border-color: var(--admin-success);
 }
 
+/* --- Custom dark-theme date picker (Enquiries + Tracking filter bars) --- */
+.kpr-dp {
+  position: relative;
+  display: inline-flex;
+}
+
+.kpr-dp-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  background-color: #1a1d24;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  padding: 7px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.kpr-dp-trigger:hover { border-color: rgba(35, 134, 54, 0.7); }
+
+.kpr-dp-trigger .kpr-dp-label { color: var(--admin-text); }
+.kpr-dp-trigger .kpr-dp-label.is-empty { color: var(--admin-text-muted); font-weight: 600; }
+.kpr-dp-cal { color: var(--admin-success); font-size: 0.8rem; }
+
+.kpr-dp-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 999;
+  width: 264px;
+  background-color: #12151c;
+  border: 1px solid #1f2430;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  color: var(--admin-text);
+  animation: kprDpFade 0.15s ease;
+}
+
+@keyframes kprDpFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.kpr-dp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #1f2430;
+}
+
+.kpr-dp-title {
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.kpr-dp-nav { display: inline-flex; gap: 4px; }
+
+.kpr-dp-arrow {
+  background: transparent;
+  border: none;
+  color: var(--admin-text-muted);
+  font-size: 0.7rem;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.kpr-dp-arrow:hover:not(:disabled) { background-color: #1f2430; color: #ffffff; }
+.kpr-dp-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.kpr-dp-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.kpr-dp-week span {
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--admin-text-muted);
+}
+
+.kpr-dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+}
+
+.kpr-dp-pad { display: block; height: 28px; }
+
+.kpr-dp-day {
+  height: 28px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.kpr-dp-day:hover:not(.disabled):not(.selected) { background-color: #1f2430; color: #ffffff; }
+
+.kpr-dp-day.today { border-color: var(--admin-success); color: var(--admin-success); font-weight: 800; }
+
+.kpr-dp-day.selected {
+  background-color: var(--admin-success);
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 4px 12px rgba(35, 134, 54, 0.45);
+}
+
+.kpr-dp-day.disabled {
+  color: #475569;
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.kpr-dp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #1f2430;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.kpr-dp-clear, .kpr-dp-today {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.kpr-dp-clear { color: var(--admin-text-muted); }
+.kpr-dp-clear:hover { color: #f43f5e; }
+.kpr-dp-today { color: var(--admin-success); }
+.kpr-dp-today:hover { color: #6ee7a0; }
+
 /* --- Enquiries multi-field search (name / #ID / mobile) --- */
 .enquiry-search-box {
   position: relative;
@@ -2762,4 +2926,34 @@ textarea.form-control-admin {
   max-width: 320px;
   white-space: normal;
   line-height: 1.5;
+  cursor: pointer;
+}
+
+/* Inner wrapper carries the 2-line clamp (a <td> must stay display:table-cell,
+ * so the box-clamp lives here, not on the cell itself). */
+.admin-review-comment-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.admin-review-comment:hover .admin-review-comment-text {
+  color: var(--admin-success);
+}
+
+/* Reviews table uses a fixed column layout so no cell (esp. the comment)
+   can stretch its column and overlap neighbours. */
+.table-reviews {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.table-reviews th,
+.table-reviews td {
+  overflow: hidden;
 }

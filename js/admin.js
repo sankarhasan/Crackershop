@@ -33,6 +33,9 @@ let _savingCoupon = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   initAdminAuth();
+
+  // Mount the custom dark-theme date pickers (Enquiries + Tracking filter bars).
+  initCustomDatePickers();
   
   // Navigation sidebar handler
   const sidebarLinks = document.querySelectorAll('.sidebar-link[data-section]');
@@ -638,8 +641,7 @@ function setEnquiryDateFilter(mode) {
   enquiryDateFilter = String(mode || 'all').toLowerCase();
   if (enquiryDateFilter !== 'custom') {
     enquiryCustomDate = '';
-    const el = document.getElementById('admin-enquiry-date-custom');
-    if (el) el.value = '';
+    if (window._kprDatePickers && window._kprDatePickers.enquiry) window._kprDatePickers.enquiry.setValue('');
   }
   updateEnquiryDateChips();
   renderEnquiriesTable();
@@ -656,26 +658,156 @@ function updateEnquiryDateChips() {
   document.querySelectorAll('#section-enquiries .enquiry-date-chip').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.dateFilter === enquiryDateFilter);
   });
-  // Keep the calendar's future-date lock fresh across midnight rollovers.
-  const dateEl = document.getElementById('admin-enquiry-date-custom');
-  if (dateEl) {
-    const now = new Date();
-    dateEl.max = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  // Custom dark-theme picker computes its future-date lock live at render
+  // time, so there is nothing to refresh here on midnight rollovers.
+}
+
+/* ==========================================================================
+   CUSTOM DARK-THEME DATE PICKER (shared by Enquiries + Tracking portals)
+   Replaces the native <input type="date"> browser calendar with an in-app
+   popover that matches the admin UI: month/year nav, emerald selected/today
+   states, faded future dates, and Clear / Today shortcuts.
+   ========================================================================== */
+const KPR_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+const KPR_WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+window._kprDatePickers = window._kprDatePickers || {};
+
+function kprToday() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+function kprParseYMD(s) { const p = String(s).split('-'); return new Date(+p[0], (+p[1]) - 1, +p[2]); }
+function kprToYMD(d) { const off = d.getTimezoneOffset(); return new Date(d.getTime() - off * 60000).toISOString().split('T')[0]; }
+
+function createKprDatePicker(containerId, opts) {
+  const container = document.getElementById(containerId);
+  if (!container) return null;
+  opts = opts || {};
+  const onChange = typeof opts.onChange === 'function' ? opts.onChange : function () {};
+  let value = opts.value || '';                 // 'YYYY-MM-DD' or ''
+  let view = value ? kprParseYMD(value) : kprToday();
+  let open = false;
+
+  container.innerHTML = '';
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'kpr-dp-trigger';
+  trigger.innerHTML = '<span class="kpr-dp-label"></span><i class="fa-regular fa-calendar kpr-dp-cal" aria-hidden="true"></i>';
+  container.appendChild(trigger);
+
+  const pop = document.createElement('div');
+  pop.className = 'kpr-dp-pop';
+  pop.style.display = 'none';
+  container.appendChild(pop);
+
+  function updateTrigger() {
+    const label = trigger.querySelector('.kpr-dp-label');
+    if (value) {
+      label.textContent = kprParseYMD(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      label.classList.remove('is-empty');
+    } else {
+      label.textContent = 'dd-mm-yyyy';
+      label.classList.add('is-empty');
+    }
+  }
+
+  function render() {
+    const max = kprToday();
+    const today = max;
+    const year = view.getFullYear(), month = view.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const sel = value ? kprParseYMD(value) : null;
+
+    let html = '<div class="kpr-dp-head"><span class="kpr-dp-title">' + KPR_MONTHS[month] + ' ' + year + '</span>'
+      + '<div class="kpr-dp-nav">'
+      + '<button type="button" class="kpr-dp-arrow" data-nav="prev" aria-label="Previous month">&#9664;</button>'
+      + '<button type="button" class="kpr-dp-arrow" data-nav="next" aria-label="Next month">&#9654;</button>'
+      + '</div></div>';
+    html += '<div class="kpr-dp-week">' + KPR_WEEKDAYS.map(function (w) { return '<span>' + w + '</span>'; }).join('') + '</div>';
+    html += '<div class="kpr-dp-grid">';
+    for (let i = 0; i < firstDay; i++) html += '<span class="kpr-dp-pad"></span>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const thisDate = new Date(year, month, d);
+      const isFuture = thisDate > max;
+      const isSel = sel && sel.getFullYear() === year && sel.getMonth() === month && sel.getDate() === d;
+      const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+      const cls = ['kpr-dp-day'];
+      if (isSel) cls.push('selected');
+      else if (isToday) cls.push('today');
+      if (isFuture) cls.push('disabled');
+      html += '<button type="button" class="' + cls.join(' ') + '" data-day="' + d + '"' + (isFuture ? ' disabled' : '') + '>' + d + '</button>';
+    }
+    html += '</div>';
+    html += '<div class="kpr-dp-foot">'
+      + '<button type="button" class="kpr-dp-clear" data-act="clear">Clear</button>'
+      + '<button type="button" class="kpr-dp-today" data-act="today">Today</button>'
+      + '</div>';
+    pop.innerHTML = html;
+
+    // Disable "next" once we're already at the current (max) month.
+    const nextBtn = pop.querySelector('[data-nav="next"]');
+    if (year > max.getFullYear() || (year === max.getFullYear() && month >= max.getMonth())) {
+      nextBtn.disabled = true;
+    }
+  }
+
+  function show() { render(); pop.style.display = 'block'; open = true; }
+  function hide() { pop.style.display = 'none'; open = false; }
+  function commit(ymd) { value = ymd || ''; updateTrigger(); onChange(value); }
+
+  trigger.addEventListener('click', function (e) { e.stopPropagation(); if (open) hide(); else show(); });
+
+  pop.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const btn = e.target.closest('button');
+    if (!btn || btn.disabled) return;
+    if (btn.dataset.nav === 'prev') { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); render(); return; }
+    if (btn.dataset.nav === 'next') { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); render(); return; }
+    if (btn.dataset.act === 'clear') { commit(''); hide(); return; }
+    if (btn.dataset.act === 'today') {
+      const t = kprToday(); view = new Date(t.getFullYear(), t.getMonth(), 1); commit(kprToYMD(t)); hide(); return;
+    }
+    if (btn.dataset.day) {
+      const chosen = new Date(view.getFullYear(), view.getMonth(), +btn.dataset.day);
+      if (chosen > kprToday()) return;
+      commit(kprToYMD(chosen)); hide();
+    }
+  });
+
+  // Close on outside click.
+  document.addEventListener('mousedown', function (e) {
+    if (open && !container.contains(e.target)) hide();
+  });
+
+  updateTrigger();
+
+  return {
+    setValue: function (v) { value = v || ''; view = value ? kprParseYMD(value) : kprToday(); updateTrigger(); },
+    getValue: function () { return value; },
+    close: hide
+  };
+}
+
+/* Mount both pickers once (guarded so re-invocation never duplicates them). */
+function initCustomDatePickers() {
+  const reg = window._kprDatePickers;
+  if (!reg.enquiry && document.getElementById('admin-enquiry-date-custom')) {
+    reg.enquiry = createKprDatePicker('admin-enquiry-date-custom', {
+      value: enquiryCustomDate,
+      onChange: function (v) { setEnquiryCustomDate(v); }
+    });
+  }
+  if (!reg.tracking && document.getElementById('admin-tracking-date-custom')) {
+    reg.tracking = createKprDatePicker('admin-tracking-date-custom', {
+      value: trackingCustomDate,
+      onChange: function (v) { setTrackingCustomDate(v); }
+    });
   }
 }
 
-/* Open the native calendar on plain clicks (no text selection / drag-select
- * of the typed date value) and clamp future dates to today via max. */
-function openEnquiryDatePicker(el) {
-  if (!el) return;
-  try {
-    if (typeof el.showPicker === 'function') el.showPicker();
-  } catch (err) {
-    // Browsers reject showPicker() outside user activation; the native
-    // calendar still opens on direct icon clicks, so this is harmless.
-    console.warn('[Enquiries] showPicker unavailable:', err);
-  }
-}
+/* Back-compat shim: previously the native inputs' onclick called this. Now a
+ * no-op kept so any stale inline handler never throws. */
+function openEnquiryDatePicker() { /* replaced by custom KPR date picker */ }
 
 /* Multi-field live search for the enquiries table — matches customer name,
  * branded Order ID / doc ID fragment, or phone/mobile number. Combined with
@@ -859,8 +991,7 @@ function setTrackingDateFilter(mode) {
   trackingDateFilter = String(mode || 'all').toLowerCase();
   if (trackingDateFilter !== 'custom') {
     trackingCustomDate = '';
-    const el = document.getElementById('admin-tracking-date-custom');
-    if (el) el.value = '';
+    if (window._kprDatePickers && window._kprDatePickers.tracking) window._kprDatePickers.tracking.setValue('');
   }
   updateTrackingDateChips();
   renderTrackingTable();
@@ -877,11 +1008,6 @@ function updateTrackingDateChips() {
   document.querySelectorAll('#section-tracking .tracking-date-chip').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.dateFilter === trackingDateFilter);
   });
-  const dateEl = document.getElementById('admin-tracking-date-custom');
-  if (dateEl) {
-    const now = new Date();
-    dateEl.max = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-  }
 }
 
 function setTrackingSearch(value) {
@@ -1131,7 +1257,7 @@ function renderReviewsTable() {
         <td><strong>${escapeHtml(r.productName || '')}</strong><br><small>${escapeHtml(String(r.productId || ''))}</small></td>
         <td>${escapeHtml(r.customerName || '')}</td>
         <td><span class="admin-review-stars" title="${rating} out of 5">${stars}</span> <span class="admin-review-rating-num">${rating.toFixed(1)}</span></td>
-        <td class="admin-review-comment">${comment ? escapeHtml(comment) : '—'}</td>
+        <td class="admin-review-comment"><p class="admin-review-comment-text">${comment ? escapeHtml(comment) : '—'}</p></td>
         <td>${escapeHtml(dateStr)}</td>
         <td>
           <div class="table-actions">
