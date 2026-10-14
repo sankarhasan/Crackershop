@@ -96,6 +96,11 @@
             </a>
           </li>
           <li>
+            <a href="#" class="sidebar-link" data-section="tracking">
+              <span class="sidebar-icon"><img src="Icons/delivery.png" alt="" class="sidebar-icon-img"></span> Tracking
+            </a>
+          </li>
+          <li>
             <a href="#" class="sidebar-link" data-section="banners">
               <span class="sidebar-icon"><img src="Icons/banner.png" alt="" class="sidebar-icon-img"></span> Banners
             </a>
@@ -178,6 +183,25 @@
             </button>
             <button type="button" class="enquiry-tab" data-enquiry-tab="resolved" onclick="setEnquiryStatusTab('resolved')">
               <img src="Icons/confirmation.png" alt="" class="enquiry-tab-icon"> Confirm
+            </button>
+          </div>
+          <!-- Tracking fulfilment status tabs (icons + amber/sky/purple/indigo/
+               emerald accents); active tab drives renderTrackingTable() filter. -->
+          <div class="header-section-controls" id="header-tracking-controls">
+            <button type="button" class="enquiry-tab tracking-tab active" data-tracking-tab="packing" onclick="setTrackingStatusTab('packing')">
+              <img src="Icons/packing.png" alt="" class="enquiry-tab-icon" onerror="this.onerror=null; this.src='Icons/Delivery.png'; this.addEventListener('error', () => this.style.display='none', { once: true });"> Packing
+            </button>
+            <button type="button" class="enquiry-tab tracking-tab" data-tracking-tab="dispatched" onclick="setTrackingStatusTab('dispatched')">
+              <img src="Icons/dispatched.png" alt="" class="enquiry-tab-icon" onerror="this.onerror=null; this.src='Icons/Delivery.png'; this.addEventListener('error', () => this.style.display='none', { once: true });"> Dispatched
+            </button>
+            <button type="button" class="enquiry-tab tracking-tab" data-tracking-tab="in_transit" onclick="setTrackingStatusTab('in_transit')">
+              <img src="Icons/in%20transit.png" alt="" class="enquiry-tab-icon" onerror="this.onerror=null; this.src='Icons/Delivery.png'; this.addEventListener('error', () => this.style.display='none', { once: true });"> In Transit
+            </button>
+            <button type="button" class="enquiry-tab tracking-tab" data-tracking-tab="reached_destination" onclick="setTrackingStatusTab('reached_destination')">
+              <img src="Icons/reached%20destination.png" alt="" class="enquiry-tab-icon" onerror="this.onerror=null; this.src='Icons/Delivery.png'; this.addEventListener('error', () => this.style.display='none', { once: true });"> Reached
+            </button>
+            <button type="button" class="enquiry-tab tracking-tab" data-tracking-tab="delivered" onclick="setTrackingStatusTab('delivered')">
+              <img src="Icons/delivered.png" alt="" class="enquiry-tab-icon" onerror="this.onerror=null; this.src='Icons/Delivery.png'; this.addEventListener('error', () => this.style.display='none', { once: true });"> Delivered
             </button>
           </div>
         </div>
@@ -369,6 +393,14 @@
             <button type="button" class="enquiry-date-chip" data-date-filter="this-month" onclick="setEnquiryDateFilter('this-month')">This Month</button>
             <button type="button" class="enquiry-date-chip" data-date-filter="last-month" onclick="setEnquiryDateFilter('last-month')">Last Month</button>
           </div>
+
+          <!-- Multi-field search: name, #ID, or mobile (js/admin.js -> setEnquirySearch) -->
+          <div class="enquiry-search-box">
+            <i class="fa-solid fa-magnifying-glass enquiry-search-icon" aria-hidden="true"></i>
+            <input type="text" id="admin-enquiry-search" class="enquiry-search-input" placeholder="Search by name, #ID, or mobile..." autocomplete="off" oninput="setEnquirySearch(this.value)">
+            <button type="button" class="enquiry-search-clear" aria-label="Clear search" onclick="clearEnquirySearch()" style="display: none;">&times;</button>
+          </div>
+
           <input type="date" id="admin-enquiry-date-custom" class="enquiry-date-custom" onchange="setEnquiryCustomDate(this.value)" onclick="openEnquiryDatePicker(this)">
         </div>
 
@@ -398,6 +430,59 @@
             <tbody id="enquiries-table-body">
               <tr>
                 <td colspan="7" class="text-center">Loading customer enquiries...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section D1b: Order Tracking Portal — packed/confirmed orders moved
+           here from the Enquiries Portal. Live statuses sync to the user
+           receipt (js/app.js). Rendered by js/admin.js -> renderTrackingTable -->
+      <section id="section-tracking" class="dashboard-section animate-fade" style="display: none;">
+        <!-- Search + date quick filters (mirror the Enquiries Portal) -->
+        <div class="enquiry-date-filter-bar tracking-filter-bar">
+          <div class="enquiry-date-filter-group">
+            <span class="enquiry-date-filter-label">Filter Date:</span>
+            <button type="button" class="enquiry-date-chip tracking-date-chip active" data-date-filter="all" onclick="setTrackingDateFilter('all')">All Dates</button>
+            <button type="button" class="enquiry-date-chip tracking-date-chip" data-date-filter="this-month" onclick="setTrackingDateFilter('this-month')">This Month</button>
+            <button type="button" class="enquiry-date-chip tracking-date-chip" data-date-filter="last-month" onclick="setTrackingDateFilter('last-month')">Last Month</button>
+          </div>
+
+          <div class="enquiry-search-box">
+            <i class="fa-solid fa-magnifying-glass enquiry-search-icon" aria-hidden="true"></i>
+            <input type="text" id="admin-tracking-search" class="enquiry-search-input" placeholder="Search by name, #ID, or mobile..." autocomplete="off" oninput="setTrackingSearch(this.value)">
+            <button type="button" class="enquiry-search-clear tracking-search-clear" aria-label="Clear search" onclick="clearTrackingSearch()" style="display: none;">&times;</button>
+          </div>
+
+          <input type="date" id="admin-tracking-date-custom" class="enquiry-date-custom" onchange="setTrackingCustomDate(this.value)" onclick="openEnquiryDatePicker(this)">
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-admin table-enquiries table-tracking">
+            <colgroup>
+              <col style="width: 16%">    <!-- ID -->
+              <col style="width: 18%">    <!-- Date -->
+              <col style="width: 22%">    <!-- Customer Details -->
+              <col style="width: 14%">    <!-- State -->
+              <col style="width: 12%">    <!-- Order Total -->
+              <col style="width: 140px">  <!-- Tracking Status dropdown -->
+              <col style="width: 110px">  <!-- Actions -->
+            </colgroup>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Customer Details</th>
+                <th>State</th>
+                <th>Order Total</th>
+                <th>Tracking Status</th>
+                <th aria-label="Actions"></th>
+              </tr>
+            </thead>
+            <tbody id="tracking-table-body">
+              <tr>
+                <td colspan="7" class="text-center">No packed orders to track yet.</td>
               </tr>
             </tbody>
           </table>

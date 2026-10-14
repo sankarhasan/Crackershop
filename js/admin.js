@@ -280,6 +280,7 @@ function onAdminAuthenticated() {
               message: d.message || d.enquiryMessage || '',
               enquiryMessage: d.enquiryMessage || d.message || '',
               status: d.status || 'new',
+              trackingStatus: d.trackingStatus || '',
               date: dateStr,
               cartItems: d.cartItems || null,
               financialBreakdown: d.financialBreakdown || null
@@ -287,6 +288,7 @@ function onAdminAuthenticated() {
           });
           updateDashboardStats();
           renderEnquiriesTable();
+          renderTrackingTable();
           console.log('[Admin] ✓ Fallback enquiries data applied. Count:', firestoreEnquiries.length);
         }
       })
@@ -558,6 +560,25 @@ function commitCategoriesTableOrder() {
    ENQUIRIES TABLE RENDERING
    ========================================================================== */
 
+/* Shared tracking pipeline definitions. An enquiry leaves the Enquiries
+ * Portal the moment it is packed (status -> 'packing' + trackingStatus set),
+ * and then lives in the Order Tracking Portal where the admin advances it
+ * through the fulfilment stages. The same `trackingStatus` field drives the
+ * live badge on the customer receipt (js/app.js). */
+const TRACKING_STATUSES = ['packing', 'dispatched', 'in_transit', 'reached_destination', 'delivered'];
+const TRACKING_LABELS = {
+  packing: 'Packing',
+  dispatched: 'Dispatched',
+  in_transit: 'In Transit',
+  reached_destination: 'Reached',
+  delivered: 'Delivered'
+};
+
+function isEnquiryInTracking(enq) {
+  return String((enq && enq.trackingStatus) || '').toLowerCase() !== ''
+    || TRACKING_STATUSES.includes(String((enq && enq.status) || '').toLowerCase());
+}
+
 /* Active status tab for the enquiries table ('new' | 'contacted' | 'resolved'),
  * driven by the sticky-header tabs (#header-enquiry-controls). */
 let enquiryStatusTab = 'new';
@@ -585,9 +606,20 @@ function updateEnquiryStatusInline(docId, status) {
     return;
   }
 
-  window.db.collection('enquiries').doc(docId).update({ status: safeStatus })
+  const payload = { status: safeStatus };
+  // Packing hands the order over to the Tracking Portal: stamp the
+  // trackingStatus too so it appears there and drops out of the enquiry tabs
+  // (its 'packing' status matches none of new/contacted/resolved).
+  if (safeStatus === 'packing') payload.trackingStatus = 'packing';
+  // Stamp the last-modified time (same convention as the Tracking Portal).
+  payload.updatedAt = (window.firebase && firebase.firestore && firebase.firestore.FieldValue)
+    ? firebase.firestore.FieldValue.serverTimestamp()
+    : new Date();
+
+  window.db.collection('enquiries').doc(docId).update(payload)
     .then(() => {
-      showAdminToast(`Enquiry status modified to ${safeStatus.toUpperCase()}.`, 'success');
+      const label = safeStatus === 'packing' ? 'PACKING (moved to Tracking)' : safeStatus.toUpperCase();
+      showAdminToast(`Enquiry status modified to ${label}.`, 'success');
     })
     .catch((err) => {
       console.error('[Admin] Failed to update enquiry status:', err);
@@ -621,7 +653,7 @@ function setEnquiryCustomDate(value) {
 }
 
 function updateEnquiryDateChips() {
-  document.querySelectorAll('.enquiry-date-chip').forEach(btn => {
+  document.querySelectorAll('#section-enquiries .enquiry-date-chip').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.dateFilter === enquiryDateFilter);
   });
   // Keep the calendar's future-date lock fresh across midnight rollovers.
@@ -645,20 +677,59 @@ function openEnquiryDatePicker(el) {
   }
 }
 
-function enquiryMatchesDateFilter(enq) {
-  if (enquiryDateFilter === 'all') return true;
+/* Multi-field live search for the enquiries table — matches customer name,
+ * branded Order ID / doc ID fragment, or phone/mobile number. Combined with
+ * the active status tab and date filter inside renderEnquiriesTable(). */
+let enquirySearchQuery = '';
+
+function setEnquirySearch(value) {
+  enquirySearchQuery = String(value || '');
+  const clearBtn = document.querySelector('#section-enquiries .enquiry-search-clear');
+  if (clearBtn) clearBtn.style.display = enquirySearchQuery.trim() !== '' ? 'block' : 'none';
+  renderEnquiriesTable();
+}
+
+function clearEnquirySearch() {
+  enquirySearchQuery = '';
+  const el = document.getElementById('admin-enquiry-search');
+  if (el) el.value = '';
+  const clearBtn = document.querySelector('#section-enquiries .enquiry-search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderEnquiriesTable();
+}
+
+function enquiryMatchesSearch(enq, query) {
+  const q = String(query === undefined ? enquirySearchQuery : query).trim().toLowerCase();
+  if (q === '') return true;
+  const name = String(enq.name || '').toLowerCase();
+  const phone = String(enq.phone || '').toLowerCase();
+  // Match both the clean branded ID and the legacy doc-ID fragment shown in
+  // the table, ignoring any leading '#' the user types.
+  const needle = q.replace(/^#/, '');
+  const orderId = String(enq.orderId || '').toLowerCase();
+  const docIdFrag = ('#' + String(enq.docId || '').substring(0, 6).toUpperCase()).toLowerCase();
+  return name.includes(q)
+    || phone.includes(needle)
+    || orderId.includes(needle)
+    || docIdFrag.includes(needle);
+}
+
+function enquiryMatchesDateFilter(enq, mode, custom) {
+  const filterMode = mode === undefined ? enquiryDateFilter : mode;
+  const filterCustom = custom === undefined ? enquiryCustomDate : custom;
+  if (filterMode === 'all') return true;
   const d = new Date(enq.date);
   if (isNaN(d.getTime())) return false;
   const now = new Date();
-  if (enquiryDateFilter === 'this-month') {
+  if (filterMode === 'this-month') {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }
-  if (enquiryDateFilter === 'last-month') {
+  if (filterMode === 'last-month') {
     const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear();
   }
-  if (enquiryDateFilter === 'custom' && enquiryCustomDate !== '') {
-    const sel = new Date(enquiryCustomDate + 'T00:00:00');
+  if (filterMode === 'custom' && filterCustom !== '') {
+    const sel = new Date(filterCustom + 'T00:00:00');
     return d.getFullYear() === sel.getFullYear() && d.getMonth() === sel.getMonth() && d.getDate() === sel.getDate();
   }
   return true;
@@ -671,15 +742,21 @@ function renderEnquiriesTable() {
   const enquiries = firestoreEnquiries;
   
   // Tab-based status filter + date/month quick filter (header tabs replaced
-  // the old dropdown)
+  // the old dropdown) + live multi-field search (name / #ID / mobile)
   const filtered = enquiries.filter(e =>
-    String(e.status || 'new').toLowerCase() === enquiryStatusTab && enquiryMatchesDateFilter(e)
+    String(e.status || 'new').toLowerCase() === enquiryStatusTab
+    && enquiryMatchesDateFilter(e)
+    && enquiryMatchesSearch(e)
   );
   
   tbody.innerHTML = '';
   
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No enquiries found matching selected criteria.</td></tr>';
+    const q = enquirySearchQuery.trim();
+    const msg = q !== ''
+      ? `No enquiries found matching "${escapeHtml(q)}".`
+      : 'No enquiries found matching selected criteria.';
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center">${msg}</td></tr>`;
     return;
   }
   
@@ -714,6 +791,14 @@ function renderEnquiriesTable() {
     const displayOrderId = enq.orderId || ('#' + (enq.docId || '').substring(0, 6).toUpperCase());
     const statusVal = String(enq.status || 'new').toLowerCase();
     const stateVal = (enq.customer && enq.customer.state) || enq.state || '—';
+    // PACKING only appears in the Confirm tab's dropdown — selecting it hands
+    // the order over to the Tracking Portal (see updateEnquiryStatusInline).
+    const enqStatusOptions = `
+      <option value="new"${statusVal === 'new' ? ' selected' : ''}>New</option>
+      <option value="contacted"${statusVal === 'contacted' ? ' selected' : ''}>Contacted</option>
+      <option value="resolved"${statusVal === 'resolved' ? ' selected' : ''}>Confirm</option>
+      ${enquiryStatusTab === 'resolved' ? '<option value="packing">Packing</option>' : ''}
+    `;
     
     tbody.innerHTML += `
       <tr>
@@ -727,11 +812,181 @@ function renderEnquiriesTable() {
         </td>
         <td class="enq-state-cell">${escapeHtml(stateVal)}</td>
         <td class="enq-total-cell">${orderTotal}</td>
-        <td class="enq-status-cell"><select class="enquiry-status-select ${escapeHtml(statusVal)}" onchange="updateEnquiryStatusInline('${enq.docId}', this.value)" title="Change enquiry status"><option value="new"${statusVal === 'new' ? ' selected' : ''}>New</option><option value="contacted"${statusVal === 'contacted' ? ' selected' : ''}>Contacted</option><option value="resolved"${statusVal === 'resolved' ? ' selected' : ''}>Confirm</option></select></td>
+        <td class="enq-status-cell"><select class="enquiry-status-select ${escapeHtml(statusVal)}" onchange="updateEnquiryStatusInline('${enq.docId}', this.value)" title="Change enquiry status">${enqStatusOptions}</select></td>
         <td>
           <div class="table-actions">
             <button class="btn-action edit" onclick="openEnquiryViewModal('${enq.docId}')" title="View Details"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
             <button class="btn-action delete" onclick="confirmDelete('enquiry', '${enq.docId}')" title="Delete Enquiry"><img src="Icons/delete.png" alt="Delete" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/* ==========================================================================
+   ORDER TRACKING PORTAL (packed / confirmed orders)
+   Packed orders leave the Enquiries Portal and live here; the trackingStatus
+   field is synced straight to the customer receipt badge (js/app.js).
+   ========================================================================== */
+let trackingDateFilter = 'all';
+let trackingCustomDate = '';
+let trackingSearchQuery = '';
+// Active fulfilment tab in the header tab bar ('packing' | 'dispatched' |
+// 'in_transit' | 'reached_destination' | 'delivered'); drives renderTrackingTable.
+let trackingStatusTab = 'packing';
+
+function setTrackingStatusTab(tab) {
+  trackingStatusTab = String(tab || 'packing').toLowerCase();
+  updateTrackingTabButtons();
+  renderTrackingTable();
+}
+
+function updateTrackingTabButtons() {
+  document.querySelectorAll('#header-tracking-controls .tracking-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.trackingTab === trackingStatusTab);
+  });
+}
+
+/* Resolve an order's effective fulfilment stage (falls back to 'packing' for
+ * any unrecognised value) so the tab filter and dropdown always agree. */
+function normaliseTrackingStatus(enq) {
+  const raw = String((enq && (enq.trackingStatus || enq.status)) || 'packing').toLowerCase();
+  return TRACKING_STATUSES.includes(raw) ? raw : 'packing';
+}
+
+function setTrackingDateFilter(mode) {
+  trackingDateFilter = String(mode || 'all').toLowerCase();
+  if (trackingDateFilter !== 'custom') {
+    trackingCustomDate = '';
+    const el = document.getElementById('admin-tracking-date-custom');
+    if (el) el.value = '';
+  }
+  updateTrackingDateChips();
+  renderTrackingTable();
+}
+
+function setTrackingCustomDate(value) {
+  trackingCustomDate = value || '';
+  trackingDateFilter = trackingCustomDate !== '' ? 'custom' : 'all';
+  updateTrackingDateChips();
+  renderTrackingTable();
+}
+
+function updateTrackingDateChips() {
+  document.querySelectorAll('#section-tracking .tracking-date-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.dateFilter === trackingDateFilter);
+  });
+  const dateEl = document.getElementById('admin-tracking-date-custom');
+  if (dateEl) {
+    const now = new Date();
+    dateEl.max = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  }
+}
+
+function setTrackingSearch(value) {
+  trackingSearchQuery = String(value || '');
+  const clearBtn = document.querySelector('#section-tracking .tracking-search-clear');
+  if (clearBtn) clearBtn.style.display = trackingSearchQuery.trim() !== '' ? 'block' : 'none';
+  renderTrackingTable();
+}
+
+function clearTrackingSearch() {
+  trackingSearchQuery = '';
+  const el = document.getElementById('admin-tracking-search');
+  if (el) el.value = '';
+  const clearBtn = document.querySelector('#section-tracking .tracking-search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderTrackingTable();
+}
+
+/* Advance a packed order's fulfilment stage. Writes `trackingStatus` (drives
+ * the receipt badge) and keeps `status` aligned so the row stays inside the
+ * tracking pipeline (never back in the new/contacted/confirm enquiry tabs). */
+function updateTrackingStatusInline(docId, status) {
+  const raw = String(status || 'packing').toLowerCase();
+  const safeStatus = TRACKING_STATUSES.includes(raw) ? raw : 'packing';
+  if (!docId || !window.db) {
+    showAdminToast('Could not update tracking status.', 'error');
+    renderTrackingTable();
+    return;
+  }
+  const payload = { trackingStatus: safeStatus, status: safeStatus };
+  // Stamp the change so the receipt / listeners can tell when an order moved.
+  // serverTimestamp() resolves to the exact Firestore server time; fall back
+  // to a client Date only if the SDK's FieldValue isn't available.
+  payload.updatedAt = (window.firebase && firebase.firestore && firebase.firestore.FieldValue)
+    ? firebase.firestore.FieldValue.serverTimestamp()
+    : new Date();
+
+  window.db.collection('enquiries').doc(docId).update(payload)
+    .then(() => {
+      console.log('[Tracking] ✓ Tracking status updated in Firestore for', docId, '->', safeStatus);
+      showAdminToast(`Tracking status updated to ${(TRACKING_LABELS[safeStatus] || safeStatus).toUpperCase()}.`, 'success');
+    })
+    .catch((err) => {
+      console.error('[Tracking] Failed to update tracking status:', err);
+      showAdminToast('Could not update tracking status.', 'error');
+      renderTrackingTable();
+    });
+}
+
+function renderTrackingTable() {
+  const tbody = document.getElementById('tracking-table-body');
+  if (!tbody) return;
+
+  const tracked = firestoreEnquiries.filter(isEnquiryInTracking)
+    .filter(e => normaliseTrackingStatus(e) === trackingStatusTab
+              && enquiryMatchesDateFilter(e, trackingDateFilter, trackingCustomDate)
+              && enquiryMatchesSearch(e, trackingSearchQuery));
+
+  tbody.innerHTML = '';
+  if (tracked.length === 0) {
+    const q = trackingSearchQuery.trim();
+    const tabLabel = TRACKING_LABELS[trackingStatusTab] || trackingStatusTab;
+    const msg = q !== ''
+      ? `No "${escapeHtml(tabLabel)}" orders found matching "${escapeHtml(q)}".`
+      : `No orders found under "${escapeHtml(tabLabel)}" status.`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center">${msg}</td></tr>`;
+    return;
+  }
+
+  tracked.forEach(enq => {
+    const formattedDate = new Date(enq.date).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+
+    let orderTotal = '—';
+    if (enq.financialBreakdown && typeof enq.financialBreakdown.grandTotal === 'number') {
+      orderTotal = `\u20B9${enq.financialBreakdown.grandTotal.toLocaleString('en-IN')}`;
+    } else if (enq.cartItems && enq.cartItems.length > 0) {
+      const total = enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+      orderTotal = `\u20B9${total.toLocaleString('en-IN')}`;
+    }
+
+    const displayOrderId = enq.orderId || ('#' + (enq.docId || '').substring(0, 6).toUpperCase());
+    const tStatus = normaliseTrackingStatus(enq);
+    const stateVal = (enq.customer && enq.customer.state) || enq.state || '—';
+    const trackingOptions = TRACKING_STATUSES.map(s =>
+      `<option value="${s}"${s === tStatus ? ' selected' : ''}>${TRACKING_LABELS[s]}</option>`).join('');
+
+    tbody.innerHTML += `
+      <tr>
+        <td class="enq-id-cell">#${escapeHtml(displayOrderId)}</td>
+        <td class="enq-date-cell">${formattedDate}</td>
+        <td>
+          <div class="enq-customer-cell">
+            <strong class="enq-customer-name">${escapeHtml(enq.name || '')}</strong>
+            <small class="enq-customer-phone">${escapeHtml(enq.phone || '')}</small>
+          </div>
+        </td>
+        <td class="enq-state-cell">${escapeHtml(stateVal)}</td>
+        <td class="enq-total-cell">${orderTotal}</td>
+        <td class="enq-status-cell"><select class="tracking-status-select status-${tStatus}" onchange="updateTrackingStatusInline('${enq.docId}', this.value)" title="Update tracking status">${trackingOptions}</select></td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-action edit" onclick="openEnquiryViewModal('${enq.docId}')" title="View Details"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+            <button class="btn-action delete" onclick="confirmDelete('enquiry', '${enq.docId}')" title="Delete Order"><img src="Icons/delete.png" alt="Delete" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
           </div>
         </td>
       </tr>
@@ -777,6 +1032,7 @@ function listenToEnquiries() {
           message: d.message || d.enquiryMessage || '',
           enquiryMessage: d.enquiryMessage || d.message || '',
           status: d.status || 'new',
+          trackingStatus: d.trackingStatus || '',
           date: dateStr,
           // New structured data (if present)
           cartItems: d.cartItems || null,
@@ -789,6 +1045,7 @@ function listenToEnquiries() {
       // Refresh any views that depend on enquiries
       updateDashboardStats();
       renderEnquiriesTable();
+      renderTrackingTable();
     }, (err) => {
       console.error('[Admin] ✗ Failed to load enquiries from Firestore:', err);
       console.error('[Admin] Error code:', err.code, 'Message:', err.message);
@@ -964,9 +1221,13 @@ function syncAdminHeaderOffset() {
   if (header) {
     document.documentElement.style.setProperty('--admin-header-h', header.offsetHeight + 'px');
   }
-  // Enquiries thead sticks BELOW the header + sticky date-filter bar; measure
-  // the bar too (0 while other sections are shown, refreshed on section swap).
-  const filterBar = document.querySelector('.enquiry-date-filter-bar');
+  // Enquiries/Tracking thead sticks BELOW the header + sticky filter bar;
+  // both sections share the bar styling, so measure whichever one is visible
+  // (0 while neither is shown, refreshed on section swap).
+  let filterBar = null;
+  document.querySelectorAll('.enquiry-date-filter-bar').forEach(bar => {
+    if (bar.offsetHeight > 0) filterBar = bar;
+  });
   if (filterBar) {
     document.documentElement.style.setProperty('--enquiry-filter-h', filterBar.offsetHeight + 'px');
   }
@@ -1003,6 +1264,7 @@ function showDashboardSection(sectionName) {
       'categories': 'Manage Catalog Categories',
       'reviews': 'Manage Product Reviews',
       'enquiries': 'Customer Enquiries Portal',
+      'tracking': 'Order Tracking',
       'banners': 'Manage Homepage Banners',
       'offers': 'Manage Festival Offer Banner',
       'spin-wheel': 'Manage Lucky Spin Wheel Segments',
@@ -1020,7 +1282,8 @@ function showDashboardSection(sectionName) {
     'categories': 'header-category-controls',
     'coupons': 'header-coupon-controls',
     'state-rules': 'header-state-rule-controls',
-    'enquiries': 'header-enquiry-controls'
+    'enquiries': 'header-enquiry-controls',
+    'tracking': 'header-tracking-controls'
   };
   Object.keys(sectionControlMap).forEach(key => {
     const el = document.getElementById(sectionControlMap[key]);
@@ -1029,6 +1292,9 @@ function showDashboardSection(sectionName) {
   if (sectionName === 'enquiries') {
     updateEnquiryTabButtons();
     updateEnquiryDateChips();
+  } else if (sectionName === 'tracking') {
+    updateTrackingTabButtons();
+    updateTrackingDateChips();
   }
 
   // Title swap can rewrap the header — refresh the sticky offset afterwards.
@@ -1045,6 +1311,8 @@ function showDashboardSection(sectionName) {
     initReviewsSection();
   } else if (sectionName === 'enquiries') {
     renderEnquiriesTable();
+  } else if (sectionName === 'tracking') {
+    renderTrackingTable();
   } else if (sectionName === 'banners') {
     renderBannersGrid();
   } else if (sectionName === 'offers') {

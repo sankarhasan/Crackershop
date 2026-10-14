@@ -4597,11 +4597,18 @@ function fetchUserOrders() {
     return;
   }
 
-  window.db.collection('enquiries')
+  // Live listener (so admin tracking-status changes reflect instantly). Tear
+  // down any previous subscription first — fetchUserOrders can be re-invoked
+  // (refresh button / repeated navigation) and we don't want duplicates.
+  if (window._userOrdersUnsub) {
+    try { window._userOrdersUnsub(); } catch (e) {}
+    window._userOrdersUnsub = null;
+  }
+
+  window._userOrdersUnsub = window.db.collection('enquiries')
     .where('customer.userId', '==', user.uid)
     .limit(50)
-    .get()
-    .then((snapshot) => {
+    .onSnapshot((snapshot) => {
       const orders = snapshot.docs.map((doc) => {
         const d = doc.data() || {};
         const breakdown = d.financialBreakdown || {};
@@ -4615,7 +4622,9 @@ function fetchUserOrders() {
           id: doc.id,
           orderId: d.orderId || doc.id,
           status: d.status || 'new',
-          statusLabel: friendlyOrderStatus(d.status || 'new'),
+          trackingStatus: d.trackingStatus || '',
+          statusLabel: (d.trackingStatus ? friendlyTrackingStatus(d.trackingStatus) : friendlyOrderStatus(d.status || 'new')),
+          statusBadgeClass: (d.trackingStatus ? trackingBadgeClass(d.trackingStatus) : 'bg-amber-100 text-amber-800'),
           date: placedOn,
           grandTotal: breakdown.grandTotal || 0,
           itemCount: (d.cartItems || []).reduce((sum, it) => sum + (it.quantity || 0), 0),
@@ -4634,8 +4643,7 @@ function fetchUserOrders() {
       orders.sort((a, b) => (b.timestamp ? b.timestamp.getTime() : 0) - (a.timestamp ? a.timestamp.getTime() : 0));
       renderUserOrdersList(orders);
       renderDashboardStats(orders, user);
-    })
-    .catch((err) => {
+    }, (err) => {
       console.error('[Portal] Could not load client orders:', err);
       renderDashOrdersMessage(
         'Could not load your orders',
@@ -4716,6 +4724,27 @@ function friendlyOrderStatus(status) {
   return 'Pending';
 }
 
+/** Customer-facing label for the live fulfilment (tracking) stage. */
+function friendlyTrackingStatus(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'packing') return 'Packing';
+  if (s === 'dispatched') return 'Dispatched';
+  if (s === 'intransit' || s === 'in_transit') return 'In Transit';
+  if (s === 'reacheddestination' || s === 'reached_destination') return 'Reached';
+  if (s === 'delivered') return 'Delivered';
+  return 'Processing';
+}
+
+/** Light-theme badge colour classes for the receipt status pill. */
+function trackingBadgeClass(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'dispatched') return 'bg-sky-100 text-sky-800';
+  if (s === 'intransit' || s === 'in_transit') return 'bg-purple-100 text-purple-800';
+  if (s === 'reacheddestination' || s === 'reached_destination') return 'bg-indigo-100 text-indigo-800';
+  if (s === 'delivered') return 'bg-emerald-100 text-emerald-800';
+  return 'bg-amber-100 text-amber-800';
+}
+
 /**
  * One FULL DETAILED dashboard order card (amber accent border, products
  * table and footer summary). The fetched order is cached in
@@ -4752,7 +4781,7 @@ function renderOrderCard(order) {
           <span class="text-xs font-semibold text-gray-400">${escapeHtml(order.date || 'Recent')}</span>
         </div>
         <div class="flex items-center gap-2 order-card-actions">
-          <span class="bg-amber-100 text-amber-800 font-bold text-xs px-3 py-1 rounded-full">${escapeHtml(order.statusLabel || friendlyOrderStatus(order.status))}</span>
+          <span class="${order.statusBadgeClass || 'bg-amber-100 text-amber-800'} font-bold text-xs px-3 py-1 rounded-full" style="white-space: nowrap;">${escapeHtml(order.statusLabel || friendlyOrderStatus(order.status))}</span>
           <button onclick="downloadReceipt('${order.id}')" class="order-pdf-btn bg-amber-400 hover:bg-amber-500 text-gray-900 font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
             <i class="fa-solid fa-file-pdf"></i> Download Receipt
           </button>
@@ -5741,7 +5770,7 @@ function downloadOrderReceipt(docId) {
     + '<p class="muted">Premium Sivakasi Firecrackers · Sivakasi, Tamil Nadu · +91 97894 32373</p>'
     + '<p class="muted"><strong>Order ID:</strong> ' + escapeHtml(order.orderId)
     + ' &nbsp;·&nbsp; <strong>Placed:</strong> ' + escapeHtml(placedOn)
-    + ' &nbsp;·&nbsp; <strong>Status:</strong> ' + escapeHtml(String(order.status || 'new')) + '</p>'
+    + ' &nbsp;·&nbsp; <strong>Status:</strong> ' + escapeHtml(order.statusLabel || friendlyTrackingStatus(order.trackingStatus) || friendlyOrderStatus(order.status)) + '</p>'
     + '<p class="muted"><strong>Client:</strong> ' + escapeHtml((user && (user.displayName || user.email)) || 'KPR Client') + '</p>'
     + '<h2>Items</h2>'
     + '<table><thead><tr><th>Product</th><th style="text-align:center;">Qty</th>'
