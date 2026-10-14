@@ -63,5 +63,11 @@ service cloud.firestore {
     match /wishlists/{userId} {
       allow read, write: if true;
     }
+
+    // Activities collection: admin dashboard real-time activity log feed
+    // (public read/write in development mode — same pattern as other collections)
+    match /activities/{activityId} {
+      allow read, write: if true;
+    }
   }
 }

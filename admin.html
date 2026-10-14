@@ -275,28 +275,32 @@
         <!-- Row 2: 3-Column Grid — Sales Performance, Mini Calendar, Recent Activity -->
         <div class="dash-exec-grid">
 
-          <!-- Card 1: Sales Performance -->
+          <!-- Card 1: Sales Performance (Tight Metric + X-Axis Dates) -->
           <div class="dash-exec-card dash-exec-card-sales">
-            <div class="dash-exec-card-header">
-              <h3>Sales Performance</h3>
-              <span class="dash-exec-badge">Last 7 days</span>
+            <div class="dash-exec-sales-top">
+              <div class="dash-exec-card-header dash-exec-header-tight">
+                <h3>Sales Performance</h3>
+                <span class="dash-exec-badge" id="dash-sales-badge">Today</span>
+              </div>
+              <div class="dash-exec-metric dash-exec-metric-tight">
+                <h2 class="dash-exec-metric-value" id="dash-sales-value">₹0</h2>
+                <p class="dash-exec-metric-change" id="dash-sales-change"><span class="dash-exec-trend-neutral">0%</span> <span class="dash-exec-metric-sub">vs. yesterday</span></p>
+              </div>
             </div>
-            <div class="dash-exec-metric">
-              <h2 class="dash-exec-metric-value" id="dash-sales-value">₹0</h2>
-              <p class="dash-exec-metric-change"><span class="dash-exec-trend-up">↑ 18%</span> <span class="dash-exec-metric-sub">vs. previous 7 days</span></p>
-            </div>
-            <div class="dash-exec-chart">
-              <svg viewBox="0 0 500 150" class="dash-exec-svg" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.4"/>
-                    <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.0"/>
-                  </linearGradient>
-                </defs>
-                <path d="M 0 120 Q 80 40 160 90 T 320 60 T 500 20 L 500 150 L 0 150 Z" fill="url(#salesGrad)"/>
-                <path d="M 0 120 Q 80 40 160 90 T 320 60 T 500 20" fill="none" stroke="#3B82F6" stroke-width="3"/>
-                <circle cx="500" cy="20" r="5" fill="#60A5FA"/>
-              </svg>
+            <div class="dash-exec-chart-wrap">
+              <div class="dash-exec-chart" id="dash-sales-chart">
+                <svg viewBox="0 0 500 150" class="dash-exec-svg" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#10B981" stop-opacity="0.35"/>
+                      <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
+                    </linearGradient>
+                  </defs>
+                  <line x1="0" y1="120" x2="500" y2="120" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+                  <circle cx="500" cy="120" r="4" fill="#64748B"/>
+                </svg>
+              </div>
+              <div class="dash-exec-xaxis-labels" id="dash-xaxis-labels"></div>
             </div>
           </div>
 
@@ -314,7 +318,7 @@
             </div>
             <div class="dash-exec-cal-grid" id="cal-days-grid"></div>
             <div class="dash-exec-cal-footer">
-              <span class="dash-exec-cal-clear" onclick="calendarClear()">Clear</span>
+              <span class="dash-exec-cal-clear" onclick="calendarReset()">Reset</span>
               <span class="dash-exec-cal-today" onclick="calendarToday()">Today</span>
             </div>
           </div>
@@ -326,27 +330,7 @@
               <span class="dash-exec-view-all" onclick="showDashboardSection('enquiries')">View all →</span>
             </div>
             <div class="dash-exec-activity-list" id="dash-activity-list">
-              <div class="dash-exec-activity-item">
-                <div class="dash-exec-activity-icon dash-exec-act-blue"><i class="fa-solid fa-cart-shopping"></i></div>
-                <div class="dash-exec-activity-text">
-                  <p class="dash-exec-activity-title">New order received</p>
-                  <p class="dash-exec-activity-sub">Latest enquiry logged</p>
-                </div>
-              </div>
-              <div class="dash-exec-activity-item">
-                <div class="dash-exec-activity-icon dash-exec-act-purple"><i class="fa-solid fa-box"></i></div>
-                <div class="dash-exec-activity-text">
-                  <p class="dash-exec-activity-title">Product updated</p>
-                  <p class="dash-exec-activity-sub">Inventory modified</p>
-                </div>
-              </div>
-              <div class="dash-exec-activity-item">
-                <div class="dash-exec-activity-icon dash-exec-act-emerald"><i class="fa-solid fa-star"></i></div>
-                <div class="dash-exec-activity-text">
-                  <p class="dash-exec-activity-title">New review</p>
-                  <p class="dash-exec-activity-sub">5 stars received</p>
-                </div>
-              </div>
+              <!-- Populated dynamically by renderActivityFeed() via Firestore onSnapshot -->
             </div>
           </div>
 

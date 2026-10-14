@@ -251,6 +251,9 @@ function onAdminAuthenticated() {
   
   // Start realtime Firestore enquiries stream (auto-refreshes tables + stats)
   listenToEnquiries();
+
+  // Start realtime Recent Activity feed listener
+  listenToActivities();
   
   // ALSO do a one-time direct fetch as fallback (ensures data loads even if onSnapshot is slow)
   if (window.db) {
@@ -285,6 +288,8 @@ function onAdminAuthenticated() {
               status: d.status || 'new',
               trackingStatus: d.trackingStatus || '',
               date: dateStr,
+              updatedAt: d.updatedAt || null,
+              createdAt: d.createdAt || null,
               cartItems: d.cartItems || null,
               financialBreakdown: d.financialBreakdown || null
             };
@@ -1160,6 +1165,8 @@ function listenToEnquiries() {
           status: d.status || 'new',
           trackingStatus: d.trackingStatus || '',
           date: dateStr,
+          updatedAt: d.updatedAt || null,
+          createdAt: d.createdAt || null,
           // New structured data (if present)
           cartItems: d.cartItems || null,
           financialBreakdown: d.financialBreakdown || null
@@ -1462,6 +1469,130 @@ function showDashboardSectionDirect(sectionName) {
 }
 
 /* ==========================================================================
+   2.6. Recent Activity Logging & Realtime Feed
+   ========================================================================== */
+
+// In-memory store (max 6 items) populated by Firestore onSnapshot
+let firestoreActivities = [];
+
+/**
+ * Log an activity to Firestore 'activities' collection.
+ * @param {string} type  - PRODUCT | CATEGORY | ENQUIRY | REVIEW | COUPON | STATE_RULE | DELETE
+ * @param {string} title - Short action title (e.g. 'Product updated')
+ * @param {string} desc  - Detail subtitle (e.g. product name)
+ */
+function logActivity(type, title, desc) {
+  if (!window.db) return;
+  try {
+    window.db.collection('activities').add({
+      type: (type || '').toUpperCase(),
+      title: title || '',
+      desc: desc || '',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(err) {
+      console.warn('[Activities] Write failed:', err.message);
+    });
+  } catch (e) {
+    console.warn('[Activities] logActivity error:', e);
+  }
+}
+
+/**
+ * Listen to Firestore 'activities' collection — latest 6, ordered by timestamp desc.
+ */
+function listenToActivities() {
+  if (!window.db) return;
+  try {
+    window.db.collection('activities')
+      .orderBy('timestamp', 'desc')
+      .limit(6)
+      .onSnapshot(function(snapshot) {
+        firestoreActivities = [];
+        snapshot.forEach(function(doc) {
+          var d = doc.data() || {};
+          firestoreActivities.push({
+            id: doc.id,
+            type: d.type || 'PRODUCT',
+            title: d.title || '',
+            desc: d.desc || '',
+            timestamp: d.timestamp
+          });
+        });
+        renderActivityFeed();
+      }, function(err) {
+        console.warn('[Activities] onSnapshot failed:', err.message);
+        // Fallback: show defaults
+        renderActivityFeed();
+      });
+  } catch (e) {
+    console.warn('[Activities] listener setup error:', e);
+    renderActivityFeed();
+  }
+}
+
+/**
+ * Resolve icon path and tint class from activity type.
+ */
+function getActivityIconPath(type) {
+  var t = (type || '').toUpperCase();
+  if (t === 'DELETE') return 'Icons/delete.png';
+  if (t === 'CATEGORY') return 'Icons/price-list.png';
+  if (t === 'ENQUIRY' || t === 'ORDER') return 'Icons/enquires.png';
+  if (t === 'REVIEW') return 'Icons/reviews.png';
+  if (t === 'COUPON') return 'Icons/coupon code.png';
+  if (t === 'STATE_RULE') return 'Icons/state minimum rule.png';
+  if (t === 'SPIN_WHEEL') return 'Icons/spinning-wheel.png';
+  if (t === 'OFFER') return 'Icons/offers.png';
+  if (t === 'BANNER') return 'Icons/banner.png';
+  return 'Icons/products.png';
+}
+
+function getActivityTintClass(type) {
+  var t = (type || '').toUpperCase();
+  if (t === 'DELETE') return 'dash-exec-act-red';
+  if (t === 'ENQUIRY' || t === 'ORDER') return 'dash-exec-act-blue';
+  if (t === 'REVIEW') return 'dash-exec-act-emerald';
+  if (t === 'CATEGORY') return 'dash-exec-act-sky';
+  if (t === 'COUPON' || t === 'STATE_RULE') return 'dash-exec-act-purple';
+  if (t === 'SPIN_WHEEL') return 'dash-exec-act-amber';
+  if (t === 'OFFER' || t === 'BANNER') return 'dash-exec-act-emerald';
+  return 'dash-exec-act-amber';
+}
+
+/**
+ * Render the activity feed HTML into #dash-activity-list.
+ */
+function renderActivityFeed() {
+  var container = document.getElementById('dash-activity-list');
+  if (!container) return;
+
+  var items = firestoreActivities.slice(0, 6);
+
+  if (items.length === 0) {
+    container.innerHTML = '<div class="dash-exec-activity-item"><div class="dash-exec-activity-icon dash-exec-act-blue"><i class="fa-solid fa-clock-rotate-left"></i></div><div class="dash-exec-activity-text"><p class="dash-exec-activity-title">No activity yet</p><p class="dash-exec-activity-sub">Actions will appear here</p></div></div>';
+    return;
+  }
+
+  var html = '';
+  items.forEach(function(act) {
+    var iconPath = getActivityIconPath(act.type);
+    var tintClass = getActivityTintClass(act.type);
+    var isDelete = (act.type || '').toUpperCase() === 'DELETE';
+
+    html += '<div class="dash-exec-activity-item">';
+    html += '<div class="dash-exec-activity-icon ' + tintClass + '">';
+    html += '<img src="' + iconPath + '" alt="" class="dash-exec-activity-icon-img" onerror="this.style.display=\'none\'">';
+    html += '</div>';
+    html += '<div class="dash-exec-activity-text">';
+    html += '<p class="dash-exec-activity-title">' + escapeHtml(act.title) + '</p>';
+    html += '<p class="dash-exec-activity-sub">' + escapeHtml(act.desc) + '</p>';
+    html += '</div></div>';
+  });
+
+  container.innerHTML = html;
+}
+
+/* ==========================================================================
    3. Statistics Calculation & Mini-Tables
    ========================================================================== */
 function updateDashboardStats() {
@@ -1510,11 +1641,7 @@ function updateDashboardStats() {
   // Set DOM text
   document.getElementById('stat-products-count').innerText = totalProducts;
   document.getElementById('stat-categories-count').innerText = totalCategories;
-  // Revenue respects the eye-toggle mask state
-  const revenueEl = document.getElementById('stat-revenue-pool');
-  if (revenueEl) {
-    revenueEl.innerText = window._showRevenue !== false ? `\u20B9${revenuePoolVal.toLocaleString('en-IN')}` : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
-  }
+  // NOTE: Header Revenue Pool is set by updateSalesGraph() below (strict date-wise)
   
   // Sidebar notification badge (still uses newEnquiriesCount)
   const sidebarBadge = document.getElementById('enquiry-badge-count');
@@ -1525,16 +1652,234 @@ function updateDashboardStats() {
   
   renderRecentEnquiriesMiniTable();
 
-  // Sales Performance metric (mirror the revenue pool value into the card)
-  const salesEl = document.getElementById('dash-sales-value');
-  if (salesEl) {
-    salesEl.innerText = window._showRevenue !== false
-      ? `\u20B9${revenuePoolVal.toLocaleString('en-IN')}`
-      : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
-  }
+  // Sales Performance metric — use selected date for daily view
+  updateSalesGraph();
 
   // Render mini calendar
   renderMiniCalendar();
+}
+
+/* ==========================================================================
+   Sales Performance Dynamic Graph (vs Yesterday comparison)
+   ========================================================================== */
+let _selectedDate = new Date();
+let _calViewDate = new Date(); // controls which month is displayed
+
+/* Robust date parser: accepts either a raw dateVal OR the full enquiry item
+   (to handle Firestore Timestamps on item.date / item.createdAt).
+   Handles: Timestamp objects, ISO strings, "14 Oct, 07:02 pm", "14 Oct 2026". */
+function parseEnquiryDate(input) {
+  if (!input) return new Date();
+
+  // If passed a full enquiry object, extract the date field
+  let dateVal = input;
+  if (typeof input === 'object' && !(input instanceof Date) && typeof input.toDate !== 'function') {
+    // It's a plain object (enquiry item) — use updatedAt first (status re-allocation),
+    // then createdAt, then date as fallback
+    dateVal = input.updatedAt || input.createdAt || input.date || null;
+    if (!dateVal) return new Date();
+  }
+
+  if (dateVal instanceof Date) return dateVal;
+  // Firestore Timestamp object with .toDate()
+  if (typeof dateVal.toDate === 'function') return dateVal.toDate();
+  // Try native parse first (ISO, epoch ms, etc.)
+  const parsed = new Date(dateVal);
+  if (!isNaN(parsed.getTime())) return parsed;
+
+  // Fallback: custom "14 Oct, 07:02 pm" or "14 Oct 2026"
+  try {
+    const str = String(dateVal);
+    const parts = str.split(',');
+    const dateParts = parts[0].trim().split(/\s+/);
+    const day = parseInt(dateParts[0], 10);
+    const monthStr = dateParts[1] || '';
+    const monthNames = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const monthIdx = monthNames.findIndex(m => m === monthStr.toLowerCase().slice(0, 3));
+    const yearFromStr = dateParts[2] ? parseInt(dateParts[2], 10) : new Date().getFullYear();
+    if (!isNaN(day) && monthIdx !== -1) {
+      return new Date(yearFromStr, monthIdx, day);
+    }
+  } catch (e) { /* fall through */ }
+  return new Date();
+}
+
+// Helper: sum confirmed-order revenue for a specific date
+function getSalesForDate(targetDate) {
+  const CONFIRMED_STATUSES = ['resolved', 'packing', 'dispatched', 'in_transit', 'reached_destination', 'delivered'];
+  const enquiries = firestoreEnquiries;
+  let total = 0;
+
+  enquiries.forEach(enq => {
+    const status = (enq.status || '').toLowerCase();
+    const trackingStatus = (enq.trackingStatus || '').toLowerCase();
+    const effectiveStatus = trackingStatus || status;
+    if (!CONFIRMED_STATUSES.includes(effectiveStatus)) return;
+
+    // Check if enquiry date matches target date using robust parser (pass full item)
+    const itemDate = parseEnquiryDate(enq);
+    if (
+      itemDate.getDate() === targetDate.getDate() &&
+      itemDate.getMonth() === targetDate.getMonth() &&
+      itemDate.getFullYear() === targetDate.getFullYear()
+    ) {
+      // Extract amount
+      if (enq.financialBreakdown && typeof enq.financialBreakdown.grandTotal === 'number') {
+        total += enq.financialBreakdown.grandTotal;
+      } else if (enq.cartItems && enq.cartItems.length > 0) {
+        total += enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+      } else if (enq.message && enq.message.includes('Total Est: \u20B9')) {
+        const parts = enq.message.split('Total Est: \u20B9');
+        if (parts.length > 1) {
+          const val = parseInt(parts[1].replace(/,/g, ''));
+          if (!isNaN(val)) total += val;
+        }
+      }
+    }
+  });
+
+  return total;
+}
+
+function updateSalesGraph() {
+  const currentSales = getSalesForDate(_selectedDate);
+  const yesterday = new Date(_selectedDate);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdaySales = getSalesForDate(yesterday);
+
+  // Percentage change vs yesterday
+  let percentChange = 0;
+  if (yesterdaySales > 0) {
+    percentChange = Math.round(((currentSales - yesterdaySales) / yesterdaySales) * 100);
+  } else if (currentSales > 0) {
+    percentChange = 100;
+  }
+
+  const isGrowth = percentChange > 0;
+  const isDrop = percentChange < 0;
+
+  // Update metric value
+  const salesEl = document.getElementById('dash-sales-value');
+  if (salesEl) {
+    salesEl.innerText = window._showRevenue !== false
+      ? `\u20B9${currentSales.toLocaleString('en-IN')}`
+      : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
+  }
+
+  // Update trend text and color
+  const changeEl = document.getElementById('dash-sales-change');
+  if (changeEl) {
+    let trendHtml = '';
+    if (isGrowth) {
+      trendHtml = `<span class="dash-exec-trend-up">\u2191 +${percentChange}%</span>`;
+    } else if (isDrop) {
+      trendHtml = `<span class="dash-exec-trend-down">\u2193 ${percentChange}%</span>`;
+    } else {
+      trendHtml = `<span class="dash-exec-trend-neutral">0%</span>`;
+    }
+    changeEl.innerHTML = `${trendHtml} <span class="dash-exec-metric-sub">vs. yesterday</span>`;
+  }
+
+  // Update badge with selected date
+  const badgeEl = document.getElementById('dash-sales-badge');
+  if (badgeEl) {
+    const today = new Date();
+    const isToday = _selectedDate.getDate() === today.getDate() &&
+                    _selectedDate.getMonth() === today.getMonth() &&
+                    _selectedDate.getFullYear() === today.getFullYear();
+    badgeEl.innerText = isToday ? 'Today' : _selectedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  }
+
+  // NOTE: Header date subtitle (#current-date-info) stays locked to real system
+  // today — it is set once on init and NOT updated when calendar date changes.
+
+  // Build real 7-day sales array and generate dynamic multi-point SVG graph
+  const chartEl = document.getElementById('dash-sales-chart');
+  const labelsEl = document.getElementById('dash-xaxis-labels');
+  const last7Data = [];
+  const last7Labels = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(_selectedDate);
+    d.setDate(d.getDate() - i);
+    last7Data.push(getSalesForDate(d));
+    last7Labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+  }
+
+  // SVG coordinate mapping
+  const svgW = 500;
+  const baselineY = 120; // bottom flat line (zero sales)
+  const topY = 20;       // maximum height point
+  const maxSales = Math.max(...last7Data, 1); // avoid division by zero
+
+  // Calculate point positions
+  const points = last7Data.map((val, idx) => {
+    const x = (idx / 6) * svgW;
+    const y = val === 0 ? baselineY : baselineY - ((val / maxSales) * (baselineY - topY));
+    return { x, y };
+  });
+
+  // Build polyline path (straight line segments between points)
+  const pathD = points.reduce((acc, pt, i) => {
+    return i === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`;
+  }, '');
+
+  // Fill area under the path
+  const fillD = `${pathD} L ${points[6].x} 150 L ${points[0].x} 150 Z`;
+
+  // Determine colors
+  const lineColor = isDrop ? '#F43F5E' : currentSales === 0 && yesterdaySales === 0 ? '#475569' : '#10B981';
+  const gradColor = isDrop ? '#F43F5E' : '#10B981';
+
+  if (chartEl) {
+    const gradId = 'salesGradDyn';
+    const allZero = last7Data.every(v => v === 0);
+
+    let svgHtml = `<svg viewBox="0 0 500 150" class="dash-exec-svg" preserveAspectRatio="none">`;
+
+    if (allZero) {
+      // Completely flat dashed line when no sales in 7 days
+      svgHtml += `<line x1="0" y1="${baselineY}" x2="500" y2="${baselineY}" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>`;
+      svgHtml += `<circle cx="500" cy="${baselineY}" r="4" fill="#64748B"/>`;
+    } else {
+      // Gradient fill area
+      svgHtml += `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">`;
+      svgHtml += `<stop offset="0%" stop-color="${gradColor}" stop-opacity="0.4"/>`;
+      svgHtml += `<stop offset="100%" stop-color="${gradColor}" stop-opacity="0.0"/>`;
+      svgHtml += `</linearGradient></defs>`;
+      // Fill path
+      svgHtml += `<path d="${fillD}" fill="url(#${gradId})"/>`;
+      // Line path
+      svgHtml += `<path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+      // Endpoint dot on last day
+      svgHtml += `<circle cx="${points[6].x}" cy="${points[6].y}" r="6" fill="${lineColor}"/>`;
+    }
+
+    svgHtml += `</svg>`;
+    chartEl.innerHTML = svgHtml;
+  }
+
+  // Render X-axis last 7 days date labels
+  if (labelsEl) {
+    let labelsHtml = '';
+    for (let i = 0; i < 7; i++) {
+      const isLast = i === 6;
+      labelsHtml += `<span class="${isLast ? 'xaxis-today' : ''}">${last7Labels[i]}</span>`;
+    }
+    labelsEl.innerHTML = labelsHtml;
+  }
+
+  // Store for the eye toggle to reference
+  window._selectedDateSales = currentSales;
+
+  // Sync header "EST. REVENUE POOL" pill: STRICTLY date-wise,
+  // shows the exact same selected-date confirmed total (even if ₹0).
+  const revenueEl = document.getElementById('stat-revenue-pool');
+  if (revenueEl) {
+    revenueEl.innerText = window._showRevenue !== false
+      ? `\u20B9${currentSales.toLocaleString('en-IN')}`
+      : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
+  }
 }
 
 /* Eye-icon toggle: mask/unmask the Est. Revenue Pool value in the header pill. */
@@ -1542,18 +1887,8 @@ function toggleRevenueVisibility() {
   // Default is visible (true); toggle to false hides.
   window._showRevenue = window._showRevenue === false ? true : false;
 
-  const revenueEl = document.getElementById('stat-revenue-pool');
   const eyeIcon = document.getElementById('revenueEyeIcon');
   const eyeBtn = document.getElementById('revenueEyeToggle');
-
-  if (revenueEl) {
-    if (window._showRevenue) {
-      const val = window._revenuePoolVal || 0;
-      revenueEl.innerText = `\u20B9${val.toLocaleString('en-IN')}`;
-    } else {
-      revenueEl.innerText = '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
-    }
-  }
 
   if (eyeIcon) {
     eyeIcon.className = window._showRevenue ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
@@ -1562,69 +1897,122 @@ function toggleRevenueVisibility() {
     eyeBtn.title = window._showRevenue ? 'Hide Revenue' : 'Show Revenue';
   }
 
-  // Also toggle the Sales Performance card metric
+  // Toggle the Sales Performance card + Header Revenue Pool pill
+  // BOTH show the exact same selected-date value (strict date-wise ledger)
+  const salesVal = window._selectedDateSales || 0;
+
   const salesEl = document.getElementById('dash-sales-value');
   if (salesEl) {
-    if (window._showRevenue) {
-      const val = window._revenuePoolVal || 0;
-      salesEl.innerText = `\u20B9${val.toLocaleString('en-IN')}`;
-    } else {
-      salesEl.innerText = '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
-    }
+    salesEl.innerText = window._showRevenue
+      ? `\u20B9${salesVal.toLocaleString('en-IN')}`
+      : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
+  }
+
+  const revenueEl = document.getElementById('stat-revenue-pool');
+  if (revenueEl) {
+    revenueEl.innerText = window._showRevenue
+      ? `\u20B9${salesVal.toLocaleString('en-IN')}`
+      : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
   }
 }
 
 /* ==========================================================================
-   Mini Calendar Widget (Dashboard Executive Layout)
+   Mini Calendar Widget (Clickable dates, Future Lock, Sales Sync)
    ========================================================================== */
-let _calDate = new Date();
 
-function renderMiniCalendar() {
+function renderMiniCalendar(animate) {
   const label = document.getElementById('cal-month-year');
   const grid = document.getElementById('cal-days-grid');
   if (!label || !grid) return;
 
-  const year = _calDate.getFullYear();
-  const month = _calDate.getMonth();
+  // Trigger fade/slide animation on month change
+  if (animate) {
+    grid.classList.remove('cal-slide-in');
+    // Force reflow to restart animation
+    void grid.offsetWidth;
+    grid.classList.add('cal-slide-in');
+  }
+
+  const year = _calViewDate.getFullYear();
+  const month = _calViewDate.getMonth();
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   label.innerText = `${monthNames[month]} ${year}`;
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysCount = new Date(year, month + 1, 0).getDate();
   const today = new Date();
+  // Normalize today for comparison (strip time)
+  const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
+  // Strict 42-slot (6 rows × 7 cols) grid — never collapses or expands
+  const totalSlots = 42;
   let html = '';
-  // Empty cells before day 1
-  for (let i = 0; i < firstDay; i++) {
-    html += '<div class="dash-exec-cal-day is-empty"></div>';
-  }
-  // Day cells
-  for (let d = 1; d <= daysCount; d++) {
-    const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-    html += `<div class="dash-exec-cal-day${isToday ? ' is-today' : ''}">${d}</div>`;
+
+  for (let idx = 0; idx < totalSlots; idx++) {
+    const dayNumber = idx - firstDay + 1;
+    const isValidDay = dayNumber >= 1 && dayNumber <= daysCount;
+
+    if (!isValidDay) {
+      // Empty padding cell (before day 1 or after month end)
+      html += '<div class="dash-exec-cal-day is-empty"></div>';
+    } else {
+      const thisDate = new Date(year, month, dayNumber);
+      const isFuture = thisDate > todayNorm;
+      const isToday = dayNumber === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+      const isSelected = dayNumber === _selectedDate.getDate() && month === _selectedDate.getMonth() && year === _selectedDate.getFullYear();
+
+      let classes = 'dash-exec-cal-day';
+      if (isFuture) {
+        classes += ' is-future';
+      } else if (isSelected) {
+        // Filled green box: the currently clicked/selected date
+        classes += ' is-selected';
+      } else if (isToday) {
+        // Emerald outline: today when a DIFFERENT date is selected
+        classes += ' is-today-outline';
+      }
+
+      if (isFuture) {
+        html += `<div class="${classes}">${dayNumber}</div>`;
+      } else {
+        html += `<div class="${classes}" onclick="selectCalendarDate(${year},${month},${dayNumber})">${dayNumber}</div>`;
+      }
+    }
   }
   grid.innerHTML = html;
 }
 
-function calendarPrev() {
-  _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth() - 1, 1);
+function selectCalendarDate(year, month, day) {
+  _selectedDate = new Date(year, month, day);
+  // Update the graph and sales metric for the new selected date
+  updateSalesGraph();
+  // Re-render calendar to update selection highlight
   renderMiniCalendar();
+}
+
+function calendarPrev() {
+  _calViewDate = new Date(_calViewDate.getFullYear(), _calViewDate.getMonth() - 1, 1);
+  renderMiniCalendar(true);
 }
 
 function calendarNext() {
-  _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth() + 1, 1);
-  renderMiniCalendar();
+  _calViewDate = new Date(_calViewDate.getFullYear(), _calViewDate.getMonth() + 1, 1);
+  renderMiniCalendar(true);
 }
 
 function calendarToday() {
-  _calDate = new Date();
-  renderMiniCalendar();
+  _selectedDate = new Date();
+  _calViewDate = new Date(_selectedDate.getFullYear(), _selectedDate.getMonth(), 1);
+  renderMiniCalendar(true);
+  updateSalesGraph();
 }
 
-function calendarClear() {
-  // Reset to current month (same as Today for now)
-  _calDate = new Date();
-  renderMiniCalendar();
+function calendarReset() {
+  // Reset to today
+  _selectedDate = new Date();
+  _calViewDate = new Date(_selectedDate.getFullYear(), _selectedDate.getMonth(), 1);
+  renderMiniCalendar(true);
+  updateSalesGraph();
 }
 
 function renderRecentEnquiriesMiniTable() {
@@ -2164,6 +2552,7 @@ function saveProductData() {
   
   // Show a single clean success toast
   showAdminToast('Product saved successfully!', 'success');
+  try { logActivity('PRODUCT', idVal ? 'Product updated' : 'Product added', name || 'Firecracker item'); } catch(e) { console.warn('[Activity]', e); }
   
   saveProducts(products);
   
@@ -3116,6 +3505,7 @@ function saveCategoryData() {
   }
 
   showAdminToast('Category saved successfully!', 'success');
+  try { logActivity('CATEGORY', idVal ? 'Category updated' : 'Category added', name || 'Section'); } catch(e) { console.warn('[Activity]', e); }
 
   // Async Firestore sync (fire-and-forget, error only shown if sync fails)
   const categoryToSync = idVal === ''
@@ -3385,6 +3775,7 @@ function executePendingDelete() {
         });
     }
     showAdminToast('Product removed successfully!', 'success');
+    logActivity('DELETE', 'Product deleted', deletedProduct ? deletedProduct.name : 'Firecracker item');
     renderProductsTable();
   } else if (deleteTargetType === 'category') {
     let categories = getCategories();
@@ -3412,13 +3803,14 @@ function executePendingDelete() {
         });
     }
     showAdminToast('Category removed successfully!', 'success');
+    logActivity('DELETE', 'Category deleted', 'Section removed');
     populateCategoryDropdowns();
     renderCategoriesTable();
     renderProductsTable();
   } else if (deleteTargetType === 'enquiry') {
     if (window.db && deleteTargetId) {
       window.db.collection('enquiries').doc(deleteTargetId).delete()
-        .then(() => showAdminToast('Enquiry record deleted.', 'info'))
+        .then(() => { showAdminToast('Enquiry record deleted.', 'info'); logActivity('DELETE', 'Enquiry deleted', deleteTargetId || 'Record'); })
         .catch((err) => {
           console.error('[Admin] Failed to delete enquiry:', err);
           showAdminToast('Could not delete enquiry.', 'error');
@@ -3428,7 +3820,7 @@ function executePendingDelete() {
   } else if (deleteTargetType === 'review') {
     if (window.db && deleteTargetId) {
       window.db.collection('product_reviews').doc(deleteTargetId).delete()
-        .then(() => showAdminToast('Review deleted.', 'info'))
+        .then(() => { showAdminToast('Review deleted.', 'info'); logActivity('DELETE', 'Review deleted', 'Customer review'); })
         .catch((err) => {
           const code = err.code || 'unknown';
           console.error('[Admin] ✗ Failed to delete review. Code:', code, err);
@@ -3459,6 +3851,7 @@ function executePendingDelete() {
           });
       }
       showAdminToast('Banner deleted successfully.', 'info');
+      logActivity('DELETE', 'Banner Deleted', 'Homepage banner removed');
       renderBannersGrid();
     }
   } else if (deleteTargetType === 'coupon') {
@@ -3470,6 +3863,7 @@ function executePendingDelete() {
         .then(() => {
           console.log('[Admin] ✓ Coupon deleted from Firestore:', deleteTargetId);
           showAdminToast('Coupon code deleted successfully.', 'success');
+            logActivity('DELETE', 'Coupon deleted', deleteTargetId || 'Offer code');
           loadCouponsFromFirestore().then(coupons => {
             adminCoupons = coupons;
             renderCouponsTable();
@@ -3842,6 +4236,7 @@ function saveBannerEdit() {
     closeBannerModal();
     renderBannersGrid();
     showAdminToast('New banner added successfully.', 'success');
+    logActivity('BANNER', 'Banner Added', 'Homepage banner uploaded');
     return;
   }
 
@@ -3864,6 +4259,7 @@ function saveBannerEdit() {
   closeBannerModal();
   renderBannersGrid();
   showAdminToast('Banner updated successfully.', 'success');
+  logActivity('BANNER', 'Banner Updated', 'Homepage banner modified');
 }
 
 // Compress an image File to a Base64 data URL via HTML Canvas so it stays
@@ -4033,6 +4429,7 @@ document.addEventListener('DOMContentLoaded', () => {
           .then(() => {
             console.log('[Admin] ✓ Offer saved successfully.');
             showAdminToast('Offer banner saved and synced to cloud!', 'success');
+            logActivity('OFFER', 'Offer Updated', 'Festival offer banner saved');
           })
           .catch(err => {
             console.error('[Admin] Offer save failed:', err);
@@ -4159,6 +4556,7 @@ function saveSpinWheelConfig() {
         adminSpinConfig = config;
         console.log('[Admin] ✓ Spin wheel config saved:', config);
         showAdminToast('Spin wheel saved and synced to cloud!', 'success');
+        logActivity('SPIN_WHEEL', 'Spin Wheel Updated', 'Wheel segments saved');
       })
       .catch(err => {
         const code = err.code || 'unknown';
@@ -4303,6 +4701,7 @@ function saveCouponData() {
     .then(() => {
       console.log('[Admin] ✓ Coupon saved to Firestore:', code);
       showAdminToast('Coupon saved to cloud successfully!', 'success');
+      logActivity('COUPON', 'Coupon saved', code || 'Discount code');
     })
     .catch(err => {
       console.error('[Admin] Coupon save failed:', err);
@@ -4443,6 +4842,7 @@ function saveStateRuleData() {
     .then(() => {
       console.log('[Admin] ✓ State rules saved to Firestore.');
       showAdminToast('State rule saved to cloud successfully!', 'success');
+      logActivity('STATE_RULE', 'State rule updated', 'Min order rule modified');
     })
     .catch(err => {
       console.error('[Admin] State rules save failed:', err);
@@ -4539,6 +4939,8 @@ window.confirmDelete = confirmDelete;
 window.closeDeleteModal = closeDeleteModal;
 window.executePendingDelete = executePendingDelete;
 window.logoutAdmin = logoutAdmin;
+window.logActivity = logActivity;
+window.renderActivityFeed = renderActivityFeed;
 window.toggleAdminProfileMenu = toggleAdminProfileMenu;
 window.adminProfileLogout = adminProfileLogout;
 window.adminProfileDownloadPDF = adminProfileDownloadPDF;

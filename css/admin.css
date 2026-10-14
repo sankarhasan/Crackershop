@@ -844,6 +844,7 @@ textarea.form-control-admin {
   grid-template-columns: 5fr 4fr 3fr;
   gap: 20px;
   margin-bottom: 24px;
+  align-items: stretch;
 }
 
 .dash-exec-card {
@@ -855,6 +856,9 @@ textarea.form-control-admin {
   flex-direction: column;
   justify-content: space-between;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  height: 340px;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .dash-exec-card-header {
@@ -903,14 +907,33 @@ textarea.form-control-admin {
   color: #34d399;
 }
 
+.dash-exec-trend-down {
+  color: #f43f5e;
+}
+
+.dash-exec-trend-neutral {
+  color: #94a3b8;
+}
+
 .dash-exec-metric-sub {
   color: var(--admin-text-muted);
   font-weight: 400;
 }
 
+/* SVG graph transition for dynamic path changes */
+.dash-exec-chart svg {
+  transition: all 0.7s ease-in-out;
+}
+
+.dash-exec-chart svg path,
+.dash-exec-chart svg line,
+.dash-exec-chart svg circle {
+  transition: all 0.7s ease-in-out;
+}
+
 /* SVG chart */
 .dash-exec-chart {
-  margin-top: 12px;
+  margin-top: 0;
   height: 100px;
   width: 100%;
   display: flex;
@@ -921,6 +944,43 @@ textarea.form-control-admin {
   width: 100%;
   height: 100%;
   overflow: visible;
+}
+
+/* Sales card tight layout */
+.dash-exec-sales-top {
+  flex-shrink: 0;
+}
+
+.dash-exec-header-tight {
+  margin-bottom: 2px;
+}
+
+.dash-exec-metric-tight {
+  margin-bottom: 4px;
+}
+
+.dash-exec-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+.dash-exec-xaxis-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 2px 0;
+  margin-top: 6px;
+  border-top: 1px solid rgba(51, 65, 85, 0.4);
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--admin-text-muted);
+}
+
+.dash-exec-xaxis-labels .xaxis-today {
+  color: #34d399;
+  font-weight: 900;
 }
 
 /* Mini Calendar */
@@ -960,10 +1020,13 @@ textarea.form-control-admin {
 .dash-exec-cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, 28px);
   gap: 2px;
   text-align: center;
   font-size: 0.75rem;
   font-weight: 600;
+  height: 196px;
+  flex-shrink: 0;
 }
 
 .dash-exec-cal-day {
@@ -975,8 +1038,8 @@ textarea.form-control-admin {
   border-radius: 8px;
   margin: 0 auto;
   color: var(--admin-text);
-  transition: background-color 0.12s;
-  cursor: default;
+  transition: background-color 0.12s, opacity 0.3s;
+  cursor: pointer;
 }
 
 .dash-exec-cal-day:hover {
@@ -990,8 +1053,45 @@ textarea.form-control-admin {
   box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
 }
 
+/* Today outline: shown when a DIFFERENT date is selected */
+.dash-exec-cal-day.is-today-outline {
+  border: 2px solid #10b981;
+  color: #34d399;
+  font-weight: 800;
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
 .dash-exec-cal-day.is-empty {
   pointer-events: none;
+}
+
+.dash-exec-cal-day.is-future {
+  pointer-events: none;
+  opacity: 0.2;
+  color: var(--admin-text-muted);
+  cursor: default;
+}
+
+.dash-exec-cal-day.is-selected {
+  background-color: #059669;
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.dash-exec-cal-day.is-selected.is-today {
+  background-color: #047857;
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.4), 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+/* Smooth month slide/fade animation */
+@keyframes calFadeSlide {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cal-slide-in {
+  animation: calFadeSlide 0.3s ease-in-out;
 }
 
 .dash-exec-cal-footer {
@@ -1063,6 +1163,15 @@ textarea.form-control-admin {
 .dash-exec-act-blue { background-color: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa; }
 .dash-exec-act-purple { background-color: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); color: #a78bfa; }
 .dash-exec-act-emerald { background-color: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #34d399; }
+.dash-exec-act-amber { background-color: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: #fbbf24; }
+.dash-exec-act-sky { background-color: rgba(14,165,233,0.1); border: 1px solid rgba(14,165,233,0.2); color: #38bdf8; }
+.dash-exec-act-red { background-color: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.3); color: #fb7185; }
+
+.dash-exec-activity-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
 
 .dash-exec-activity-text {
   display: flex;
