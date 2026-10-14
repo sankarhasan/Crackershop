@@ -2965,7 +2965,6 @@ function openEnquiryModal(id) {
   document.getElementById('enquiry-modal-state').innerText = (enq.customer && enq.customer.state) || enq.state || 'N/A';
   document.getElementById('enquiry-modal-date').innerText = new Date(enq.date).toLocaleString('en-IN');
   document.getElementById('enquiry-modal-message').innerText = enq.enquiryMessage || enq.message || '—';
-  document.getElementById('enquiry-modal-status').value = enq.status;
 
   // Populate Order Details Modal with cart items and financial breakdown
   populateOrderDetailsModal(enq);
@@ -2982,6 +2981,14 @@ function closeEnquiryModal() {
  * @param {Object} enq - The enquiry object with cartItems and financialBreakdown.
  */
 function populateOrderDetailsModal(enq) {
+  // A cart line counts as a FREE / Spin Wheel gift when it carries an explicit
+  // gift flag OR its unit price resolves to ₹0 (e.g. "Crackling King Fountain").
+  const isFreeGiftItem = (it) => !!it && (
+    it.isGift || it.isFreeGift || it.isSpinReward || it.isFree ||
+    ((it.unitPrice != null || it.price != null) &&
+      Number(it.unitPrice != null ? it.unitPrice : it.price) === 0)
+  );
+
   const itemsListEl = document.getElementById('order-details-items-list');
   if (itemsListEl) {
     if (enq.cartItems && enq.cartItems.length > 0) {
@@ -2990,9 +2997,12 @@ function populateOrderDetailsModal(enq) {
         const productName = item.productName || item.name || 'Unknown Product';
         const quantity = item.quantity || 1;
         const finalPrice = (item.totalPrice || item.totalOriginalPrice || 0).toLocaleString('en-IN');
+        const freeTag = isFreeGiftItem(item)
+          ? ' <span class="order-detail-free-tag">FREE</span>'
+          : '';
         itemsHtml += `
           <div class="order-detail-item">
-            <span class="order-detail-name">${escapeHtml(productName)}</span>
+            <span class="order-detail-name">${escapeHtml(productName)}${freeTag}</span>
             <span class="order-detail-qty">x${quantity}</span>
             <span class="order-detail-price">₹${finalPrice}</span>
           </div>
@@ -3038,7 +3048,19 @@ function populateOrderDetailsModal(enq) {
 
   const spinWheelEl = document.getElementById('order-summary-spin-wheel');
   if (spinWheelEl) {
-    spinWheelEl.textContent = spinWheelDiscount > 0 ? '-₹' + spinWheelDiscount.toLocaleString('en-IN') : '—';
+    // Resolve the won Spin Wheel product name using the same priority as the
+    // customer receipt: the explicit breakdown field, otherwise any gift /
+    // spin-reward cart line. Render green + bold; fall back to the legacy
+    // amount row, then to an em dash when there is no reward.
+    const giftLine = (enq.cartItems || []).find(isFreeGiftItem);
+    const spinRewardName = fb.spinWheelRewardName || (giftLine ? (giftLine.productName || giftLine.name || 'Free Gift') : '');
+    if (spinRewardName) {
+      spinWheelEl.innerHTML = `<span style="color: var(--admin-success); font-weight: 700;">${escapeHtml(spinRewardName)}</span>`;
+    } else if (spinWheelDiscount > 0) {
+      spinWheelEl.textContent = '-₹' + spinWheelDiscount.toLocaleString('en-IN');
+    } else {
+      spinWheelEl.textContent = '—';
+    }
   }
 
   const grandTotalEl = document.getElementById('order-summary-grand-total');
@@ -3052,27 +3074,10 @@ function populateOrderDetailsModal(enq) {
   }
 }
 
-function saveEnquiryStatus() {
-  const docId = document.getElementById('enquiry-modal-id').value;
-  const status = document.getElementById('enquiry-modal-status').value;
+// NOTE: The enquiry-view modal no longer exposes a "Change Processing Status"
+// control (status is managed inline from the Enquiries table dropdown), so the
+// former saveEnquiryStatus() handler was removed.
 
-  if (!docId || !window.db) {
-    showAdminToast('Could not update enquiry status.', 'error');
-    return;
-  }
-
-  window.db.collection('enquiries').doc(docId).update({ status })
-    .then(() => {
-      showAdminToast(`Enquiry status modified to ${status.toUpperCase()}.`, 'success');
-    })
-    .catch((err) => {
-      console.error('[Admin] Failed to update enquiry status:', err);
-      showAdminToast('Could not update enquiry status.', 'error');
-    });
-
-  // Firestore onSnapshot listener refreshes the tables + stats automatically.
-  closeEnquiryModal();
-}
 /* ==========================================================================
    7. Item Deletions Confirmation Popups
    Handles product | category | enquiry | banner | coupon | state-rule.
@@ -4260,7 +4265,6 @@ window.deleteCategory = (id) => confirmDelete('category', id);
 window.openEnquiryModal = openEnquiryModal;
 window.openEnquiryViewModal = openEnquiryModal; // alias used by enquiries table
 window.closeEnquiryModal = closeEnquiryModal;
-window.saveEnquiryStatus = saveEnquiryStatus;
 
 // Banners
 window.renderBannersGrid = renderBannersGrid;

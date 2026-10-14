@@ -2207,6 +2207,22 @@ textarea.form-control-admin {
   font-size: 0.85rem;
 }
 
+/* FREE / Spin Wheel gift tag shown beside a ₹0 purchased item */
+.order-detail-free-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--admin-success);
+  background-color: rgba(35, 134, 54, 0.15);
+  border: 1px solid rgba(35, 134, 54, 0.35);
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
 .order-detail-qty {
   flex: 0 0 50px;
   text-align: center;
