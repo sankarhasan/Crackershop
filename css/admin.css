@@ -799,9 +799,10 @@ textarea.form-control-admin {
   justify-content: flex-end;
 }
 
-/* Whole row is the click-to-edit target (Edit button was removed) */
+/* Rows stay click-to-edit but show the DEFAULT cursor — only the 6-dot grip
+   advertises an interaction (grab). Buttons keep their own pointer cursor. */
 .product-row-clickable {
-  cursor: pointer;
+  cursor: default;
 }
 
 /* Grip handle: grab / grabbing affordance on the 6 dots */
@@ -1259,14 +1260,14 @@ textarea.form-control-admin {
   color: var(--admin-text);
 }
 
-/* Main categories table: drag-and-drop reordering */
-.category-drag-row,
-.product-drag-row {
+/* Main categories table: the whole row is the drag source (grab cursor).
+   Product rows are dragged ONLY by their 6-dot grip handle (styled in the
+   .prod-id-cell rules), so they keep the default row cursor. */
+.category-drag-row {
   cursor: grab;
 }
 
-.category-drag-row:active,
-.product-drag-row:active {
+.category-drag-row:active {
   cursor: grabbing;
 }
 
