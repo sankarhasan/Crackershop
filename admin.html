@@ -269,11 +269,90 @@
         </div>
       </header>
 
-      <!-- Section A: Dashboard Overview Statistics -->
+      <!-- Section A: Dashboard Executive Overview -->
       <section id="section-dashboard" class="dashboard-section animate-fade">
-        <!-- Stat cards now live in the sticky header row (#header-dashboard-controls). -->
 
-        <!-- Recent enquiries mini widget list -->
+        <!-- Row 2: 3-Column Grid — Sales Performance, Mini Calendar, Recent Activity -->
+        <div class="dash-exec-grid">
+
+          <!-- Card 1: Sales Performance -->
+          <div class="dash-exec-card dash-exec-card-sales">
+            <div class="dash-exec-card-header">
+              <h3>Sales Performance</h3>
+              <span class="dash-exec-badge">Last 7 days</span>
+            </div>
+            <div class="dash-exec-metric">
+              <h2 class="dash-exec-metric-value" id="dash-sales-value">₹0</h2>
+              <p class="dash-exec-metric-change"><span class="dash-exec-trend-up">↑ 18%</span> <span class="dash-exec-metric-sub">vs. previous 7 days</span></p>
+            </div>
+            <div class="dash-exec-chart">
+              <svg viewBox="0 0 500 150" class="dash-exec-svg" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M 0 120 Q 80 40 160 90 T 320 60 T 500 20 L 500 150 L 0 150 Z" fill="url(#salesGrad)"/>
+                <path d="M 0 120 Q 80 40 160 90 T 320 60 T 500 20" fill="none" stroke="#3B82F6" stroke-width="3"/>
+                <circle cx="500" cy="20" r="5" fill="#60A5FA"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Card 2: Mini Calendar -->
+          <div class="dash-exec-card dash-exec-card-calendar">
+            <div class="dash-exec-card-header">
+              <h3 id="cal-month-year">October 2026</h3>
+              <div class="dash-exec-cal-nav">
+                <button type="button" onclick="calendarPrev()" class="dash-exec-cal-btn">&#9664;</button>
+                <button type="button" onclick="calendarNext()" class="dash-exec-cal-btn">&#9654;</button>
+              </div>
+            </div>
+            <div class="dash-exec-cal-weekdays">
+              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div class="dash-exec-cal-grid" id="cal-days-grid"></div>
+            <div class="dash-exec-cal-footer">
+              <span class="dash-exec-cal-clear" onclick="calendarClear()">Clear</span>
+              <span class="dash-exec-cal-today" onclick="calendarToday()">Today</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Recent Activity Feed -->
+          <div class="dash-exec-card dash-exec-card-activity">
+            <div class="dash-exec-card-header">
+              <h3>Recent Activity</h3>
+              <span class="dash-exec-view-all" onclick="showDashboardSection('enquiries')">View all →</span>
+            </div>
+            <div class="dash-exec-activity-list" id="dash-activity-list">
+              <div class="dash-exec-activity-item">
+                <div class="dash-exec-activity-icon dash-exec-act-blue"><i class="fa-solid fa-cart-shopping"></i></div>
+                <div class="dash-exec-activity-text">
+                  <p class="dash-exec-activity-title">New order received</p>
+                  <p class="dash-exec-activity-sub">Latest enquiry logged</p>
+                </div>
+              </div>
+              <div class="dash-exec-activity-item">
+                <div class="dash-exec-activity-icon dash-exec-act-purple"><i class="fa-solid fa-box"></i></div>
+                <div class="dash-exec-activity-text">
+                  <p class="dash-exec-activity-title">Product updated</p>
+                  <p class="dash-exec-activity-sub">Inventory modified</p>
+                </div>
+              </div>
+              <div class="dash-exec-activity-item">
+                <div class="dash-exec-activity-icon dash-exec-act-emerald"><i class="fa-solid fa-star"></i></div>
+                <div class="dash-exec-activity-text">
+                  <p class="dash-exec-activity-title">New review</p>
+                  <p class="dash-exec-activity-sub">5 stars received</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Row 3: Recent Active Enquiries Table (Full Width) -->
         <div class="recent-enquiries-box">
           <div class="panel-header">
             <h3>Recent Active Enquiries</h3>
@@ -281,19 +360,25 @@
           </div>
           <div class="table-responsive">
             <table class="table-admin">
+              <colgroup>
+                <col style="width:18%">
+                <col style="width:22%">
+                <col style="width:18%">
+                <col style="width:22%">
+                <col style="width:20%">
+              </colgroup>
               <thead>
                 <tr>
                   <th>ID</th>
                   <th>Customer Name</th>
                   <th>WhatsApp</th>
-                  <th>Category Interest</th>
                   <th>Date Submitted</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody id="recent-enquiries-tbody">
                 <tr>
-                  <td colspan="6" class="text-center">Loading recent enquiries...</td>
+                  <td colspan="5" class="text-center">Loading recent enquiries...</td>
                 </tr>
               </tbody>
             </table>

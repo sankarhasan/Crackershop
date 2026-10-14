@@ -1524,6 +1524,17 @@ function updateDashboardStats() {
   }
   
   renderRecentEnquiriesMiniTable();
+
+  // Sales Performance metric (mirror the revenue pool value into the card)
+  const salesEl = document.getElementById('dash-sales-value');
+  if (salesEl) {
+    salesEl.innerText = window._showRevenue !== false
+      ? `\u20B9${revenuePoolVal.toLocaleString('en-IN')}`
+      : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
+  }
+
+  // Render mini calendar
+  renderMiniCalendar();
 }
 
 /* Eye-icon toggle: mask/unmask the Est. Revenue Pool value in the header pill. */
@@ -1550,6 +1561,70 @@ function toggleRevenueVisibility() {
   if (eyeBtn) {
     eyeBtn.title = window._showRevenue ? 'Hide Revenue' : 'Show Revenue';
   }
+
+  // Also toggle the Sales Performance card metric
+  const salesEl = document.getElementById('dash-sales-value');
+  if (salesEl) {
+    if (window._showRevenue) {
+      const val = window._revenuePoolVal || 0;
+      salesEl.innerText = `\u20B9${val.toLocaleString('en-IN')}`;
+    } else {
+      salesEl.innerText = '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
+    }
+  }
+}
+
+/* ==========================================================================
+   Mini Calendar Widget (Dashboard Executive Layout)
+   ========================================================================== */
+let _calDate = new Date();
+
+function renderMiniCalendar() {
+  const label = document.getElementById('cal-month-year');
+  const grid = document.getElementById('cal-days-grid');
+  if (!label || !grid) return;
+
+  const year = _calDate.getFullYear();
+  const month = _calDate.getMonth();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  label.innerText = `${monthNames[month]} ${year}`;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysCount = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+
+  let html = '';
+  // Empty cells before day 1
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div class="dash-exec-cal-day is-empty"></div>';
+  }
+  // Day cells
+  for (let d = 1; d <= daysCount; d++) {
+    const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+    html += `<div class="dash-exec-cal-day${isToday ? ' is-today' : ''}">${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function calendarPrev() {
+  _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth() - 1, 1);
+  renderMiniCalendar();
+}
+
+function calendarNext() {
+  _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth() + 1, 1);
+  renderMiniCalendar();
+}
+
+function calendarToday() {
+  _calDate = new Date();
+  renderMiniCalendar();
+}
+
+function calendarClear() {
+  // Reset to current month (same as Today for now)
+  _calDate = new Date();
+  renderMiniCalendar();
 }
 
 function renderRecentEnquiriesMiniTable() {
@@ -1557,16 +1632,15 @@ function renderRecentEnquiriesMiniTable() {
   if (!tbody) return;
   
   const enquiries = firestoreEnquiries;
-  const categories = getCategories();
   
   // Sort by date descending
   const sorted = [...enquiries].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const recent = sorted.slice(0, 5);
+  const recent = sorted.slice(0, 6);
   
   tbody.innerHTML = '';
   
   if (recent.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center">No enquiries received yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No recent active enquiries found.</td></tr>';
     return;
   }
   
@@ -1575,26 +1649,20 @@ function renderRecentEnquiriesMiniTable() {
       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
     });
     
-    let catName = 'N/A';
-    if (enq.category === 'all') {
-      catName = 'Complete Combo Box';
-    } else {
-      const match = categories.find(c => c.slug === enq.category);
-      catName = match ? match.name : enq.category;
-    }
-    
-    // Display clean branded Order ID (KPR-2026-8492) when available,
-    // otherwise fall back to a short doc ID fragment for legacy records.
+    // Display clean branded Order ID
     const displayOrderId = enq.orderId || ('#' + (enq.docId || '').substring(0, 6).toUpperCase());
+    
+    // Determine effective status for badge colouring
+    const effectiveStatus = (enq.trackingStatus || enq.status || 'new').toUpperCase();
+    const statusClass = (enq.trackingStatus || enq.status || 'new').toLowerCase();
     
     tbody.innerHTML += `
       <tr>
         <td>#${escapeHtml(displayOrderId)}</td>
         <td><strong>${escapeHtml(enq.name)}</strong></td>
-        <td><a href="https://wa.me/91${enq.phone}" target="_blank" style="color:var(--admin-info)">📞 ${escapeHtml(enq.phone)}</a></td>
-        <td>${catName}</td>
+        <td><a href="https://wa.me/91${enq.phone}" target="_blank" class="enq-wa-link"><i class="fa-solid fa-phone"></i> ${escapeHtml(enq.phone)}</a></td>
         <td>${formattedDate}</td>
-        <td><span class="status-badge ${enq.status}">${enq.status}</span></td>
+        <td><span class="status-badge ${statusClass}">${effectiveStatus}</span></td>
       </tr>
     `;
   });
