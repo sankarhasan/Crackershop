@@ -773,7 +773,7 @@ function renderReviewsTable() {
         <td>${escapeHtml(dateStr)}</td>
         <td>
           <div class="table-actions">
-            <button class="btn-action delete" onclick="confirmDelete('review', '${safeDocId}')" title="Delete Review">🗑️</button>
+            <button class="btn-action delete" onclick="confirmDelete('review', '${safeDocId}')" title="Delete Review"><img src="Icons/delete.png" alt="Delete" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
           </div>
         </td>
       </tr>
