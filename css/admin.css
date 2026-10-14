@@ -446,13 +446,14 @@ textarea.form-control-admin {
   flex-shrink: 0;
 }
 
-/* Manage Products search / category / +Add — hidden until that section is
-   active (.active toggled by showDashboardSection in js/admin.js) */
-.header-products-controls {
+/* Section-scoped header controls (products / categories) — hidden until
+   their section is active (.active toggled by showDashboardSection in
+   js/admin.js) */
+.header-section-controls {
   display: none;
 }
 
-.header-products-controls.active {
+.header-section-controls.active {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -784,6 +785,7 @@ textarea.form-control-admin {
   color: var(--admin-text-muted);
   font-size: 0.8rem;
   flex-shrink: 0;
+  margin-right: 0; /* the flex gap owns spacing; kill the legacy 6px margin */
   cursor: grab;
 }
 
@@ -868,8 +870,9 @@ textarea.form-control-admin {
   object-fit: cover;
 }
 
-/* Gradient placeholder variant inside the same lock (products table only) */
-.table-products .prod-thumb-lock.prod-placeholder-cell {
+/* Gradient placeholder variant inside the same lock (products + categories) */
+.table-products .prod-thumb-lock.prod-placeholder-cell,
+.table-categories .prod-thumb-lock.prod-placeholder-cell {
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -1033,28 +1036,28 @@ textarea.form-control-admin {
   flex-wrap: wrap;
 }
 
-/* --- Products header controls: compact side-by-side row (py-1.5 px-3 text-xs) --- */
-.header-products-controls .form-control-admin,
-.header-products-controls .btn-admin {
+/* --- Section header controls: compact side-by-side row (py-1.5 px-3 text-xs) --- */
+.header-section-controls .form-control-admin,
+.header-section-controls .btn-admin {
   padding: 6px 12px;
   font-size: 0.75rem;
   border-radius: 10px;
   white-space: nowrap;
 }
 
-.header-products-controls .search-admin-input {
+.header-section-controls .search-admin-input {
   width: 220px;
   max-width: 100%;
 }
 
 /* the base .form-control-admin is width:100% (form fields) — in the header
    flex row the category select must hug its content instead */
-.header-products-controls select.form-control-admin {
+.header-section-controls select.form-control-admin {
   width: auto;
   flex-shrink: 0;
 }
 
-.header-products-controls .btn-admin .fa-solid {
+.header-section-controls .btn-admin .fa-solid {
   font-size: 0.75rem;
 }
 
@@ -1416,15 +1419,10 @@ textarea.form-control-admin {
   color: var(--admin-text);
 }
 
-/* Main categories table: the whole row is the drag source (grab cursor).
-   Product rows are dragged ONLY by their 6-dot grip handle (styled in the
-   .prod-id-cell rules), so they keep the default row cursor. */
+/* Category rows: drag lives ONLY on the 6-dot grip now (same as products),
+   so rows keep the default cursor — grab/grabbing is styled on the handle */
 .category-drag-row {
-  cursor: grab;
-}
-
-.category-drag-row:active {
-  cursor: grabbing;
+  cursor: default;
 }
 
 .category-drag-row.dragging,
@@ -1432,6 +1430,43 @@ textarea.form-control-admin {
   opacity: 0.45;
   outline: 1px dashed var(--admin-info);
   outline-offset: -1px;
+}
+
+/* --- Categories table: fixed columns + uniform locked rows (mirrors the
+   products table rules) --- */
+.table-categories {
+  table-layout: fixed;
+  min-width: 640px;
+}
+
+.table-categories th,
+.table-categories td {
+  padding: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-categories thead th {
+  height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.table-categories .category-drag-row > td {
+  height: 48px;
+  padding: 0 10px;
+  vertical-align: middle;
+}
+
+/* Rows stay click-to-edit but show the default cursor */
+.category-row-clickable {
+  cursor: default;
+}
+
+/* Actions lane hugs the right edge of the locked 80px column */
+.table-categories td:last-child .table-actions {
+  justify-content: flex-end;
 }
 
 .category-drag-handle {

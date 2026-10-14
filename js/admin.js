@@ -49,6 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const prodFilterCat = document.getElementById('admin-product-filter-cat');
   if (prodSearch) prodSearch.addEventListener('input', renderProductsTable);
   if (prodFilterCat) prodFilterCat.addEventListener('change', renderProductsTable);
+
+  // Search events for categories (input lives in the sticky header row)
+  const catSearch = document.getElementById('admin-category-search');
+  if (catSearch) catSearch.addEventListener('input', renderCategoriesTable);
   
   // Filter events for enquiries
   const enquiryFilterStatus = document.getElementById('admin-enquiry-filter-status');
@@ -384,35 +388,54 @@ function renderCategoriesTable() {
     new Map(categories.map(cat => [cat.id, cat])).values()
   );
 
+  // Header search filter (name or slug)
+  const searchVal = (document.getElementById('admin-category-search')?.value || '').trim().toLowerCase();
+  const visibleCategories = searchVal === ''
+    ? uniqueCategories
+    : uniqueCategories.filter(c =>
+        String(c.name || '').toLowerCase().includes(searchVal) ||
+        String(c.slug || '').toLowerCase().includes(searchVal)
+      );
+
   if (uniqueCategories.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" class="text-center">No categories found.</td></tr>';
+    return;
+  }
+
+  if (visibleCategories.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No categories match your search.</td></tr>';
     return;
   }
 
   // Calculate bgIndex using category letter position
   const emojiMap = { 'A': '🌀', 'B': '🌋', 'C': '⛲', 'D': '✏️', 'E': '✨', 'F': '💣', 'G': '🚀', 'H': '⚡', 'I': '🎁', 'J': '🌀', 'K': '🌋', 'L': '⛲' };
 
-  tbody.innerHTML = uniqueCategories.map(cat => {
+  tbody.innerHTML = visibleCategories.map(cat => {
     const catLetter = String(cat.id).toUpperCase();
     const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1;
     const emoji = emojiMap[catLetter] || '🎆';
 
-    let imageCellContent = `<div class="prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
+    // Locked 32x32 thumbnail shell (same as the products table) so an image
+    // can never grow a row beyond the uniform 48px height.
     const imageUrl = cat.categoryImageUrl || cat.image;
+    let imageCellContent;
     if (imageUrl) {
-      imageCellContent = `<img src="${imageUrl}" class="admin-prod-thumb" alt="${cat.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--admin-border);">`;
+      imageCellContent = `<div class="prod-thumb-lock"><img src="${imageUrl}" class="admin-prod-thumb" alt="${escapeHtml(cat.name)}" draggable="false"></div>`;
+    } else {
+      imageCellContent = `<div class="prod-thumb-lock prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
     }
 
+    // Row is NOT draggable itself — only the 6-dot grip carries draggable.
+    // Clicking anywhere else on the row opens the Edit modal (delegated).
     return `
-      <tr class="category-drag-row" draggable="true" data-category-id="${escapeHtml(cat.id)}">
-        <td><span class="category-drag-handle" title="Drag to reorder">⣿</span> #${escapeHtml(cat.id)}</td>
+      <tr class="category-drag-row category-row-clickable" data-category-id="${escapeHtml(cat.id)}">
+        <td><div class="prod-id-cell"><i class="fa-solid fa-grip-vertical category-drag-handle" draggable="true" title="Drag to reorder" aria-hidden="true"></i><span class="prod-id-code">#${escapeHtml(cat.id)}</span></div></td>
         <td>${imageCellContent}</td>
         <td><strong>${escapeHtml(cat.name)}</strong></td>
         <td><code>${escapeHtml(cat.slug)}</code></td>
         <td>
           <div class="table-actions">
-            <button class="btn-action edit" onclick="openCategoryEditModal('${cat.id}')" title="Edit Category">✏️</button>
-            <button class="btn-action delete" onclick="confirmDelete('category', '${cat.id}')" title="Delete Category">🗑️</button>
+            <button class="btn-action delete" onclick="event.stopPropagation(); confirmDelete('category', '${cat.id}')" title="Delete Category"><img src="Icons/delete.png" alt="Delete" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
           </div>
         </td>
       </tr>
@@ -437,12 +460,26 @@ function initCategoriesTableDrag(tbody) {
   tbody.dataset.dragBound = 'true';
 
   tbody.addEventListener('dragstart', (e) => {
+    // ONLY the 6-dot grip may start a row drag
+    const handle = e.target.closest('.category-drag-handle');
     const row = e.target.closest('tr[data-category-id]');
-    if (!row) return;
+    if (!handle || !row) {
+      e.preventDefault();
+      return;
+    }
     _draggedCategoryTableRow = row;
     row.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
     try { e.dataTransfer.setData('text/plain', row.dataset.categoryId); } catch (err) { /* IE/edge cases */ }
+  });
+
+  // Click-to-edit: clicking anywhere on a category row (outside the delete
+  // button and the grip handle) opens the Edit modal.
+  tbody.addEventListener('click', (e) => {
+    if (e.target.closest('button, .category-drag-handle')) return;
+    const row = e.target.closest('tr[data-category-id]');
+    if (!row) return;
+    openCategoryEditModal(row.dataset.categoryId);
   });
 
   tbody.addEventListener('dragover', (e) => {
@@ -820,10 +857,12 @@ function showDashboardSection(sectionName) {
     title.innerText = titles[sectionName] || 'Administration';
   }
 
-  // The Manage Products search / category / +Add controls live in the sticky
-  // header row and only appear while that section is displayed.
+  // The Manage Products / Categories search & add controls live in the
+  // sticky header row and only appear while their section is displayed.
   const productsControls = document.getElementById('header-products-controls');
   if (productsControls) productsControls.classList.toggle('active', sectionName === 'products');
+  const categoryControls = document.getElementById('header-category-controls');
+  if (categoryControls) categoryControls.classList.toggle('active', sectionName === 'categories');
 
   // Title swap can rewrap the header — refresh the sticky offset afterwards.
   syncAdminHeaderOffset();

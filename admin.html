@@ -139,13 +139,22 @@
           <!-- Manage Products controls share the header row while the products
                section is active (.active toggled by showDashboardSection in
                js/admin.js); IDs unchanged so all existing listeners apply. -->
-          <div class="header-products-controls" id="header-products-controls">
+          <!-- Section-scoped header controls (.active toggled per section by
+               showDashboardSection in js/admin.js); IDs unchanged so all
+               existing listeners apply. -->
+          <div class="header-section-controls" id="header-products-controls">
             <input type="text" id="admin-product-search" placeholder="Search firecrackers by name..." class="form-control-admin search-admin-input">
             <select id="admin-product-filter-cat" class="form-control-admin">
               <option value="all">All Categories</option>
             </select>
             <button type="button" class="btn-admin btn-admin-primary" onclick="openProductAddModal()">
               <i class="fa-solid fa-plus" aria-hidden="true"></i> Add
+            </button>
+          </div>
+          <div class="header-section-controls" id="header-category-controls">
+            <input type="text" id="admin-category-search" placeholder="Search categories..." class="form-control-admin search-admin-input">
+            <button type="button" class="btn-admin btn-admin-primary" onclick="openCategoryAddModal()">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Category
             </button>
           </div>
         </div>
@@ -293,21 +302,26 @@
 
       <!-- Section C: Categories Management -->
       <section id="section-categories" class="dashboard-section animate-fade" style="display: none;">
-        <div class="actions-panel justify-end">
-          <button class="btn-admin btn-admin-primary" onclick="openCategoryAddModal()">
-            <span class="btn-icon-admin">+</span> Add Category
-          </button>
-        </div>
+        <!-- Search / + Add Category moved into the sticky header row
+             (#header-category-controls); edit now opens via row click. -->
 
         <div class="table-responsive">
-          <table class="table-admin">
+          <table class="table-admin table-categories">
+            <!-- Locked column widths (table-layout: fixed in admin.css) -->
+            <colgroup>
+              <col style="width: 100px">   <!-- Drag + ID -->
+              <col style="width: 70px">    <!-- Image Preview -->
+              <col style="width: 40%">     <!-- Category Name -->
+              <col style="width: 35%">     <!-- Slug Link -->
+              <col style="width: 80px">    <!-- Actions -->
+            </colgroup>
             <thead>
               <tr>
                 <th>ID</th>
                 <th>IMAGE PREVIEW</th>
                 <th>Category Name</th>
                 <th>Slug Link</th>
-                <th>Action Controls</th>
+                <th aria-label="Actions"></th>
               </tr>
             </thead>
             <tbody id="categories-table-body">
