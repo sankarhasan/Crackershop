@@ -681,10 +681,15 @@
                      preview <img> is the single image state saveProductData()
                      reads back (URL or base64). -->
                 <div class="product-image-upload-row">
-                  <input type="file" id="product-modal-image-file" class="form-control-admin" accept="image/*">
-                  <div class="admin-image-preview-container">
-                    <img id="product-modal-image-preview" src="" alt="Product Image Preview" style="max-height: 90px; max-width: 100%; border: 1px solid var(--admin-border); border-radius: var(--radius-sm); display: none; object-fit: contain;">
-                    <div id="product-modal-image-placeholder" style="height: 90px; width: 100%; border: 1px dashed var(--admin-border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--admin-text-muted); font-size: 0.8rem;">No Image Selected</div>
+                  <div class="product-image-upload-cell">
+                    <input type="file" id="product-modal-image-file" class="form-control-admin" accept="image/*">
+                    <span id="product-image-compress-hint" class="product-image-compress-hint" style="display: none;">Compressing image&hellip;</span>
+                  </div>
+                  <!-- Strict 90:65 preview box (sizing via .product-image-preview-box CSS;
+                       updateImagePreview() only toggles display here) -->
+                  <div class="admin-image-preview-container product-image-preview-box">
+                    <img id="product-modal-image-preview" src="" alt="Product Image Preview" style="display: none;">
+                    <div id="product-modal-image-placeholder" style="display: flex;">No Image</div>
                   </div>
                 </div>
               </div>

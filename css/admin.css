@@ -1131,6 +1131,58 @@ textarea.form-control-admin {
   font-size: 0.75rem;
 }
 
+/* Upload cell: file picker + transient "Compressing image…" hint */
+.product-image-upload-cell {
+  min-width: 0;
+}
+
+.product-image-compress-hint {
+  display: none;
+  margin-top: 5px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--admin-warning);
+}
+
+/* Strict 90:65 preview box — images fit via object-contain, never stretched.
+   updateImagePreview() only toggles the img/placeholder display.
+   Scoped under .product-image-upload-row so it out-specifies the generic
+   .admin-image-preview-container row rule below. */
+.product-image-upload-row .product-image-preview-box {
+  width: 90px;
+  height: 65px;
+  min-width: 90px;
+  min-height: 65px;
+  background-color: #1a1d24;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.product-image-preview-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.product-image-preview-box #product-modal-image-placeholder {
+  width: 100%;
+  height: 100%;
+  border: 1px dashed var(--admin-border);
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--admin-text-muted);
+}
+
 .product-image-upload-row .admin-image-preview-container {
   display: flex;
   justify-content: flex-end;

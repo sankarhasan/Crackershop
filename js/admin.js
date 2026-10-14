@@ -86,18 +86,25 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmDelBtn.addEventListener('click', executePendingDelete);
   }
   
-  // Image file input changes to update preview
+  // Product image file input: run the chosen file through the shared
+  // Canvas compressor (600px cap @ 0.75 quality — comfortably under the
+  // ~150KB storefront budget and Firestore's 1MB field limit) BEFORE the
+  // base64 lands in the preview, which saveProductData() reads back.
   const imgFileInput = document.getElementById('product-modal-image-file');
   if (imgFileInput) {
-    imgFileInput.addEventListener('change', (e) => {
+    imgFileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
-      if (file) {
-        // Read file as Data URL (base64)
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          updateImagePreview(event.target.result);
-        };
-        reader.readAsDataURL(file);
+      if (!file) return;
+      const hint = document.getElementById('product-image-compress-hint');
+      if (hint) hint.style.display = 'block';
+      try {
+        const compressedDataUrl = await compressImage(file, 600, 0.75);
+        updateImagePreview(compressedDataUrl);
+      } catch (err) {
+        console.error('[Product Image] \u2717 Compression failed:', err);
+        showAdminToast('Could not process the selected image. Please try another file.', 'error');
+      } finally {
+        if (hint) hint.style.display = 'none';
       }
     });
   }
