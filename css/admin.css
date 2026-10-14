@@ -829,6 +829,53 @@ textarea.form-control-admin {
   pointer-events: none; /* the click always belongs to the button itself */
 }
 
+/* --- Uniform product row height + locked 32px thumbnails ---
+   Rows are pinned to 48px (height on td acts as the fixed row metric in
+   table layout); thumbnails can never exceed 32px, so image rows render
+   identically to text-only rows. */
+.table-products .product-row-clickable > td {
+  height: 48px;
+  padding: 0 10px;
+  vertical-align: middle;
+}
+
+.table-products thead th {
+  height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.prod-thumb-lock {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  max-width: 32px;
+  max-height: 32px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #12151c;
+  border: 1px solid var(--admin-border);
+  box-sizing: border-box;
+}
+
+.prod-thumb-lock img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Gradient placeholder variant inside the same lock (products table only) */
+.table-products .prod-thumb-lock.prod-placeholder-cell {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
 /* Status Badges */
 .status-badge {
   display: inline-flex;

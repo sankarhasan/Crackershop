@@ -1018,9 +1018,14 @@ function renderProductsTable() {
     const bgIndex = (catLetter.charCodeAt(0) - 64) % 9 + 1; // A=1, B=2, etc.
     const emoji = emojiMap[bgIndex] || '🎆';
 
-    let imageCellContent = `<div class="prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
+    // Every thumbnail (real image OR gradient placeholder) lives inside the
+    // same locked 32x32 .prod-thumb-lock shell so no row can grow taller
+    // than another — see .table-products rules in admin.css.
+    let imageCellContent;
     if (p.image) {
-      imageCellContent = `<img src="${p.image}" class="admin-prod-thumb" alt="${p.name}" draggable="false" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--admin-border);">`;
+      imageCellContent = `<div class="prod-thumb-lock"><img src="${p.image}" class="admin-prod-thumb" alt="${p.name}" draggable="false"></div>`;
+    } else {
+      imageCellContent = `<div class="prod-thumb-lock prod-placeholder-cell p-bg-${bgIndex}">${emoji}</div>`;
     }
 
     // Drag is initiated ONLY by the 6-dot grip handle (draggable lives on the
