@@ -324,6 +324,52 @@ function logoutAdmin() {
 }
 
 /* ==========================================================================
+   ADMIN PROFILE DROPDOWN (top-right) — "Back to Storefront" + "Logout"
+   moved out of the sidebar footer. The profile button toggles the menu
+   (vanilla equivalent of the isProfileMenuOpen state); clicking or tapping
+   anywhere outside the wrap closes it again, as does the Escape key.
+   ========================================================================== */
+function toggleAdminProfileMenu(forceOpen) {
+  const btn = document.getElementById('adminProfileBtn');
+  const dropdown = document.getElementById('adminProfileDropdown');
+  if (!btn || !dropdown) return;
+
+  const willOpen = (typeof forceOpen === 'boolean')
+    ? forceOpen
+    : !dropdown.classList.contains('open');
+
+  dropdown.classList.toggle('open', willOpen);
+  btn.classList.toggle('open', willOpen);
+  btn.setAttribute('aria-expanded', String(willOpen));
+}
+
+// Menu item wrapper: close the dropdown first, then run the existing
+// Firebase sign-out pipeline unchanged.
+function adminProfileLogout() {
+  toggleAdminProfileMenu(false);
+  logoutAdmin();
+}
+
+// "Download Price List" dropdown item: dismiss the menu, then generate the
+// same admin PDF the old section button produced.
+function adminProfileDownloadPDF() {
+  toggleAdminProfileMenu(false);
+  downloadPriceListPDF();
+}
+
+document.addEventListener('mousedown', (e) => {
+  const wrap = document.getElementById('adminProfileWrap');
+  if (wrap && !wrap.contains(e.target)) toggleAdminProfileMenu(false);
+});
+document.addEventListener('touchstart', (e) => {
+  const wrap = document.getElementById('adminProfileWrap');
+  if (wrap && !wrap.contains(e.target)) toggleAdminProfileMenu(false);
+}, { passive: true });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') toggleAdminProfileMenu(false);
+});
+
+/* ==========================================================================
    CATEGORIES TABLE RENDERING
    ========================================================================== */
 function renderCategoriesTable() {
@@ -725,6 +771,20 @@ function reviewDateDisplay(r) {
 /* ==========================================================================
    2. Workspace Dashboard Section Switching
    ========================================================================== */
+
+/* The sticky products-table header pins directly below the main header bar;
+   measure the bar's real height (it varies with title wrapping and the
+   responsive breakpoints) and publish it as --admin-header-h for the CSS. */
+function syncAdminHeaderOffset() {
+  const header = document.querySelector('.main-content-header');
+  if (header) {
+    document.documentElement.style.setProperty('--admin-header-h', header.offsetHeight + 'px');
+  }
+}
+window.addEventListener('resize', syncAdminHeaderOffset);
+// Script loads at end of <body>, so the header is already in the DOM.
+syncAdminHeaderOffset();
+
 function showDashboardSection(sectionName) {
   // Hide all sections
   document.querySelectorAll('.dashboard-section').forEach(sec => {
@@ -749,7 +809,7 @@ function showDashboardSection(sectionName) {
   if (title) {
     const titles = {
       'dashboard': 'Dashboard Statistics',
-      'products': 'Manage Firecrackers Inventory',
+      'products': 'Manage Products',
       'categories': 'Manage Catalog Categories',
       'reviews': 'Manage Product Reviews',
       'enquiries': 'Customer Enquiries Portal',
@@ -761,6 +821,14 @@ function showDashboardSection(sectionName) {
     };
     title.innerText = titles[sectionName] || 'Administration';
   }
+
+  // The Manage Products search / category / +Add controls live in the sticky
+  // header row and only appear while that section is displayed.
+  const productsControls = document.getElementById('header-products-controls');
+  if (productsControls) productsControls.classList.toggle('active', sectionName === 'products');
+
+  // Title swap can rewrap the header — refresh the sticky offset afterwards.
+  syncAdminHeaderOffset();
   
   // Refresh section data
   if (sectionName === 'dashboard') {
@@ -957,14 +1025,17 @@ function renderProductsTable() {
       imageCellContent = `<img src="${p.image}" class="admin-prod-thumb" alt="${p.name}" draggable="false" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--admin-border);">`;
     }
 
-    const dragAttrs = dragEnabled
-      ? ` class="product-drag-row" draggable="true" data-product-id="${escapeHtml(String(p.id))}" data-category-id="${escapeHtml(catLetter)}"`
+    // Drag is initiated ONLY by the 6-dot grip handle (draggable lives on the
+    // <i>, not the <tr>); the row keeps its identity classes/data for the
+    // delegated dragover/dragend logic and click-to-edit handler.
+    const rowClass = dragEnabled ? 'product-drag-row' : '';
+    const grip = dragEnabled
+      ? '<i class="fa-solid fa-grip-vertical category-drag-handle" draggable="true" title="Drag to reorder" aria-hidden="true"></i>'
       : '';
-    const grip = dragEnabled ? '<span class="category-drag-handle" title="Drag to reorder">⣿</span> ' : '';
 
     return `
-      <tr${dragAttrs}>
-        <td>${grip}#${escapeHtml(String(p.id))}</td>
+      <tr class="product-row-clickable ${rowClass}" data-product-id="${escapeHtml(String(p.id))}" data-category-id="${escapeHtml(catLetter)}">
+        <td><div class="prod-id-cell">${grip}<span class="prod-id-code">#${escapeHtml(String(p.id))}</span></div></td>
         <td>
           ${imageCellContent}
         </td>
@@ -978,8 +1049,7 @@ function renderProductsTable() {
         <td>${p.qty}</td>
         <td>
           <div class="table-actions">
-            <button class="btn-action edit" onclick="openProductEditModal('${p.id}')" title="Edit Product">✏️</button>
-            <button class="btn-action delete" onclick="confirmDelete('product', '${p.id}')" title="Delete Product">🗑️</button>
+            <button class="btn-action delete" onclick="event.stopPropagation(); confirmDelete('product', '${p.id}')" title="Delete Product"><img src="Icons/delete.png" alt="Delete" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
           </div>
         </td>
       </tr>
@@ -1070,12 +1140,28 @@ function initProductsTableDrag(tbody) {
   tbody.dataset.dragBound = 'true';
 
   tbody.addEventListener('dragstart', (e) => {
+    // ONLY the 6-dot grip may start a row drag — plain text/img drags that
+    // happen to bubble through a row are ignored (and cancelled below).
+    const handle = e.target.closest('.category-drag-handle');
     const row = e.target.closest('tr.product-drag-row');
-    if (!row) return;
+    if (!handle || !row) {
+      e.preventDefault();
+      return;
+    }
     _draggedProductTableRow = row;
     row.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
     try { e.dataTransfer.setData('text/plain', row.dataset.productId); } catch (err) { /* IE/edge cases */ }
+  });
+
+  // Click-to-edit: clicking anywhere on a product row opens its Edit modal.
+  // Action buttons and the grip handle are excluded so their own behavior
+  // (delete confirm dialog / drag) never triggers the editor.
+  tbody.addEventListener('click', (e) => {
+    if (e.target.closest('button, .category-drag-handle')) return;
+    const row = e.target.closest('tr[data-product-id]');
+    if (!row) return;
+    openProductEditModal(row.dataset.productId);
   });
 
   tbody.addEventListener('dragover', (e) => {
@@ -3775,4 +3861,7 @@ window.confirmDelete = confirmDelete;
 window.closeDeleteModal = closeDeleteModal;
 window.executePendingDelete = executePendingDelete;
 window.logoutAdmin = logoutAdmin;
+window.toggleAdminProfileMenu = toggleAdminProfileMenu;
+window.adminProfileLogout = adminProfileLogout;
+window.adminProfileDownloadPDF = adminProfileDownloadPDF;
 window.showDashboardSection = showDashboardSection;

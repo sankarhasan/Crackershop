@@ -43,6 +43,23 @@ body {
   overflow-x: hidden;
 }
 
+/* ==========================================================================
+   GLOBAL SCROLLBAR HIDE (admin panel)
+   The painted scrollbar disappears on every scrollable surface while wheel,
+   trackpad and touch scrolling stay fully functional (no overflow: hidden).
+   ========================================================================== */
+*::-webkit-scrollbar,
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html, body, div, aside, main, section {
+  -ms-overflow-style: none !important;  /* IE / legacy Edge */
+  scrollbar-width: none !important;     /* Firefox */
+}
+
 h1, h2, h3, h4 {
   font-weight: 600;
 }
@@ -213,17 +230,8 @@ textarea.form-control-admin {
   background-color: var(--admin-sidebar);
 }
 
-/* PDF Price List export button — dark slate with amber accent */
-.btn-admin-pdf {
-  background-color: var(--admin-sidebar);
-  border-color: rgba(210, 153, 34, 0.35);
-  color: var(--admin-warning);
-}
-
-.btn-admin-pdf:hover {
-  background-color: rgba(210, 153, 34, 0.12);
-  border-color: var(--admin-warning);
-}
+/* .btn-admin-pdf removed — the PDF export now lives in the Administrator
+   profile dropdown as a menu item (amber FA icon styled there). */
 
 /* Right-side button group inside the actions panel */
 .actions-buttons {
@@ -349,6 +357,19 @@ textarea.form-control-admin {
 
 .sidebar-icon {
   font-size: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  flex-shrink: 0; /* keeps the nav text column aligned across img/FA glyphs */
+}
+
+/* Custom flat icon PNGs from Icons/ — sized for optical parity across all
+   sidebar rows (every entry now has a dedicated asset, incl. products.png) */
+.sidebar-icon-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
 .sidebar-badge {
@@ -361,29 +382,34 @@ textarea.form-control-admin {
   margin-left: auto;
 }
 
-.sidebar-footer {
-  padding: 24px 12px;
-  border-top: 1px solid var(--admin-border);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* Sidebar footer (.sidebar-footer / .back-store / .logout-btn) rules removed:
+   "Back to Storefront" + "Logout" now live in the top-right Administrator
+   profile dropdown styled in the header section below. */
+
+/* ==========================================================================
+   FONT AWESOME GLYPH RESTORE (admin panel)
+   The universal reset above (* { font-family: 'Poppins', sans-serif !important; })
+   clobbers the font-family Font Awesome assigns to its icon elements, which
+   would render every <i class="fa-..."> blank. Class + !important outranks
+   * + !important — the same winning pattern the storefront styles.css uses.
+   ========================================================================== */
+.fa-solid,
+.fa-regular {
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900;
 }
 
-.back-store {
-  color: var(--admin-info);
-}
-.back-store:hover {
-  background-color: rgba(88, 166, 255, 0.08);
+.fa-brands {
+  font-family: "Font Awesome 6 Brands" !important;
+  font-weight: 400;
 }
 
-.logout-btn:hover {
-  background-color: rgba(248, 81, 73, 0.08);
-  color: var(--admin-danger);
-}
-
-/* --- Main Workspace Content Area --- */
+/* --- Main Workspace Content Area ---
+   .main-content is the scroll container (header sticky within it); the top
+   padding lives on the sticky header itself so content scrolls edge-to-edge
+   behind the blurred bar with no gap. */
 .main-content {
-  padding: 40px;
+  padding: 0 40px 40px;
   overflow-y: auto;
   height: 100vh;
 }
@@ -392,9 +418,48 @@ textarea.form-control-admin {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  /* negative side margins bleed the blurred bg past the container padding */
+  margin: 0 -40px 20px;
+  padding: 10px 40px;                  /* compact py-2-class vertical rhythm */
+  background-color: rgba(18, 21, 28, 0.95); /* #12151C at 95% */
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--admin-border);
-  padding-bottom: 24px;
-  margin-bottom: 30px;
+}
+
+/* Header left zone: title block + (products-only) control cluster share one row */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+
+.header-title-block {
+  flex-shrink: 0;
+}
+
+/* Manage Products search / category / +Add — hidden until that section is
+   active (.active toggled by showDashboardSection in js/admin.js) */
+.header-products-controls {
+  display: none;
+}
+
+.header-products-controls.active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .header-left h1 {
@@ -408,23 +473,132 @@ textarea.form-control-admin {
   color: var(--admin-text-muted);
 }
 
-/* Profile header segment */
+/* Profile header segment — clickable button anchoring the dropdown */
+.admin-profile-wrap {
+  position: relative;
+}
+
 .admin-profile {
   display: flex;
   align-items: center;
   gap: 12px;
+  background-color: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
 }
 
-.admin-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+.admin-profile:hover {
   background-color: var(--admin-sidebar);
+}
+
+.admin-profile:active {
+  transform: scale(0.98);
+}
+
+.admin-profile:focus,
+.admin-profile:focus-visible {
+  outline: none;
+  border-color: var(--admin-info);
+}
+
+/* Custom user-gear.png avatar image (w-7 h-7 rounded-lg equivalent) */
+.admin-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.admin-profile-caret {
+  font-size: 0.6rem;
+  margin-left: 6px;
+  color: var(--admin-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.admin-profile.open .admin-profile-caret {
+  transform: rotate(180deg);
+}
+
+/* Dropdown menu — dark panel anchored right below the profile block */
+.admin-profile-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 220px;
+  background-color: var(--admin-card);
   border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  z-index: 60;
+}
+
+.admin-profile-dropdown.open {
+  display: block;
+  animation: adminProfileFade 0.18s ease;
+}
+
+@keyframes adminProfileFade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.admin-profile-menu-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.admin-profile-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Custom shop.png / log-out.png menu images — color lives in the artwork,
+   so no font-color variants are needed */
+.admin-profile-menu-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Price List item icon: custom price-list.png (w-4 h-4 object-contain) */
+.admin-profile-menu-pdf .admin-profile-menu-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.admin-profile-menu-divider {
+  border-top: 1px solid var(--admin-border);
+  margin: 6px 4px;
+}
+
+.admin-profile-menu-logout {
+  color: var(--admin-danger);
+}
+
+.admin-profile-menu-logout:hover {
+  background-color: rgba(248, 81, 73, 0.08);
 }
 
 .admin-meta h4 {
@@ -471,6 +645,13 @@ textarea.form-control-admin {
   align-items: center;
   justify-content: center;
   font-size: 1.6rem;
+}
+
+/* Stat-card icon images (categories / enquires / rupee-sign PNGs) */
+.stat-icon-img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
 }
 
 /* Color themed boxes */
@@ -524,21 +705,38 @@ textarea.form-control-admin {
   overflow-x: auto;
 }
 
+/* Desktop: drop the horizontal scroll container so the sticky thead pins
+   against .main-content instead (overflow-x:auto would capture the sticky
+   context and freeze it). Below 900px the table scrolls sideways as before. */
+@media (min-width: 901px) {
+  .table-responsive {
+    overflow-x: visible;
+  }
+}
+
 .table-admin {
   width: 100%;
-  border-collapse: collapse;
+  /* separate (not collapse) so the STICKY th keeps its own background and
+     border while rows scroll underneath it */
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
 }
 
 .table-admin th {
   background-color: var(--admin-sidebar);
   color: var(--admin-text-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 10px;                /* text-[10px] */
+  font-weight: 800;               /* font-black */
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 14px 18px;
-  border-bottom: 2px solid var(--admin-border);
+  letter-spacing: 0.05em;         /* tracking-wider */
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--admin-border);
+  /* Sticky column-header bar pinned right below the main sticky header.
+     --admin-header-h is measured live by syncAdminHeaderOffset() (js/admin.js) */
+  position: sticky;
+  top: var(--admin-header-h, 96px);
+  z-index: 20;
 }
 
 .table-admin td {
@@ -555,6 +753,79 @@ textarea.form-control-admin {
 
 .table-admin tr:last-child td {
   border-bottom: none;
+}
+
+/* --- Products table: strict fixed column layout ---
+   Works with the <colgroup> in admin.html so column positions NEVER shift
+   when filter/search changes the rendered rows; long text ellipsizes inside
+   its column instead of reflowing. */
+.table-products {
+  table-layout: fixed;
+  min-width: 760px;   /* narrow screens scroll via .table-responsive instead of squeezing */
+}
+
+.table-products th,
+.table-products td {
+  padding: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Drag grip + ID code always render side-by-side on one line */
+.prod-id-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.prod-id-cell .category-drag-handle {
+  color: var(--admin-text-muted);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  cursor: grab;
+}
+
+.prod-id-code {
+  font-weight: 400;               /* normal font per design (was bold) */
+  color: #cbd5e1;                 /* slate-300 */
+  font-size: 0.75rem;             /* text-xs */
+  letter-spacing: 0.03em;
+}
+
+/* Actions group hugs the right edge of the locked 100px column */
+.table-products td:last-child .table-actions {
+  justify-content: flex-end;
+}
+
+/* Whole row is the click-to-edit target (Edit button was removed) */
+.product-row-clickable {
+  cursor: pointer;
+}
+
+/* Grip handle: grab / grabbing affordance on the 6 dots */
+.prod-id-cell .category-drag-handle:hover {
+  color: var(--admin-text);
+}
+
+.prod-id-cell .category-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Custom delete.png inside the 32px action button (w-4 h-4 object-contain) */
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-action-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none; /* the click always belongs to the button itself */
 }
 
 /* Status Badges */
@@ -712,6 +983,31 @@ textarea.form-control-admin {
   margin-bottom: 24px;
   gap: 20px;
   flex-wrap: wrap;
+}
+
+/* --- Products header controls: compact side-by-side row (py-1.5 px-3 text-xs) --- */
+.header-products-controls .form-control-admin,
+.header-products-controls .btn-admin {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.header-products-controls .search-admin-input {
+  width: 220px;
+  max-width: 100%;
+}
+
+/* the base .form-control-admin is width:100% (form fields) — in the header
+   flex row the category select must hug its content instead */
+.header-products-controls select.form-control-admin {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.header-products-controls .btn-admin .fa-solid {
+  font-size: 0.75rem;
 }
 
 .search-filter-box {
@@ -1673,14 +1969,16 @@ textarea.form-control-admin {
     font-size: 0.85rem;
   }
   
-  .sidebar-footer {
-    flex-direction: row;
-    padding: 12px;
-  }
-  
   .main-content {
     height: auto;
-    padding: 24px;
+    padding: 0 24px 24px;
+  }
+
+  /* keep the sticky header's full-bleed blur matched to the 24px gutters */
+  .main-content-header {
+    margin-left: -24px;
+    margin-right: -24px;
+    padding: 10px 24px;
   }
 }
 
