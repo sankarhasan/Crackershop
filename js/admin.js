@@ -86,15 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmDelBtn.addEventListener('click', executePendingDelete);
   }
   
-  // Image URL input changes to update preview
-  const imgUrlInput = document.getElementById('product-modal-image-url');
-  if (imgUrlInput) {
-    imgUrlInput.addEventListener('input', () => {
-      const url = imgUrlInput.value.trim();
-      updateImagePreview(url);
-    });
-  }
-  
   // Image file input changes to update preview
   const imgFileInput = document.getElementById('product-modal-image-file');
   if (imgFileInput) {
@@ -1286,11 +1277,9 @@ function openProductAddModal() {
   document.getElementById('product-modal-brand').value = '';
   document.getElementById('product-modal-green').checked = false;
   
-  // Reset image preview state
+  // Reset image preview state (form.reset() above already cleared the file
+  // input; the preview <img> is the single image state now)
   updateImagePreview('');
-  // Set default radio selection to url
-  document.querySelector('input[name="image-source"][value="url"]').checked = true;
-  toggleImageSourceInput('url');
   
   document.getElementById('product-modal').style.display = 'flex';
 }
@@ -1314,26 +1303,10 @@ function openProductEditModal(id) {
   document.getElementById('product-modal-brand').value = p.brand || '';
   document.getElementById('product-modal-green').checked = p.greenCracker === true;
   
-  // Set image state
-  if (p.image) {
-    if (p.image.startsWith('data:')) {
-      // It's a file upload base64
-      document.querySelector('input[name="image-source"][value="file"]').checked = true;
-      toggleImageSourceInput('file');
-      // Set preview directly
-      updateImagePreview(p.image);
-    } else {
-      // It's a URL
-      document.querySelector('input[name="image-source"][value="url"]').checked = true;
-      document.getElementById('product-modal-image-url').value = p.image;
-      toggleImageSourceInput('url');
-    }
-  } else {
-    document.querySelector('input[name="image-source"][value="url"]').checked = true;
-    document.getElementById('product-modal-image-url').value = '';
-    toggleImageSourceInput('url');
-    updateImagePreview('');
-  }
+  // Set image state: the preview <img> holds the current image (URL or
+  // base64 data:) and saveProductData() reads it back from there — the old
+  // URL/file radio toggle is gone (local upload only).
+  updateImagePreview(p.image || '');
   
   document.getElementById('product-modal').style.display = 'flex';
 }
@@ -2873,33 +2846,8 @@ window.removeCategoryImage = function removeCategoryImage() {
   resetCategoryImageDimensionInfo();
 };
 
-// Toggle between URL and File input groups (product modal)
-window.toggleImageSourceInput = function(source) {
-  const urlGroup = document.getElementById('image-url-group');
-  const fileGroup = document.getElementById('image-file-group');
-
-  if (source === 'url') {
-    urlGroup.style.display = 'block';
-    fileGroup.style.display = 'none';
-
-    const url = document.getElementById('product-modal-image-url').value.trim();
-    updateImagePreview(url);
-  } else {
-    urlGroup.style.display = 'none';
-    fileGroup.style.display = 'block';
-
-    const fileInput = document.getElementById('product-modal-image-file');
-    if (fileInput.files && fileInput.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        updateImagePreview(event.target.result);
-      };
-      reader.readAsDataURL(fileInput.files[0]);
-    } else {
-      updateImagePreview('');
-    }
-  }
-};
+// toggleImageSourceInput() removed — the product modal now offers ONLY the
+// local file upload; the preview <img> carries the image state directly.
 
 function updateImagePreview(src) {
   const preview = document.getElementById('product-modal-image-preview');

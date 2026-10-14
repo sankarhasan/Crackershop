@@ -1094,6 +1094,63 @@ textarea.form-control-admin {
   max-height: calc(80vh - 120px);
 }
 
+/* --- Product (Add/Edit) modal: wide card + two-column grid ---
+   Every field fits the viewport without vertical scrolling. */
+#product-modal .modal-card {
+  max-width: 900px;
+}
+
+.product-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 28px;
+  align-items: start;
+}
+
+.product-modal-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* File picker + live preview share one compact side-by-side row */
+.product-image-upload-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: #12151c;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+}
+
+.product-image-upload-row .form-control-admin[type="file"] {
+  padding: 8px;
+  font-size: 0.75rem;
+}
+
+.product-image-upload-row .admin-image-preview-container {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* Narrow screens: stack the picker above the preview */
+@media (max-width: 560px) {
+  .product-image-upload-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Narrow screens: collapse to a single column (body scroll takes over) */
+@media (max-width: 760px) {
+  .product-modal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 .modal-footer-sticky {
   padding: 16px 24px;
