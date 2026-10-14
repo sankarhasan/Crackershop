@@ -2171,7 +2171,7 @@ function openCategoryEditModal(id) {
   const cat = categories.find(c => String(c.id) === String(id));
   if (!cat) return;
 
-  document.getElementById('category-modal-title').innerText = 'Edit Category Name';
+  document.getElementById('category-modal-title').innerText = 'Edit Category Details';
   document.getElementById('category-modal-id').value = cat.id;
   document.getElementById('category-modal-name').value = cat.name;
   document.getElementById('category-modal-slug').value = cat.slug;

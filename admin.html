@@ -753,48 +753,58 @@
         
         <!-- Scrollable Body Container -->
         <div class="modal-body-scroll category-modal-body-scroll">
-          <div class="form-group">
-            <label for="category-modal-name">Category Name <span class="required">*</span></label>
-            <input type="text" id="category-modal-name" class="form-control-admin" placeholder="e.g. Ground Chakkars" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="category-modal-slug">Slug (Auto-generated)</label>
-            <input type="text" id="category-modal-slug" class="form-control-admin" readonly placeholder="slug-name-link">
-          </div>
+          <!-- Two-column grid: meta + image left, category products right -->
+          <div class="category-modal-grid">
+            <div class="category-modal-col">
+              <div class="form-group">
+                <label for="category-modal-name">Category Name <span class="required">*</span></label>
+                <input type="text" id="category-modal-name" class="form-control-admin" placeholder="e.g. Ground Chakkars" required>
+              </div>
 
-          <div class="form-group">
-            <label>Category Image</label>
+              <div class="form-group">
+                <label for="category-modal-slug">Slug (Auto-generated)</label>
+                <input type="text" id="category-modal-slug" class="form-control-admin" readonly placeholder="slug-name-link">
+              </div>
 
-            <!-- Hidden File Input -->
-            <input type="file" id="categoryImageFile" accept="image/*" class="hidden">
+              <div class="form-group">
+                <label>Category Image (Local Upload)</label>
 
-            <!-- Compact 200x150 Preview Box (clickable to upload) -->
-            <div class="category-image-preview-box" id="category-image-preview-box" onclick="triggerCategoryImageUpload()">
-              
-              <!-- The image element (hidden by default, shown after upload) -->
-              <img id="category-modal-image-preview" src="" alt="Category Image Preview">
-              
-              <!-- Floating Remove Button (hidden by default, shown after upload) -->
-              <button type="button" class="category-image-remove-btn" id="category-image-remove-btn" onclick="event.stopPropagation(); removeCategoryImage();" title="Remove image">✕</button>
-              
-              <!-- Placeholder content (hidden after upload) -->
-              <div id="category-modal-image-placeholder" class="category-image-placeholder">
-                <button type="button" class="category-upload-btn-inline" onclick="event.stopPropagation(); triggerCategoryImageUpload();">
-                  <span class="upload-icon">⬆️</span> Upload Image
-                </button>
-                <span class="placeholder-text">Recommended: 400 × 300 px (4:3)</span>
+                <!-- Hidden File Input -->
+                <input type="file" id="categoryImageFile" accept="image/*" class="hidden">
+
+                <div class="category-image-upload-row">
+                  <div class="category-image-upload-cell">
+                    <button type="button" class="btn-admin btn-admin-secondary" onclick="triggerCategoryImageUpload()">
+                      <i class="fa-solid fa-image" aria-hidden="true"></i> Choose Image
+                    </button>
+                    <button type="button" class="btn-admin btn-admin-secondary category-image-remove-inline" id="category-image-remove-btn" onclick="removeCategoryImage()" style="display: none;">
+                      <i class="fa-solid fa-xmark" aria-hidden="true"></i> Remove
+                    </button>
+                    <span class="category-image-dim-info">Selected size: <span id="category-image-dimension-values">-- × -- px</span></span>
+                  </div>
+
+                  <!-- 90:65 ratio preview box (click to upload) -->
+                  <div class="category-image-preview-box" id="category-image-preview-box" onclick="triggerCategoryImageUpload()">
+                    <img id="category-modal-image-preview" src="" alt="Category Image Preview">
+                    <div id="category-modal-image-placeholder" class="category-image-placeholder">No Image</div>
+                  </div>
+                </div>
+
+                <!-- Compatibility hidden legacy field (not shown to user) -->
+                <input type="hidden" id="categoryImageUrl" name="categoryImageUrl" value="">
               </div>
             </div>
 
-            <!-- Compatibility hidden legacy field (not shown to user) -->
-            <input type="hidden" id="categoryImageUrl" name="categoryImageUrl" value="">
-          </div>
-
-          <!-- Products in this category (populated in Edit mode only) -->
-          <div class="form-group" id="category-products-section" style="display: none;">
-            <label>Products in this Category <span class="category-products-count-badge" id="category-products-count">0</span></label>
-            <div id="category-products-list" class="category-products-list"></div>
+            <div class="category-modal-col">
+              <!-- Products in this category (populated in Edit mode only) -->
+              <div class="category-products-panel" id="category-products-section" style="display: none;">
+                <div class="category-products-head">
+                  <span class="category-products-title">Products in this Category</span>
+                  <span class="category-products-count-badge" id="category-products-count">0</span>
+                </div>
+                <div id="category-products-list" class="category-products-list"></div>
+              </div>
+            </div>
           </div>
         </div>
 
