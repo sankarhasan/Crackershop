@@ -54,10 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const catSearch = document.getElementById('admin-category-search');
   if (catSearch) catSearch.addEventListener('input', renderCategoriesTable);
   
-  // Filter events for enquiries
-  const enquiryFilterStatus = document.getElementById('admin-enquiry-filter-status');
-  if (enquiryFilterStatus) enquiryFilterStatus.addEventListener('change', renderEnquiriesTable);
-  
   // Forms submit handlers
   const prodForm = document.getElementById('product-form');
   if (prodForm) {
@@ -561,23 +557,129 @@ function commitCategoriesTableOrder() {
 /* ==========================================================================
    ENQUIRIES TABLE RENDERING
    ========================================================================== */
+
+/* Active status tab for the enquiries table ('new' | 'contacted' | 'resolved'),
+ * driven by the sticky-header tabs (#header-enquiry-controls). */
+let enquiryStatusTab = 'new';
+
+function setEnquiryStatusTab(tab) {
+  enquiryStatusTab = String(tab || 'new').toLowerCase();
+  updateEnquiryTabButtons();
+  renderEnquiriesTable();
+}
+
+function updateEnquiryTabButtons() {
+  document.querySelectorAll('#header-enquiry-controls .enquiry-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.enquiryTab === enquiryStatusTab);
+  });
+}
+
+/** Inline status change from the table dropdown: writes to Firestore; the
+ *  live onSnapshot re-renders the table, so the row automatically moves to
+ *  its new status tab. */
+function updateEnquiryStatusInline(docId, status) {
+  const safeStatus = String(status || 'new').toLowerCase();
+  if (!docId || !window.db) {
+    showAdminToast('Could not update enquiry status.', 'error');
+    renderEnquiriesTable(); // revert the select to the stored value
+    return;
+  }
+
+  window.db.collection('enquiries').doc(docId).update({ status: safeStatus })
+    .then(() => {
+      showAdminToast(`Enquiry status modified to ${safeStatus.toUpperCase()}.`, 'success');
+    })
+    .catch((err) => {
+      console.error('[Admin] Failed to update enquiry status:', err);
+      showAdminToast('Could not update enquiry status.', 'error');
+      renderEnquiriesTable();
+    });
+  // onSnapshot listener refreshes tables + stats automatically.
+}
+
+/* Date/month quick filter for the enquiries table ('all' | 'this-month' |
+ * 'last-month' | 'custom'), driven by the chip bar above the table. */
+let enquiryDateFilter = 'all';
+let enquiryCustomDate = '';
+
+function setEnquiryDateFilter(mode) {
+  enquiryDateFilter = String(mode || 'all').toLowerCase();
+  if (enquiryDateFilter !== 'custom') {
+    enquiryCustomDate = '';
+    const el = document.getElementById('admin-enquiry-date-custom');
+    if (el) el.value = '';
+  }
+  updateEnquiryDateChips();
+  renderEnquiriesTable();
+}
+
+function setEnquiryCustomDate(value) {
+  enquiryCustomDate = value || '';
+  enquiryDateFilter = enquiryCustomDate !== '' ? 'custom' : 'all';
+  updateEnquiryDateChips();
+  renderEnquiriesTable();
+}
+
+function updateEnquiryDateChips() {
+  document.querySelectorAll('.enquiry-date-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.dateFilter === enquiryDateFilter);
+  });
+  // Keep the calendar's future-date lock fresh across midnight rollovers.
+  const dateEl = document.getElementById('admin-enquiry-date-custom');
+  if (dateEl) {
+    const now = new Date();
+    dateEl.max = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  }
+}
+
+/* Open the native calendar on plain clicks (no text selection / drag-select
+ * of the typed date value) and clamp future dates to today via max. */
+function openEnquiryDatePicker(el) {
+  if (!el) return;
+  try {
+    if (typeof el.showPicker === 'function') el.showPicker();
+  } catch (err) {
+    // Browsers reject showPicker() outside user activation; the native
+    // calendar still opens on direct icon clicks, so this is harmless.
+    console.warn('[Enquiries] showPicker unavailable:', err);
+  }
+}
+
+function enquiryMatchesDateFilter(enq) {
+  if (enquiryDateFilter === 'all') return true;
+  const d = new Date(enq.date);
+  if (isNaN(d.getTime())) return false;
+  const now = new Date();
+  if (enquiryDateFilter === 'this-month') {
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }
+  if (enquiryDateFilter === 'last-month') {
+    const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear();
+  }
+  if (enquiryDateFilter === 'custom' && enquiryCustomDate !== '') {
+    const sel = new Date(enquiryCustomDate + 'T00:00:00');
+    return d.getFullYear() === sel.getFullYear() && d.getMonth() === sel.getMonth() && d.getDate() === sel.getDate();
+  }
+  return true;
+}
+
 function renderEnquiriesTable() {
   const tbody = document.getElementById('enquiries-table-body');
   if (!tbody) return;
   
   const enquiries = firestoreEnquiries;
-  const statusFilter = document.getElementById('admin-enquiry-filter-status')?.value || 'all';
   
-  // Apply status filter if not "all"
-  let filtered = enquiries;
-  if (statusFilter !== 'all') {
-    filtered = enquiries.filter(e => e.status === statusFilter);
-  }
+  // Tab-based status filter + date/month quick filter (header tabs replaced
+  // the old dropdown)
+  const filtered = enquiries.filter(e =>
+    String(e.status || 'new').toLowerCase() === enquiryStatusTab && enquiryMatchesDateFilter(e)
+  );
   
   tbody.innerHTML = '';
   
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center">No enquiries found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No enquiries found matching selected criteria.</td></tr>';
     return;
   }
   
@@ -610,23 +712,26 @@ function renderEnquiriesTable() {
     // Display clean branded Order ID (KPR-2026-8492) when available,
     // otherwise fall back to a short doc ID fragment for legacy records.
     const displayOrderId = enq.orderId || ('#' + (enq.docId || '').substring(0, 6).toUpperCase());
+    const statusVal = String(enq.status || 'new').toLowerCase();
+    const stateVal = (enq.customer && enq.customer.state) || enq.state || '—';
     
     tbody.innerHTML += `
       <tr>
-        <td>#${escapeHtml(displayOrderId)}</td>
-        <td>${formattedDate}</td>
+        <td class="enq-id-cell">#${escapeHtml(displayOrderId)}</td>
+        <td class="enq-date-cell">${formattedDate}</td>
         <td>
-          <strong>${escapeHtml(enq.name || '')}</strong><br>
-          <small>${escapeHtml(enq.phone || '')}</small>
+          <div class="enq-customer-cell">
+            <strong class="enq-customer-name">${escapeHtml(enq.name || '')}</strong>
+            <small class="enq-customer-phone">${escapeHtml(enq.phone || '')}</small>
+          </div>
         </td>
-        <td>${escapeHtml(enq.pincode || '')}</td>
-        <td>${escapeHtml(enq.enquiryMessage || enq.message || '')}</td>
-        <td>${orderTotal}</td>
-        <td><span class="status-badge ${enq.status}">${escapeHtml(enq.status)}</span></td>
+        <td class="enq-state-cell">${escapeHtml(stateVal)}</td>
+        <td class="enq-total-cell">${orderTotal}</td>
+        <td class="enq-status-cell"><select class="enquiry-status-select ${escapeHtml(statusVal)}" onchange="updateEnquiryStatusInline('${enq.docId}', this.value)" title="Change enquiry status"><option value="new"${statusVal === 'new' ? ' selected' : ''}>New</option><option value="contacted"${statusVal === 'contacted' ? ' selected' : ''}>Contacted</option><option value="resolved"${statusVal === 'resolved' ? ' selected' : ''}>Confirm</option></select></td>
         <td>
           <div class="table-actions">
-            <button class="btn-action edit" onclick="openEnquiryViewModal('${enq.docId}')" title="View Details">👁️</button>
-            <button class="btn-action delete" onclick="confirmDelete('enquiry', '${enq.docId}')" title="Delete Enquiry">🗑️</button>
+            <button class="btn-action edit" onclick="openEnquiryViewModal('${enq.docId}')" title="View Details"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+            <button class="btn-action delete" onclick="confirmDelete('enquiry', '${enq.docId}')" title="Delete Enquiry"><img src="Icons/delete.png" alt="Delete" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
           </div>
         </td>
       </tr>
@@ -765,7 +870,7 @@ function renderReviewsTable() {
     const safeDocId = String(r.docId || '').replace(/[^a-zA-Z0-9]/g, '');
 
     tbody.innerHTML += `
-      <tr>
+      <tr class="review-row-clickable" data-doc-id="${safeDocId}" title="Click to view full review">
         <td><strong>${escapeHtml(r.productName || '')}</strong><br><small>${escapeHtml(String(r.productId || ''))}</small></td>
         <td>${escapeHtml(r.customerName || '')}</td>
         <td><span class="admin-review-stars" title="${rating} out of 5">${stars}</span> <span class="admin-review-rating-num">${rating.toFixed(1)}</span></td>
@@ -779,6 +884,50 @@ function renderReviewsTable() {
       </tr>
     `;
   });
+
+  // Click-to-view: any row click outside the delete button opens the
+  // read-only Review Details modal (delegated once; tbody persists).
+  if (tbody.dataset.reviewClickBound !== 'true') {
+    tbody.dataset.reviewClickBound = 'true';
+    tbody.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      const row = e.target.closest('tr[data-doc-id]');
+      if (!row) return;
+      openReviewDetailsModal(row.dataset.docId);
+    });
+  }
+}
+
+/** Open the read-only Review Details modal for one review (looked up by
+ *  sanitized docId from the live adminReviews array). */
+function openReviewDetailsModal(safeDocId) {
+  const r = (adminReviews || []).find(x =>
+    String(x.docId || '').replace(/[^a-zA-Z0-9]/g, '') === String(safeDocId)
+  );
+  if (!r) return;
+
+  const rating = Math.min(5, Math.max(1, Number(r.rating) || 1));
+  const setTxt = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  setTxt('review-modal-product', r.productName || '\u2014');
+  setTxt('review-modal-product-id', String(r.productId || '\u2014'));
+  setTxt('review-modal-customer', r.customerName || '\u2014');
+  setTxt('review-modal-date', reviewDateDisplay(r));
+  setTxt('review-modal-stars', '\u2605'.repeat(rating) + '\u2606'.repeat(5 - rating));
+  setTxt('review-modal-rating', rating.toFixed(1) + ' / 5.0');
+  const comment = String(r.reviewComment || r.comment || '').trim();
+  setTxt('review-modal-comment', comment !== '' ? comment : 'No written comment provided.');
+
+  const modal = document.getElementById('review-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeReviewDetailsModal() {
+  const modal = document.getElementById('review-modal');
+  if (modal) modal.style.display = 'none';
 }
 
 /** Normalize createdAt: Firestore Timestamp | epoch number | date string. */
@@ -814,6 +963,12 @@ function syncAdminHeaderOffset() {
   const header = document.querySelector('.main-content-header');
   if (header) {
     document.documentElement.style.setProperty('--admin-header-h', header.offsetHeight + 'px');
+  }
+  // Enquiries thead sticks BELOW the header + sticky date-filter bar; measure
+  // the bar too (0 while other sections are shown, refreshed on section swap).
+  const filterBar = document.querySelector('.enquiry-date-filter-bar');
+  if (filterBar) {
+    document.documentElement.style.setProperty('--enquiry-filter-h', filterBar.offsetHeight + 'px');
   }
 }
 window.addEventListener('resize', syncAdminHeaderOffset);
@@ -857,12 +1012,24 @@ function showDashboardSection(sectionName) {
     title.innerText = titles[sectionName] || 'Administration';
   }
 
-  // The Manage Products / Categories search & add controls live in the
-  // sticky header row and only appear while their section is displayed.
-  const productsControls = document.getElementById('header-products-controls');
-  if (productsControls) productsControls.classList.toggle('active', sectionName === 'products');
-  const categoryControls = document.getElementById('header-category-controls');
-  if (categoryControls) categoryControls.classList.toggle('active', sectionName === 'categories');
+  // Per-section header control clusters (products / categories / coupons /
+  // state rules) live in the sticky header row — only the active section's
+  // cluster is shown.
+  const sectionControlMap = {
+    'products': 'header-products-controls',
+    'categories': 'header-category-controls',
+    'coupons': 'header-coupon-controls',
+    'state-rules': 'header-state-rule-controls',
+    'enquiries': 'header-enquiry-controls'
+  };
+  Object.keys(sectionControlMap).forEach(key => {
+    const el = document.getElementById(sectionControlMap[key]);
+    if (el) el.classList.toggle('active', key === sectionName);
+  });
+  if (sectionName === 'enquiries') {
+    updateEnquiryTabButtons();
+    updateEnquiryDateChips();
+  }
 
   // Title swap can rewrap the header — refresh the sticky offset afterwards.
   syncAdminHeaderOffset();
@@ -3525,8 +3692,8 @@ function renderCouponsTable() {
         <td>${statusBadge}</td>
         <td>
           <div class="table-actions">
-            <button class="btn-action edit" onclick="openCouponEditModal('${escapeHtml(coupon.code)}')" title="Edit Coupon">✏️</button>
-            <button class="btn-action delete" onclick="confirmDelete('coupon', '${escapeHtml(coupon.code)}')" title="Delete Coupon">🗑️</button>
+            <button class="btn-action edit" onclick="openCouponEditModal('${escapeHtml(coupon.code)}')" title="Edit Coupon"><img src="Icons/edit.png" alt="Edit" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
+            <button class="btn-action delete" onclick="confirmDelete('coupon', '${escapeHtml(coupon.code)}')" title="Delete Coupon"><img src="Icons/delete.png" alt="Delete" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
           </div>
         </td>
       </tr>
@@ -3672,8 +3839,8 @@ function renderStateRulesTable() {
         <td>₹${rule.minimumOrder.toLocaleString('en-IN')}</td>
         <td>
           <div class="table-actions">
-            <button class="btn-action edit" onclick="openStateRuleEditModal('${escapeHtml(rule.state)}')" title="Edit Rule">✏️</button>
-            <button class="btn-action delete" onclick="confirmDelete('state-rule', '${escapeHtml(rule.state)}')" title="Delete Rule">🗑️</button>
+            <button class="btn-action edit" onclick="openStateRuleEditModal('${escapeHtml(rule.state)}')" title="Edit Rule"><img src="Icons/edit.png" alt="Edit" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
+            <button class="btn-action delete" onclick="confirmDelete('state-rule', '${escapeHtml(rule.state)}')" title="Delete Rule"><img src="Icons/delete.png" alt="Delete" class="btn-action-icon" onerror="this.onerror=null; this.style.display='none';"></button>
           </div>
         </td>
       </tr>
@@ -3863,4 +4030,11 @@ window.logoutAdmin = logoutAdmin;
 window.toggleAdminProfileMenu = toggleAdminProfileMenu;
 window.adminProfileLogout = adminProfileLogout;
 window.adminProfileDownloadPDF = adminProfileDownloadPDF;
+window.openReviewDetailsModal = openReviewDetailsModal;
+window.closeReviewDetailsModal = closeReviewDetailsModal;
+window.setEnquiryStatusTab = setEnquiryStatusTab;
+window.updateEnquiryStatusInline = updateEnquiryStatusInline;
+window.setEnquiryDateFilter = setEnquiryDateFilter;
+window.setEnquiryCustomDate = setEnquiryCustomDate;
+window.openEnquiryDatePicker = openEnquiryDatePicker;
 window.showDashboardSection = showDashboardSection;

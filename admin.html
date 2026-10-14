@@ -157,6 +157,29 @@
               <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Category
             </button>
           </div>
+          <div class="header-section-controls" id="header-coupon-controls">
+            <button type="button" class="btn-admin btn-admin-primary" onclick="openCouponAddModal()">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i> Create Coupon
+            </button>
+          </div>
+          <div class="header-section-controls" id="header-state-rule-controls">
+            <button type="button" class="btn-admin btn-admin-primary" onclick="openStateRuleAddModal()">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i> Add State Rule
+            </button>
+          </div>
+          <!-- Enquiries status tabs (custom new/contacted/confirmation icons);
+               active tab drives renderEnquiriesTable() filtering. -->
+          <div class="header-section-controls" id="header-enquiry-controls">
+            <button type="button" class="enquiry-tab" data-enquiry-tab="new" onclick="setEnquiryStatusTab('new')">
+              <img src="Icons/new.png" alt="" class="enquiry-tab-icon"> New
+            </button>
+            <button type="button" class="enquiry-tab" data-enquiry-tab="contacted" onclick="setEnquiryStatusTab('contacted')">
+              <img src="Icons/contacted.png" alt="" class="enquiry-tab-icon"> Contacted
+            </button>
+            <button type="button" class="enquiry-tab" data-enquiry-tab="resolved" onclick="setEnquiryStatusTab('resolved')">
+              <img src="Icons/confirmation.png" alt="" class="enquiry-tab-icon"> Confirm
+            </button>
+          </div>
         </div>
         <div class="header-right">
           <!-- Administrator profile dropdown (Back to Storefront + Logout) -->
@@ -335,34 +358,46 @@
 
       <!-- Section D: Enquiries Manager -->
       <section id="section-enquiries" class="dashboard-section animate-fade" style="display: none;">
-        <div class="actions-panel">
-          <div class="search-filter-box">
-            <select id="admin-enquiry-filter-status" class="form-control-admin">
-              <option value="all">All Submissions</option>
-              <option value="new">🆕 New</option>
-              <option value="contacted">📞 Contacted</option>
-              <option value="resolved">✔️ Resolved</option>
-            </select>
+        <!-- "All Submissions" dropdown removed — status filtering now lives
+             in the sticky header tabs (#header-enquiry-controls). -->
+
+        <!-- Date / month quick filters (js/admin.js -> setEnquiryDateFilter) -->
+        <div class="enquiry-date-filter-bar">
+          <div class="enquiry-date-filter-group">
+            <span class="enquiry-date-filter-label">Filter Date:</span>
+            <button type="button" class="enquiry-date-chip active" data-date-filter="all" onclick="setEnquiryDateFilter('all')">All Dates</button>
+            <button type="button" class="enquiry-date-chip" data-date-filter="this-month" onclick="setEnquiryDateFilter('this-month')">This Month</button>
+            <button type="button" class="enquiry-date-chip" data-date-filter="last-month" onclick="setEnquiryDateFilter('last-month')">Last Month</button>
           </div>
+          <input type="date" id="admin-enquiry-date-custom" class="enquiry-date-custom" onchange="setEnquiryCustomDate(this.value)" onclick="openEnquiryDatePicker(this)">
         </div>
 
         <div class="table-responsive">
-          <table class="table-admin">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Date</th>
-                    <th>Customer Details</th>
-                    <th>Pincode</th>
-                    <th>Enquiry Message</th>
-                    <th>ORDER TOTAL</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+          <table class="table-admin table-enquiries">
+            <!-- Locked column widths (table-layout: fixed in admin.css) -->
+            <colgroup>
+              <col style="width: 16%">    <!-- ID -->
+              <col style="width: 18%">    <!-- Date -->
+              <col style="width: 22%">    <!-- Customer Details -->
+              <col style="width: 14%">    <!-- State -->
+              <col style="width: 12%">    <!-- Order Total -->
+              <col style="width: 125px">  <!-- Status dropdown -->
+              <col style="width: 110px">  <!-- Actions -->
+            </colgroup>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Customer Details</th>
+                <th>State</th>
+                <th>Order Total</th>
+                <th>Status</th>
+                <th aria-label="Actions"></th>
+              </tr>
+            </thead>
             <tbody id="enquiries-table-body">
               <tr>
-                <td colspan="8" class="text-center">Loading customer enquiries...</td>
+                <td colspan="7" class="text-center">Loading customer enquiries...</td>
               </tr>
             </tbody>
           </table>
@@ -584,11 +619,8 @@
 
       <!-- Section G: Coupon Codes Management -->
       <section id="section-coupons" class="dashboard-section animate-fade" style="display: none;">
-        <div class="actions-panel justify-end">
-          <button class="btn-admin btn-admin-primary" onclick="openCouponAddModal()">
-            <span class="btn-icon-admin">+</span> Create Coupon
-          </button>
-        </div>
+        <!-- "+ Create Coupon" moved into the sticky header row
+             (#header-coupon-controls). -->
 
         <div class="table-responsive">
           <table class="table-admin">
@@ -612,11 +644,8 @@
 
       <!-- Section H: State Minimum Rules Management -->
       <section id="section-state-rules" class="dashboard-section animate-fade" style="display: none;">
-        <div class="actions-panel justify-end">
-          <button class="btn-admin btn-admin-primary" onclick="openStateRuleAddModal()">
-            <span class="btn-icon-admin">+</span> Add State Rule
-          </button>
-        </div>
+        <!-- "+ Add State Rule" moved into the sticky header row
+             (#header-state-rule-controls). -->
 
         <div class="table-responsive">
           <table class="table-admin">
@@ -1070,6 +1099,48 @@
           <button type="submit" class="btn-admin btn-admin-primary">Save State Rule</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: REVIEW DETAILS (read-only, opens on review row click) -->
+  <div class="modal-overlay" id="review-modal" style="display: none;">
+    <div class="modal-card review-modal-card">
+      <div class="modal-header">
+        <h3>Review Details</h3>
+        <button class="modal-close-btn" onclick="closeReviewDetailsModal()">&#10005;</button>
+      </div>
+      <div class="review-modal-body">
+        <div class="review-detail-block review-detail-product">
+          <div class="review-detail-product-info">
+            <p class="review-detail-label">Product Name</p>
+            <h4 class="review-detail-value" id="review-modal-product">&mdash;</h4>
+          </div>
+          <span class="review-detail-badge" id="review-modal-product-id">&mdash;</span>
+        </div>
+
+        <div class="review-detail-grid">
+          <div class="review-detail-block review-detail-cell">
+            <p class="review-detail-label">Customer Name</p>
+            <h4 class="review-detail-value" id="review-modal-customer">&mdash;</h4>
+            <p class="review-detail-sub" id="review-modal-date">&mdash;</p>
+          </div>
+          <div class="review-detail-block review-detail-cell">
+            <p class="review-detail-label">Rating</p>
+            <div class="review-detail-stars">
+              <span class="admin-review-stars" id="review-modal-stars"></span>
+              <span class="review-detail-rating-num" id="review-modal-rating">&mdash;</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-detail-block">
+          <p class="review-detail-label">Full Review Comment</p>
+          <div class="review-detail-comment" id="review-modal-comment">&mdash;</div>
+        </div>
+      </div>
+      <div class="review-modal-footer">
+        <button type="button" class="btn-admin btn-admin-secondary" onclick="closeReviewDetailsModal()">Close</button>
+      </div>
     </div>
   </div>
 

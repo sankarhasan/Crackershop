@@ -1061,6 +1061,231 @@ textarea.form-control-admin {
   font-size: 0.75rem;
 }
 
+/* --- Enquiries status tabs (sticky header cluster) --- */
+.enquiry-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+  background-color: var(--admin-card);
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.enquiry-tab:hover {
+  color: var(--admin-text);
+  background-color: var(--admin-sidebar);
+}
+
+.enquiry-tab.active {
+  background-color: #1e232d;
+  color: var(--admin-text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Per-tab active accent (amber New / blue Contacted / green Confirm) */
+.enquiry-tab[data-enquiry-tab="new"].active { color: var(--admin-warning); border-color: rgba(210, 153, 34, 0.5); }
+.enquiry-tab[data-enquiry-tab="contacted"].active { color: var(--admin-info); border-color: rgba(88, 166, 255, 0.5); }
+.enquiry-tab[data-enquiry-tab="resolved"].active { color: var(--admin-success); border-color: rgba(35, 134, 54, 0.5); }
+
+.enquiry-tab-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Inline status dropdown in the enquiries table — pure white bold text
+   (status is still signalled by the accent border colour) */
+.enquiry-status-select {
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 5px 8px;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  color: #ffffff;
+  background-color: #1f2430;
+  border: 1px solid var(--admin-border);
+  transition: border-color 0.2s ease;
+  width: 115px; /* fixed so label + native chevron always fit comfortably */
+  max-width: 100%;
+}
+
+.enquiry-status-select.status-new { border-color: rgba(210, 153, 34, 0.55); }
+.enquiry-status-select.status-contacted { border-color: rgba(88, 166, 255, 0.55); }
+.enquiry-status-select.status-resolved { border-color: rgba(35, 134, 54, 0.6); }
+
+/* Option readability across all OS themes: dark popup + pure white bold */
+.enquiry-status-select option {
+  background-color: #1f2430;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* --- Enquiries table: rigid fixed layout + uniform rows (locked headings) --- */
+.table-enquiries {
+  table-layout: fixed;
+  min-width: 760px;
+}
+
+.table-enquiries th,
+.table-enquiries td {
+  padding: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-enquiries thead th {
+  height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+  /* stack below the sticky header AND the sticky date-filter bar */
+  top: calc(var(--admin-header-h, 96px) + var(--enquiry-filter-h, 0px));
+  z-index: 22;
+}
+
+.table-enquiries tbody td {
+  height: 48px;
+  padding: 0 10px;
+  vertical-align: middle;
+}
+
+/* Customer name/phone stack truncates strictly inside its lane */
+.enq-customer-cell {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.enq-customer-name,
+.enq-customer-phone {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.enq-customer-phone {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--admin-text-muted);
+}
+
+.enq-id-cell,
+.enq-date-cell { color: var(--admin-text-muted); }
+.enq-state-cell { font-weight: 700; color: var(--admin-text); }
+.enq-total-cell { font-weight: 800; color: var(--admin-success); }
+
+/* Status lane: slim cell padding so the 115px select fits the 125px column
+   exactly (no overflow → no ellipsis dots beside the dropdown) */
+.table-enquiries .enq-status-cell {
+  padding: 0 5px;
+  text-overflow: clip;
+}
+
+/* Actions lane: generous gap, buttons never squeeze inside the 110px column */
+.table-enquiries td:last-child .table-actions {
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.table-enquiries .btn-action {
+  flex-shrink: 0;
+}
+
+/* --- Date / month quick filter chip bar ---
+   Sticky below the global header: header + filter bar + thead all stay put
+   while only the enquiry rows scroll (.table-enquiries thead stacks on top
+   of --enquiry-filter-h, measured by syncAdminHeaderOffset). */
+.enquiry-date-filter-bar {
+  position: sticky;
+  top: var(--admin-header-h, 96px);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0 12px;
+  margin-bottom: 4px;
+  background-color: var(--admin-bg);
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.enquiry-date-filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #12151c;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 6px;
+}
+
+.enquiry-date-filter-label {
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--admin-text-muted);
+  padding: 0 8px;
+}
+
+.enquiry-date-chip {
+  padding: 5px 10px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--admin-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.enquiry-date-chip:hover {
+  color: var(--admin-text);
+}
+
+.enquiry-date-chip.active {
+  background-color: var(--admin-success);
+  color: #ffffff;
+}
+
+.enquiry-date-custom {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  background-color: #1a1d24;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  padding: 7px 12px;
+  outline: none;
+  cursor: pointer;
+  color-scheme: dark; /* dark native calendar popup + icon */
+  /* clicking opens the calendar instead of drag-selecting the date text */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.enquiry-date-custom:focus {
+  border-color: var(--admin-success);
+}
+
 .search-filter-box {
   display: flex;
   gap: 12px;
@@ -2263,6 +2488,128 @@ textarea.form-control-admin {
   font-size: 1rem;
   letter-spacing: 2px;
   white-space: nowrap;
+}
+
+/* Review rows: the whole row opens the details modal */
+.review-row-clickable {
+  cursor: pointer;
+}
+
+/* --- Review Details modal (read-only) --- */
+.review-modal-card {
+  max-width: 520px;
+}
+
+.review-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.review-detail-label {
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-text-muted);
+  margin: 0 0 4px;
+}
+
+.review-detail-value {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--admin-text);
+  margin: 0;
+}
+
+.review-detail-sub {
+  font-size: 0.7rem;
+  color: var(--admin-text-muted);
+  margin: 3px 0 0;
+}
+
+.review-detail-product {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background-color: #12151c;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.review-detail-product-info {
+  min-width: 0;
+}
+
+.review-detail-badge {
+  flex-shrink: 0;
+  background-color: rgba(35, 134, 54, 0.12);
+  border: 1px solid rgba(35, 134, 54, 0.35);
+  color: var(--admin-success);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.review-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.review-detail-cell {
+  background-color: #12151c;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.review-detail-stars {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.review-detail-rating-num {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--admin-text);
+}
+
+/* Full comment container: dark card, no truncation, scrolls when long */
+.review-detail-comment {
+  background-color: #12151c;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--admin-text);
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.review-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--admin-border);
+}
+
+@media (max-width: 560px) {
+  .review-detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-review-rating-num {
