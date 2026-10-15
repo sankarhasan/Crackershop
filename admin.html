@@ -453,38 +453,44 @@
 
       <!-- Section B2: Billing / Invoice (in-store POS) -->
       <section id="section-billing" class="dashboard-section animate-fade" style="display: none;">
-        <!-- Sub-view tabs + Product Search share the top nav row -->
+        <!-- Sub-view tabs + New Bill + Product Search share the top nav row.
+             Billing Settings moved to the main Admin Settings page. -->
         <div class="billing-subnav">
-          <button type="button" class="billing-tab active" data-billing-view="create" onclick="switchBillingView('create')">Create New Bill</button>
-          <button type="button" class="billing-tab" data-billing-view="history" onclick="switchBillingView('history')">View Sales History</button>
-          <button type="button" class="billing-tab" data-billing-view="settings" onclick="switchBillingView('settings')">Billing Settings</button>
-          <!-- Product Search now sits in this top row, immediately right of
-               Billing Settings, filling the remaining width. Visible only on
-               the Create Bill view (toggled in js/billing.js switchBillingView). -->
+          <!-- Action buttons grouped on the left; search + QTY take the
+               remaining flexible width with a capped max so they never run
+               under the right-side profile menu. -->
+          <div class="billing-actions-group">
+            <button type="button" class="billing-tab active" data-billing-view="create" onclick="switchBillingView('create')">Create New Bill</button>
+            <button type="button" class="billing-tab" data-billing-view="history" onclick="switchBillingView('history')">View Sales History</button>
+            <button type="button" class="btn-admin btn-admin-secondary billing-newbill-btn" onclick="resetBill()">New Bill</button>
+          </div>
+          <!-- Product search + quick-qty. Enter in search stages the product
+               and jumps to QTY; Enter in QTY adds it (js/billing.js). -->
           <div class="billing-search-wrap" id="billing-search-wrap">
             <input type="text" id="billing-search" class="form-control-admin billing-search-input"
                    placeholder="Search product by name or code..."
                    autocomplete="off" spellcheck="false" role="combobox"
                    aria-expanded="false" aria-controls="billing-search-dropdown" aria-autocomplete="list">
+            <input type="text" id="billing-quick-qty" class="form-control-admin billing-quick-qty"
+                   value="1" inputmode="numeric" title="Quantity applied when the next product is added"
+                   placeholder="QTY" aria-label="Quick quantity">
             <div class="billing-search-dropdown" id="billing-search-dropdown" role="listbox" style="display: none;"></div>
           </div>
         </div>
 
         <!-- CREATE BILL VIEW -->
         <div class="billing-view" id="billing-view-create">
-          <div class="billing-bill-header">
-            <div class="billing-bill-meta">
-              <div class="billing-meta-item"><span>Invoice No.</span><strong id="bill-invoice-preview">New walk-in bill</strong></div>
-              <div class="billing-meta-item"><span>Date / Time</span><strong id="bill-datetime">&mdash;</strong></div>
-            </div>
-            <!-- New Bill sits immediately beside the invoice metadata (left),
-                 vertically centred with it, instead of the far-right edge. -->
-            <button type="button" class="btn-admin btn-admin-secondary billing-newbill-btn" onclick="resetBill()">New Bill</button>
-          </div>
-
           <!-- FULL-WIDTH BILLING SECTION (single column — no left/right split) -->
           <div class="billing-card billing-main-panel" id="billing-scroll-panel">
-            <div class="billing-card-title">Customer Details</div>
+            <!-- Invoice No. / Date-Time now sit on the right of the Customer
+                 Details heading; the number is pre-generated for this bill. -->
+            <div class="billing-customer-head">
+              <div class="billing-card-title billing-customer-title">Customer Details</div>
+              <div class="billing-bill-meta">
+                <div class="billing-meta-item"><span>Invoice No.</span><strong id="bill-invoice-preview">New walk-in bill</strong></div>
+                <div class="billing-meta-item"><span>Date / Time</span><strong id="bill-datetime">&mdash;</strong></div>
+              </div>
+            </div>
             <div class="billing-customer-grid">
               <input id="bill-cust-name" class="form-control-admin" placeholder="Customer name (optional)" autocomplete="off">
               <input id="bill-cust-mobile" class="form-control-admin" placeholder="Mobile number (optional)" autocomplete="off">
@@ -555,50 +561,15 @@
               <option value="Unpaid">Unpaid</option>
             </select>
           </div>
-          <div class="table-responsive">
+          <div class="billing-history-scroll">
             <table class="table-admin billing-history-table">
               <thead>
-                <tr><th>Invoice</th><th>Date/Time</th><th>Customer</th><th>Items</th><th>Total</th><th>Method</th><th>Payment</th><th>Status</th><th>Actions</th></tr>
+                <tr><th>Invoice</th><th>Date/Time</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Actions</th></tr>
               </thead>
               <tbody id="billing-history-body">
-                <tr><td colspan="9" class="text-center">Loading invoices&hellip;</td></tr>
+                <tr><td colspan="7" class="text-center">Loading invoices&hellip;</td></tr>
               </tbody>
             </table>
-          </div>
-          <div class="billing-history-pagination">
-            <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm" id="history-prev" onclick="historyPrevPage()" disabled>Previous</button>
-            <span id="history-page-label">Page 1</span>
-            <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm" id="history-next" onclick="historyNextPage()">Next</button>
-          </div>
-        </div>
-
-        <!-- BILLING SETTINGS VIEW -->
-        <div class="billing-view" id="billing-view-settings" style="display:none;">
-          <div class="billing-card billing-settings-card">
-            <div class="billing-card-title">Shop Billing Profile</div>
-            <p class="billing-settings-hint">These details print on every invoice. Nothing here is hardcoded &mdash; set your real shop address, GSTIN, etc.</p>
-            <div class="billing-settings-grid">
-              <label>Shop name<input id="bs-shop-name" class="form-control-admin"></label>
-              <label>Phone<input id="bs-shop-phone" class="form-control-admin"></label>
-              <label class="billing-span-2">Address<textarea id="bs-shop-address" class="form-control-admin" rows="2"></textarea></label>
-              <label>GSTIN (optional)<input id="bs-shop-gstin" class="form-control-admin" placeholder="Leave blank if not registered"></label>
-              <label>Logo path<input id="bs-shop-logo" class="form-control-admin" placeholder="Icons/Brand Logo png.png"></label>
-            </div>
-            <div class="billing-settings-divider"></div>
-            <div class="billing-settings-grid billing-tax-grid">
-              <label class="billing-tax-toggle">Enable GST
-                <select id="bs-tax-enabled" class="form-control-admin">
-                  <option value="false">No (tax-free bills)</option>
-                  <option value="true">Yes</option>
-                </select>
-              </label>
-              <label>GST rate % (when enabled)
-                <input type="number" id="bs-tax-rate" class="form-control-admin" min="0" max="100" step="0.5" value="0">
-              </label>
-            </div>
-            <div class="billing-settings-actions">
-              <button type="button" class="btn-admin btn-admin-primary" onclick="saveBillingSettings()">Save Settings</button>
-            </div>
           </div>
         </div>
       </section>
@@ -1042,6 +1013,38 @@
               <input type="password" id="settings-admin-password" class="form-control-admin settings-read-only" value="••••••••••" readonly autocomplete="off">
               <p class="settings-field-hint">Your password is never displayed, stored in plain text, or changeable from this page.</p>
             </div>
+          </div>
+        </div>
+
+        <!-- Shop Billing Profile — relocated from the old "Billing Settings"
+             tab on the billing screen (js/billing.js reads these same #bs-*
+             ids; saveBillingSettings() is exposed on window). -->
+        <div class="settings-card billing-settings-card">
+          <div class="settings-card-header">
+            <h3>Shop Billing Profile</h3>
+            <p class="settings-card-sub">These details print on every invoice. Nothing here is hardcoded &mdash; set your real shop address, GSTIN, etc.</p>
+          </div>
+          <div class="billing-settings-grid">
+            <label>Shop name<input id="bs-shop-name" class="form-control-admin"></label>
+            <label>Phone<input id="bs-shop-phone" class="form-control-admin"></label>
+            <label class="billing-span-2">Address<textarea id="bs-shop-address" class="form-control-admin" rows="2"></textarea></label>
+            <label>GSTIN (optional)<input id="bs-shop-gstin" class="form-control-admin" placeholder="Leave blank if not registered"></label>
+            <label>Logo path<input id="bs-shop-logo" class="form-control-admin" placeholder="Icons/Brand Logo png.png"></label>
+          </div>
+          <div class="billing-settings-divider"></div>
+          <div class="billing-settings-grid billing-tax-grid">
+            <label class="billing-tax-toggle">Enable GST
+              <select id="bs-tax-enabled" class="form-control-admin">
+                <option value="false">No (tax-free bills)</option>
+                <option value="true">Yes</option>
+              </select>
+            </label>
+            <label>GST rate % (when enabled)
+              <input type="number" id="bs-tax-rate" class="form-control-admin" min="0" max="100" step="0.5" value="0">
+            </label>
+          </div>
+          <div class="billing-settings-actions">
+            <button type="button" class="btn-admin btn-admin-primary" onclick="saveBillingSettings()">Save Settings</button>
           </div>
         </div>
       </section>

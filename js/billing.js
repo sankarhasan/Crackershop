@@ -28,12 +28,16 @@
   var isSubmitting = false;       // duplicate-submit guard
   var currentView = 'create';     // create | history | settings
 
-  // Sales history cache (bounded latest slice, filtered/paginated client-side)
+  // Sales history cache (bounded latest slice, filtered client-side; the
+  // full filtered list renders in one scrollable table — no pagination).
   var histCache = null;           // null = not loaded yet; else array of models
   var histFiltered = [];          // after filters
-  var histPage = 0;               // 0-based
-  var HIST_PAGE_SIZE = 20;
   var HIST_MAX_LOAD = 500;
+
+  // Invoice number reserved for the bill currently being composed. Generated
+  // as soon as the New Bill screen loads (and again after every save), then
+  // written to Firestore with this exact number on save.
+  var pendingInvoiceNumber = null;
 
   var _previewModel = null;       // invoice currently shown in the preview modal
   var _previewMode = 'a4';        // a4 | receipt
@@ -75,7 +79,8 @@
     if (!search) return; // billing section not present on this page
     listenersAttached = true;
 
-    // POS autocomplete search: type -> dropdown, arrows -> navigate, Enter -> add.
+    // POS autocomplete search: type -> dropdown, arrows -> navigate,
+    // Enter -> stage the product and jump to the Quantity box.
     search.addEventListener('input', onSearchInput);
     search.addEventListener('keydown', onSearchKeydown);
     search.addEventListener('focus', function () {
@@ -83,12 +88,12 @@
     });
     search.addEventListener('blur', function () { setTimeout(closeDropdown, 120); });
 
-    // Add on mouse/touch: mousedown fires before the input blur so the click
+    // Select on mouse/touch: mousedown fires before the input blur so the click
     // reliably registers before the dropdown closes.
     var dropdown = document.getElementById('billing-search-dropdown');
     if (dropdown) dropdown.addEventListener('mousedown', function (e) {
       var item = e.target.closest('[data-result-index]');
-      if (item) { e.preventDefault(); addResultByIndex(parseInt(item.getAttribute('data-result-index'), 10)); }
+      if (item) { e.preventDefault(); stageResultByIndex(parseInt(item.getAttribute('data-result-index'), 10)); }
     });
 
     // Dismiss the dropdown when clicking anywhere outside the search area.
@@ -102,7 +107,95 @@
     if (discount) discount.addEventListener('input', recalcBillTotals);
     if (received) received.addEventListener('input', recalcBillTotals);
 
+    // Quick-qty box beside the search bar: digits only, blank/0 -> 1.
+    // Enter here COMMITS the staged product (Search -> QTY -> Cart flow).
+    var quickQty = document.getElementById('billing-quick-qty');
+    if (quickQty) {
+      quickQty.addEventListener('keydown', function (e) {
+        // block letters / symbols / spaces (control + nav keys pass through)
+        if (e.key.length === 1 && !/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          clampQuickQty();
+          if (pendingProduct) {
+            commitPendingProduct();          // add to cart + back to Search
+          } else if (isDropdownOpen() && highlightIndex >= 0 && searchResults[highlightIndex]) {
+            stageResultByIndex(highlightIndex); // no staged item yet — stage the highlight
+          } else {
+            focusSearchBar();
+          }
+        }
+      });
+      quickQty.addEventListener('input', function () {
+        var clean = quickQty.value.replace(/[^0-9]/g, '');
+        if (clean !== quickQty.value) quickQty.value = clean;
+      });
+      quickQty.addEventListener('blur', clampQuickQty);
+    }
+
     ensurePreviewModal();
+  }
+
+  /* ---------------------- Sequential entry (Search -> QTY -> Cart) ----------------------
+     Vanilla-JS equivalent of the useRef chain: the staged product is held in
+     `pendingProduct`, and each step hands focus to the next field explicitly.
+     Search Enter / dropdown pick → stage + focus QTY → QTY Enter → add to
+     cart, clear search, reset QTY to 1, focus back on Search. */
+  var pendingProduct = null;
+
+  function stageResultByIndex(i) {
+    var product = searchResults[i];
+    if (!product) return;
+    if (product.inStock === false) {
+      showAdminToast('"' + (product.name || '') + '" is disabled for billing.', 'error');
+      return;
+    }
+    pendingProduct = product;
+    closeDropdown();   // search text stays visible so the user sees what is staged
+    focusQuickQty();
+  }
+
+  function focusQuickQty() {
+    var el = document.getElementById('billing-quick-qty');
+    if (!el) { commitPendingProduct(); return; }   // no box — fall through and add
+    el.classList.add('is-staged');                 // accent ring while staged
+    el.focus();
+    if (el.select) el.select();                    // typing replaces "1" instantly
+  }
+
+  function commitPendingProduct() {
+    if (!pendingProduct) return false;
+    addToCart(pendingProduct, getQuickQty());
+    pendingProduct = null;
+    var el = document.getElementById('billing-quick-qty');
+    if (el) el.classList.remove('is-staged');
+    resetQuickQty();
+    clearSearch();
+    focusSearchBar();                              // ready for the next item
+    return true;
+  }
+
+  // Sanitised value of the quick-qty box: only digits, min 1 (blank/0 -> 1).
+  function clampQuickQty() {
+    var el = document.getElementById('billing-quick-qty');
+    if (!el) return;
+    var n = parseInt(el.value, 10);
+    if (!Number.isFinite(n) || n < 1) n = 1;
+    el.value = n;
+  }
+
+  function getQuickQty() {
+    var el = document.getElementById('billing-quick-qty');
+    if (!el) return 1;
+    var n = parseInt(el.value, 10);
+    return (Number.isFinite(n) && n >= 1) ? n : 1;
+  }
+
+  function resetQuickQty() {
+    var el = document.getElementById('billing-quick-qty');
+    if (el) el.value = 1;
   }
 
   // Called from js/admin.js showDashboardSection('billing').
@@ -157,6 +250,7 @@
     if (search) search.value = '';
     searchResults = [];
     highlightIndex = -1;
+    pendingProduct = null;
     closeDropdown();
   }
 
@@ -171,6 +265,7 @@
   function onSearchInput() {
     var search = document.getElementById('billing-search');
     if (!search) return;
+    pendingProduct = null;   // term changed — any staged product is now stale
     if (!search.value.trim()) { searchResults = []; highlightIndex = -1; closeDropdown(); return; }
     runSearch();
     openDropdown();
@@ -263,19 +358,6 @@
     if (active) active.scrollIntoView({ block: 'nearest' });
   }
 
-  function addResultByIndex(i) {
-    var product = searchResults[i];
-    if (!product) return;
-    if (product.inStock === false) {
-      showAdminToast('"' + (product.name || '') + '" is disabled for billing.', 'error');
-      return;
-    }
-    addToCart(product);
-    clearSearch();                 // clear input + hide dropdown
-    var search = document.getElementById('billing-search');
-    if (search) search.focus();    // ready for the next product immediately
-  }
-
   function onSearchKeydown(e) {
     // Never let the search box submit any surrounding form.
     if (e.key === 'ArrowDown') {
@@ -286,11 +368,11 @@
       e.preventDefault();
       if (isDropdownOpen()) moveHighlight(-1);
     } else if (e.key === 'Enter') {
-      e.preventDefault();          // add exactly one item; block form submission
+      e.preventDefault();          // stage exactly one item; block form submission
       if (isDropdownOpen() && highlightIndex >= 0 && searchResults[highlightIndex]) {
-        addResultByIndex(highlightIndex);
+        stageResultByIndex(highlightIndex);
       } else if (searchResults.length) {
-        addResultByIndex(0);
+        stageResultByIndex(0);
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -304,11 +386,12 @@
   }
 
   /* ---------------------- Cart ---------------------- */
-  function addToCart(product) {
+  function addToCart(product, qty) {
+    var addQty = (Number.isFinite(qty) && qty >= 1) ? Math.floor(qty) : 1;
     var code = String(product.id || product.docId || '');
     var existing = cart.filter(function (i) { return i.productId === code; })[0];
     if (existing) {
-      existing.qty += 1;
+      existing.qty += addQty;
     } else {
       // RATE column = product.originalPrice (MRP, falls back to price).
       // FINAL RATE column = product.price (the discounted per-unit selling price).
@@ -321,7 +404,7 @@
         name: product.name || '',
         unitPrice: origPU,
         finalUnitPrice: finalPU,
-        qty: 1,
+        qty: addQty,
         discountPerUnit: Math.round((origPU - finalPU) * 100) / 100
       });
     }
@@ -330,12 +413,36 @@
     scrollCartRowIntoView(code);   // reveal the newly added / updated row
   }
 
+  /* ---------------------- Focus helpers (vanilla equivalent of useRef) ----------------------
+     Sequential entry is driven by stageResultByIndex()/commitPendingProduct()
+     above; focusSearchBar() closes the loop after each add. */
+  function focusSearchBar() {
+    var search = document.getElementById('billing-search');
+    if (!search) return;
+    search.focus();
+    if (search.select) search.select();
+  }
+
   function changeQty(index, delta) {
     if (!cart[index]) return;
     cart[index].qty = Math.max(1, (cart[index].qty || 1) + delta);
     syncLineDiscount(index);
     renderCart();
     recalcBillTotals();
+  }
+
+  // Typed quantity: update the model + Amount cell WITHOUT a full re-render
+  // (re-rendering mid-typing would steal focus from the qty input).
+  function setQty(index, raw) {
+    if (!cart[index]) return;
+    var n = parseInt(raw, 10);
+    if (!Number.isFinite(n) || n < 1) n = 1;
+    cart[index].qty = n;
+    recalcBillTotals();
+    var item = cart[index];
+    var finalUnitPaise = toPaise(item.unitPrice) - toPaise(item.discountPerUnit || 0);
+    var cell = document.querySelector('#billing-cart-body [data-amount="' + index + '"]');
+    if (cell) cell.textContent = formatINR(rupeesOf(finalUnitPaise * item.qty));
   }
 
   // Keep the derived per-unit discount in sync: Discount = RATE - FINAL RATE.
@@ -382,12 +489,12 @@
           '<td class="billing-cart-qty-cell">' +
             '<span class="billing-qty-control">' +
               '<button type="button" data-qty="dec" data-i="' + i + '" aria-label="Decrease quantity">&minus;</button>' +
-              '<span class="billing-qty-value">' + item.qty + '</span>' +
+              '<input type="number" min="1" step="1" value="' + item.qty + '" data-qtyin="' + i + '" aria-label="Quantity">' +
               '<button type="button" data-qty="inc" data-i="' + i + '" aria-label="Increase quantity">+</button>' +
             '</span>' +
           '</td>' +
           '<td class="billing-cart-center billing-cart-final">' + formatINR(rupeesOf(finalUnitPaise)) + '</td>' +
-          '<td class="billing-cart-center billing-cart-amount">' + formatINR(rupeesOf(amountPaise)) + '</td>' +
+          '<td class="billing-cart-center billing-cart-amount" data-amount="' + i + '">' + formatINR(rupeesOf(amountPaise)) + '</td>' +
           '<td class="billing-cart-action"><button type="button" class="billing-cart-remove" data-remove="' + i + '" title="Remove">&times;</button></td>' +
         '</tr>';
     }).join('');
@@ -418,7 +525,17 @@
         changeQty(i, btn.getAttribute('data-qty') === 'inc' ? 1 : -1);
       });
     });
-    // Qty is changed ONLY via the +/- buttons; every other cell is plain text.
+    // Qty: +/- buttons AND direct typing. Enter inside the qty field jumps
+    // back to the search bar so the cashier can chain entries without a mouse.
+    Array.prototype.forEach.call(body.querySelectorAll('[data-qtyin]'), function (inp) {
+      inp.addEventListener('input', function () { setQty(parseInt(inp.getAttribute('data-qtyin'), 10), inp.value); });
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();      // never submit any surrounding form
+          focusSearchBar();
+        }
+      });
+    });
     Array.prototype.forEach.call(body.querySelectorAll('[data-remove]'), function (btn) {
       btn.addEventListener('click', function () { removeCartItem(parseInt(btn.getAttribute('data-remove'), 10)); });
     });
@@ -508,7 +625,7 @@
     var method = (document.getElementById('bill-payment-method') || {}).value || 'Cash';
     var user = window.adminAuth && window.adminAuth.currentUser;
     return {
-      invoiceNumber: null, // stamped on save
+      invoiceNumber: pendingInvoiceNumber || null, // pre-generated for this bill
       docId: null,
       date: now,
       createdBy: user ? (user.email || user.uid) : 'admin',
@@ -604,7 +721,43 @@
     };
   }
 
-  /* ---------------------- Save (transactional numbering) ---------------------- */
+  /* ---------------------- Save (random unique invoice number) ---------------------- */
+  // Format: KPR-INV-XXXX where XXXX is a random 4-digit number (1000-9999).
+  // Every candidate is checked against the 'invoices' collection before the
+  // write; the write itself uses the invoice number as the document ID inside
+  // a runTransaction that refuses to overwrite an existing doc — if a
+  // concurrent save grabbed the same number in between, we draw a new one.
+  var INVOICE_NUMBER_MAX_ATTEMPTS = 25;
+
+  function generateInvoiceNumber() {
+    return 'KPR-INV-' + String(Math.floor(1000 + Math.random() * 9000));
+  }
+
+  function invoiceNumberExists(num) {
+    return window.db.collection('invoices')
+      .where('invoiceNumber', '==', num)
+      .limit(1)
+      .get({ source: 'server' })
+      .then(function (snap) { return !snap.empty; });
+  }
+
+  // Rejects the candidate and regenerates until a completely unique number
+  // is found (bounded so a full collection can never hang the save).
+  function findUniqueInvoiceNumber(attempt) {
+    attempt = attempt || 1;
+    if (attempt > INVOICE_NUMBER_MAX_ATTEMPTS) {
+      return Promise.reject(new Error('Could not find a unique invoice number. Please try again.'));
+    }
+    var num = generateInvoiceNumber();
+    return invoiceNumberExists(num).then(function (exists) {
+      if (exists) {
+        console.log('[Billing] ' + num + ' already exists — regenerating (attempt ' + attempt + ').');
+        return findUniqueInvoiceNumber(attempt + 1);
+      }
+      return num;
+    });
+  }
+
   function saveBill(printAfter) {
     if (isSubmitting) return;
     var model = buildInvoiceModel();
@@ -614,24 +767,46 @@
     isSubmitting = true;
     setBusy(true);
 
-    var year = new Date().getFullYear();
-    var counterRef = window.db.collection('invoice_counters').doc(String(year));
-    var invoiceRef = window.db.collection('invoices').doc();
-    var invoiceNumber = '';
-
-    window.db.runTransaction(function (tx) {
-      return tx.get(counterRef).then(function (snap) {
-        var seq = snap.exists ? (Number(snap.data().seq) || 0) : 0;
-        seq += 1;
-        invoiceNumber = 'KPR-INV-' + year + '-' + String(seq).padStart(6, '0');
+    function writeWithUniqueNumber(retryLeft) {
+      // First attempt uses the pre-generated number shown in the UI; only if
+      // it collided (or none was reserved) do we draw a fresh unique one.
+      var pre = pendingInvoiceNumber;
+      pendingInvoiceNumber = null; // consumed either way
+      var numberPromise = (retryLeft >= 5 && pre)
+        ? Promise.resolve(pre)
+        : findUniqueInvoiceNumber();
+      return numberPromise.then(function (invoiceNumber) {
         model.invoiceNumber = invoiceNumber;
         var doc = buildInvoiceDoc(model, invoiceNumber);
-        tx.set(counterRef, { seq: seq, year: year }, { merge: true });
-        tx.set(invoiceRef, doc);
-        return invoiceRef.id;
+        var invoiceRef = window.db.collection('invoices').doc(invoiceNumber);
+        // The Web/Compat SDK has no .create() (Admin-SDK-only) and a plain
+        // .set() would silently overwrite. Replicate "create" semantics with
+        // a transaction: read the doc first, refuse if it already exists.
+        return window.db.runTransaction(function (tx) {
+          return tx.get(invoiceRef).then(function (snap) {
+            if (snap.exists) {
+              var e = new Error('Invoice ' + invoiceNumber + ' already exists.');
+              e.code = 'already-exists';
+              throw e;
+            }
+            tx.set(invoiceRef, doc);
+          });
+        })
+          .catch(function (err) {
+            // Rare race: another bill took this number between the existence
+            // check and the write. The transaction refused it — draw a fresh
+            // number and try again.
+            if (err && err.code === 'already-exists' && retryLeft > 0) {
+              return writeWithUniqueNumber(retryLeft - 1);
+            }
+            throw err;
+          })
+          .then(function () { return invoiceNumber; });
       });
-    }).then(function (id) {
-      model.docId = id;
+    }
+
+    writeWithUniqueNumber(5).then(function (invoiceNumber) {
+      model.docId = invoiceNumber; // doc ID IS the invoice number now
       histCache = null; // force history reload next time it's opened
       showAdminToast('Invoice ' + invoiceNumber + ' saved.', 'success');
       if (typeof logActivity === 'function') {
@@ -659,6 +834,7 @@
 
   function resetBill() {
     cart = [];
+    resetQuickQty();
     ['bill-cust-name', 'bill-cust-mobile', 'bill-cust-address', 'bill-cust-gstin', 'bill-txn-ref'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = '';
@@ -675,14 +851,20 @@
   function refreshInvoiceNumberPreview() {
     var prev = document.getElementById('bill-invoice-preview');
     if (!prev) return;
-    if (!window.db) { prev.textContent = 'Auto on save'; return; }
-    var year = new Date().getFullYear();
-    window.db.collection('invoice_counters').doc(String(year)).get({ source: 'server' })
-      .then(function (s) {
-        var seq = s.exists ? (Number(s.data().seq) || 0) : 0;
-        prev.textContent = 'KPR-INV-' + year + '-' + String(seq + 1).padStart(6, '0') + ' (auto)';
-      })
-      .catch(function () { prev.textContent = 'Auto on save'; });
+    if (!window.db) { prev.textContent = 'Auto on save'; pendingInvoiceNumber = null; return; }
+    if (pendingInvoiceNumber) { prev.textContent = pendingInvoiceNumber; return; }
+    prev.textContent = 'Generating\u2026';
+    // Pre-generate the unique number for THIS bill right away; saveBill()
+    // writes with this exact number and the UI never shows a placeholder.
+    findUniqueInvoiceNumber().then(function (num) {
+      pendingInvoiceNumber = num;
+      var el = document.getElementById('bill-invoice-preview');
+      if (el) el.textContent = num;
+    }).catch(function () {
+      pendingInvoiceNumber = null;
+      var el = document.getElementById('bill-invoice-preview');
+      if (el) el.textContent = 'Auto on save';
+    });
   }
 
   function updateBillDateTime() {
@@ -696,7 +878,9 @@
   /* ---------------------- View switching ---------------------- */
   function switchBillingView(view) {
     currentView = view;
-    ['create', 'history', 'settings'].forEach(function (v) {
+    // Billing Settings no longer has a view here — it lives on the main
+    // Admin Settings page now.
+    ['create', 'history'].forEach(function (v) {
       var el = document.getElementById('billing-view-' + v);
       if (el) el.style.display = (v === view) ? 'block' : 'none';
     });
@@ -704,7 +888,7 @@
       tab.classList.toggle('active', tab.getAttribute('data-billing-view') === view);
     });
     // The Product Search lives in the shared top nav row but is only relevant
-    // on the Create Bill view — hide it on Sales History / Billing Settings.
+    // on the Create Bill view — hide it on Sales History.
     var searchWrap = document.getElementById('billing-search-wrap');
     if (searchWrap) searchWrap.style.display = (view === 'create') ? '' : 'none';
     if (view !== 'create') closeDropdown();
@@ -996,7 +1180,7 @@
       .catch(function (err) {
         console.error('[Billing] history load failed', err);
         var body = document.getElementById('billing-history-body');
-        if (body) body.innerHTML = '<tr><td colspan="9" class="text-center">Failed to load invoices.</td></tr>';
+        if (body) body.innerHTML = '<tr><td colspan="7" class="text-center">Failed to load invoices.</td></tr>';
       });
   }
 
@@ -1074,27 +1258,23 @@
       }
       return true;
     });
-    histPage = 0;
   }
 
   function renderHistory() {
     var body = document.getElementById('billing-history-body');
     if (!body) return;
     if (!histCache) {
-      body.innerHTML = '<tr><td colspan="9" class="text-center">Loading invoices&hellip;</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="text-center">Loading invoices&hellip;</td></tr>';
       return;
     }
     if (!histFiltered.length) {
-      body.innerHTML = '<tr><td colspan="9" class="text-center">No invoices match your filters.</td></tr>';
-      updateHistoryPagination();
+      body.innerHTML = '<tr><td colspan="7" class="text-center">No invoices match your filters.</td></tr>';
       return;
     }
-    var start = histPage * HIST_PAGE_SIZE;
-    var slice = histFiltered.slice(start, start + HIST_PAGE_SIZE);
-    body.innerHTML = slice.map(function (m, idx) {
-      var cust = (m.customer.name || 'Walk-in') + (m.customer.mobile ? ' · ' + m.customer.mobile : '');
+    // Entire filtered list renders at once inside the scrollable container.
+    body.innerHTML = histFiltered.map(function (m, i) {
+      var cust = (m.customer.name || 'Walk-in') + (m.customer.mobile ? ' \u00b7 ' + m.customer.mobile : '');
       var statusCls = m.paymentStatus === 'Paid' ? 'paid' : (m.paymentStatus === 'Partially Paid' ? 'partial' : 'unpaid');
-      var gi = start + idx;
       return '' +
         '<tr>' +
           '<td class="billing-h-num">' + escapeHtml(m.invoiceNumber) + '</td>' +
@@ -1102,13 +1282,12 @@
           '<td class="billing-h-cust">' + escapeHtml(cust) + '</td>' +
           '<td class="text-center">' + m.items.length + '</td>' +
           '<td>' + formatINR(rupeesOf(m.totals.grandPaise)) + '</td>' +
-          '<td>' + escapeHtml(m.paymentMethod) + '</td>' +
           '<td><span class="billing-h-status ' + statusCls + '">' + escapeHtml(m.paymentStatus) + '</span></td>' +
-          '<td>' + escapeHtml(m.invoiceStatus) + '</td>' +
           '<td><div class="billing-h-actions">' +
-            '<button type="button" class="billing-h-icon-btn" title="View invoice" data-h-view="' + gi + '">&#128065;</button>' +
-            '<button type="button" class="billing-h-icon-btn" title="Print invoice" data-h-print="' + gi + '">&#128424;</button>' +
-            '<button type="button" class="billing-h-icon-btn" title="Download PDF" data-h-pdf="' + gi + '">&#11015;</button>' +
+            '<button type="button" class="billing-h-icon-btn" title="View invoice" data-h-view="' + i + '"><img class="billing-h-icon" src="Icons/confirmation.png" alt="View"></button>' +
+            '<button type="button" class="billing-h-icon-btn" title="Print invoice" data-h-print="' + i + '"><img class="billing-h-icon" src="Icons/printer.png" alt="Print"></button>' +
+            '<button type="button" class="billing-h-icon-btn" title="Download PDF" data-h-pdf="' + i + '"><img class="billing-h-icon" src="Icons/download-pdf.png" alt="Download"></button>' +
+            '<button type="button" class="billing-h-icon-btn billing-h-icon-btn-danger" title="Delete invoice" data-h-del="' + i + '"><img class="billing-h-icon" src="Icons/delete.png" alt="Delete"></button>' +
           '</div></td>' +
         '</tr>';
     }).join('');
@@ -1125,28 +1304,36 @@
         if (m) generateInvoicePDF(m);
       });
     });
-    updateHistoryPagination();
+    Array.prototype.forEach.call(body.querySelectorAll('[data-h-del]'), function (b) {
+      b.addEventListener('click', function () { deleteHistoryInvoice(parseInt(b.getAttribute('data-h-del'), 10)); });
+    });
+  }
+
+  // Hard-delete an invoice after explicit confirmation, then reload the list
+  // from the server so the table can never show stale rows.
+  function deleteHistoryInvoice(index) {
+    var m = histFiltered[index];
+    if (!m) return;
+    if (!window.db) { showAdminToast('Database not ready. Please reload.', 'error'); return; }
+    if (!window.confirm('Delete invoice ' + (m.invoiceNumber || 'this invoice') + ' permanently? This cannot be undone.')) return;
+    window.db.collection('invoices').doc(m.docId).delete()
+      .then(function () {
+        showAdminToast('Invoice ' + (m.invoiceNumber || '') + ' deleted.', 'success');
+        if (typeof logActivity === 'function') {
+          logActivity('DELETE', 'Invoice deleted', String(m.invoiceNumber || m.docId));
+        }
+        histCache = null;
+        return loadHistory(true);
+      })
+      .catch(function (err) {
+        console.error('[Billing] invoice delete failed', err);
+        showAdminToast('Could not delete invoice: ' + ((err && err.message) ? err.message : 'unknown error'), 'error');
+      });
   }
 
   function openHistoryInvoice(index, mode, autoPrint) {
     var m = histFiltered[index];
     if (m) openInvoicePreview(m, mode, autoPrint);
-  }
-
-  function updateHistoryPagination() {
-    var pages = Math.max(1, Math.ceil(histFiltered.length / HIST_PAGE_SIZE));
-    var label = document.getElementById('history-page-label');
-    if (label) label.textContent = 'Page ' + (histPage + 1) + ' of ' + pages;
-    var prev = document.getElementById('history-prev');
-    var next = document.getElementById('history-next');
-    if (prev) prev.disabled = histPage <= 0;
-    if (next) next.disabled = histPage >= pages - 1;
-  }
-
-  function historyPrevPage() { if (histPage > 0) { histPage--; renderHistory(); } }
-  function historyNextPage() {
-    var pages = Math.ceil(histFiltered.length / HIST_PAGE_SIZE);
-    if (histPage < pages - 1) { histPage++; renderHistory(); }
   }
 
   function applyHistoryFiltersFromUI() { applyHistoryFilters(); renderHistory(); }
@@ -1256,8 +1443,11 @@
   window.downloadInvoicePDF = downloadInvoicePDF;
   window.recalcBillTotals = recalcBillTotals;
   window.saveBillingSettings = saveBillingSettings;
-  window.historyPrevPage = historyPrevPage;
-  window.historyNextPage = historyNextPage;
+  // Called by admin.js when the Settings page opens so the relocated Shop
+  // Billing Profile fields are loaded with the latest Firestore values.
+  window.refreshBillingSettingsForm = function () {
+    loadBillingSettings().then(populateSettingsForm);
+  };
 
   // Wire the history filter controls once the section is present in the DOM.
   function bindHistoryFilterListeners() {

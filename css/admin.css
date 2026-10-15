@@ -421,7 +421,11 @@ textarea.form-control-admin {
   gap: 16px;
   position: sticky;
   top: 0;
-  z-index: 30;
+  /* Must out-rank every sticky in-content bar below it (billing subnav /
+     enquiry filter bar use z-index 25–30 inside the same scroll container).
+     At equal z-index the later DOM element wins painting, which made the
+     billing search bar cover the open profile dropdown. */
+  z-index: 100;
   /* negative side margins bleed the blurred bg past the container padding */
   margin: 0 -40px 20px;
   padding: 10px 40px;                  /* compact py-2-class vertical rhythm */

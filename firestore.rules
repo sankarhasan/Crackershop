@@ -97,14 +97,16 @@ service cloud.firestore {
     }
 
     // ---- Billing / Invoice module (in-store POS) ----
-    // Invoices, the sequential numbering counter, and shop billing settings are
-    // strictly admin-only. Invoice numbering runs as a client-side Firestore
-    // transaction authenticated with the admin token, so both the counter doc
-    // and the invoice write require the signed `admin: true` claim.
+    // Invoices and shop billing settings are strictly admin-only. Invoice
+    // numbers are generated randomly client-side (KPR-INV-XXXX), checked for
+    // uniqueness against this collection, then written with the number as the
+    // document ID via .create() under the admin token's `admin: true` claim.
     match /invoices/{invoiceId} {
       allow read, create, update, delete: if isAdmin();
     }
 
+    // Legacy: sequential numbering counters from the old KPR-INV-YYYY-NNNNNN
+    // scheme. No longer read or written by the app; kept admin-readable only.
     match /invoice_counters/{period} {
       allow read, create, update: if isAdmin();
       allow delete: if false;

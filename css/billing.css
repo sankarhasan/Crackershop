@@ -10,8 +10,25 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: 16px;              /* gap-4 — clear separation between button group and search */
+  margin-bottom: 24px;    /* mb-6 — breathing room above the Customer Details box */
+  /* Sticky under the global admin header: the tabs + product search bar stay
+     pinned while the cart list scrolls independently below. Same pattern as
+     .enquiry-date-filter-bar (top offset measured by syncAdminHeaderOffset). */
+  position: sticky;
+  top: var(--admin-header-h, 96px);
+  z-index: 30;
+  background-color: var(--admin-bg);
+  padding-top: 6px;
+  padding-right: 8px;
+}
+
+/* Action buttons grouped on the left — never shrink. */
+.billing-actions-group {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 18px;
+  flex: 0 0 auto;
 }
 
 .billing-tab {
@@ -91,15 +108,38 @@
   .header-billing-btn { padding: 7px 9px; }
 }
 
-/* ---- Product search autocomplete ---- */
+/* ---- Product search autocomplete + quick-qty (shared top row) ---- */
 .billing-search-wrap {
   position: relative;
-  flex: 1 1 240px;   /* fills the remaining width in the top nav row */
-  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 260px;        /* takes the remaining row width (flex-1) */
+  min-width: 220px;
+  max-width: 640px;       /* capped so it never runs under the profile menu */
+  margin-left: auto;      /* pushed to the right of the button group */
 }
 
 .billing-search-input {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+/* Quick quantity box next to the search bar: digits only (validated in
+   js/billing.js), blank/0 clamps to 1. Search Enter stages the product and
+   focuses this box (.is-staged accent ring); Enter here adds to the cart. */
+.billing-quick-qty {
+  flex: 0 0 72px;
+  width: 72px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transition: var(--transition);
+}
+
+.billing-quick-qty.is-staged {
+  border-color: var(--admin-accent-hover);
+  box-shadow: 0 0 0 3px rgba(18, 140, 83, 0.25);
 }
 
 .billing-search-hint {
@@ -191,6 +231,21 @@
   gap: 16px;
   margin-bottom: 12px;
 }
+
+/* Customer Details heading with the Invoice No. / Date-Time on the right. */
+.billing-customer-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.billing-customer-head .billing-card-title { margin-bottom: 0; }
+
+.billing-customer-head .billing-bill-meta { text-align: right; }
+
+.billing-customer-grid { margin-top: 10px; }
 
 .billing-bill-meta {
   display: flex;
@@ -377,13 +432,25 @@
 
 .billing-cart-wrap {
   overflow-x: auto;                  /* horizontal scroll is a small-screen fallback only */
+  /* Independent vertical scroll: only the cart ROWS move — the sticky table
+     header below stays put and the sticky search bar above is never hidden,
+     no matter how many lines are on the bill. */
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
   border: 1px solid var(--admin-border);
   border-radius: var(--radius-md);
 }
 
+.billing-cart-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;                     /* above the row cells while scrolling */
+}
+
 .billing-cart-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;       /* keeps the sticky thead's cells + borders painting correctly */
+  border-spacing: 0;
   font-size: 0.84rem;
   min-width: 0;                      /* no forced width → no clipping / overflow on desktop */
   table-layout: fixed;               /* honour the column widths below so nothing is cut off */
@@ -485,13 +552,12 @@
   color: #fff;
 }
 
-/* Read-only qty value between the +/- buttons (only the buttons change it). */
-.billing-qty-value {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
+/* Read-only qty value between the +/- buttons — typing allowed; Enter in the
+   field returns focus to the search bar (fast-entry chain in js/billing.js). */
+.billing-qty-control input {
+  width: 44px;
   height: 28px;
+  border: none;
   border-left: 1px solid var(--admin-border);
   border-right: 1px solid var(--admin-border);
   background-color: var(--admin-card);
@@ -499,6 +565,19 @@
   text-align: center;
   font-size: 0.82rem;
   font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.billing-qty-control input::-webkit-outer-spin-button,
+.billing-qty-control input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.billing-qty-control input:focus {
+  outline: none;
+  background-color: var(--admin-sidebar);
+  box-shadow: inset 0 0 0 1px var(--admin-accent);
 }
 
 .billing-cart-remove {
@@ -613,8 +692,53 @@
   }
 }
 
+/* Single-page scrollable history list. NO outer box: the container only
+   clips + scrolls; rows themselves are flat table rows (enquiry-list style). */
+.billing-history-scroll {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.billing-history-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
 .billing-history-table {
-  font-size: 0.84rem;
+  font-size: 0.78rem;   /* matches the enquiries mini-table scale */
+}
+
+.billing-history-table th {
+  padding: 6px 10px;
+  font-size: 0.66rem;
+}
+
+/* Flat seamless rows — high-specificity selector beats the generic
+   .table-admin td card-ish padding/border so rows sit as plain lines
+   separated only by a subtle border-bottom. */
+.billing-history-scroll .billing-history-table > tbody > tr > td {
+  padding: 7px 10px;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.2;
+  vertical-align: middle;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* subtle row divider */
+  background-color: transparent;
+}
+
+.billing-history-scroll .billing-history-table > tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+.billing-history-scroll .billing-history-table > tbody > tr:hover > td {
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .billing-history-table .billing-h-num {
@@ -627,27 +751,28 @@
   font-weight: 600;
 }
 
+/* Plain coloured status text — no pill background / border / radius,
+   matching the enquiries list status style. */
 .billing-h-status {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.72rem;
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.74rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .billing-h-status.paid {
-  background-color: rgba(35, 134, 54, 0.18);
   color: var(--admin-success);
 }
 
 .billing-h-status.partial {
-  background-color: rgba(210, 153, 34, 0.18);
   color: var(--admin-warning);
 }
 
 .billing-h-status.unpaid {
-  background-color: rgba(248, 81, 73, 0.16);
   color: var(--admin-danger);
 }
 
@@ -658,8 +783,8 @@
 }
 
 .billing-h-icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -671,25 +796,23 @@
   transition: var(--transition);
 }
 
+/* Custom image assets from the Icons/ folder (view / print / download / delete). */
+.billing-h-icon {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  display: block;
+}
+
 .billing-h-icon-btn:hover {
   border-color: var(--admin-accent-hover);
   color: #fff;
   background-color: var(--admin-accent);
 }
 
-.billing-history-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin-top: 18px;
-}
-
-#history-page-label {
-  font-size: 0.82rem;
-  color: var(--admin-text-muted);
-  min-width: 70px;
-  text-align: center;
+.billing-h-icon-btn-danger:hover {
+  border-color: var(--admin-danger);
+  background-color: var(--admin-danger);
 }
 
 /* ---- Billing settings ---- */
@@ -1168,7 +1291,7 @@ body.printing-receipt-80 #invoice-print-area {
 .billing-grid { gap: 14px; }
 
 /* Sub-view tabs. */
-.billing-subnav { margin-bottom: 12px; }
+.billing-subnav { margin-bottom: 24px; }
 .billing-tab { padding: 7px 14px; font-size: 0.78rem; }
 
 /* Invoice metadata row. */
@@ -1195,7 +1318,7 @@ body.printing-receipt-80 #invoice-print-area {
 
 /* Keep qty stepper compact; all other cart cells are plain text. */
 .billing-qty-control button { width: 22px; height: 24px; font-size: 0.9rem; }
-.billing-qty-value { min-width: 38px; height: 24px; font-size: 0.78rem; }
+.billing-qty-control input { width: 38px; height: 24px; font-size: 0.78rem; }
 .billing-cart-remove { font-size: 0.95rem; }
 
 /* Totals + payment fields. */
@@ -1212,7 +1335,8 @@ body.printing-receipt-80 #invoice-print-area {
 
 /* Sales history + billing settings compactness. */
 .billing-history-filters { margin-bottom: 12px; gap: 8px; }
-.billing-history-table { font-size: 0.8rem; }
+.billing-history-table { font-size: 0.74rem; }
+.billing-history-scroll { max-height: 420px; }
 .billing-settings-grid { gap: 10px; }
 .billing-settings-grid label { font-size: 0.72rem; }
 .billing-settings-hint { font-size: 0.74rem; }

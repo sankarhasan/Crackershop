@@ -2709,6 +2709,9 @@ function openSettingsSection() {
   toggleAdminProfileMenu(false);
   showDashboardSection('settings');
   populateSettingsAccount();
+  // Shop Billing Profile now lives on this page too — pull the latest
+  // billing_settings values (exposed by js/billing.js).
+  if (typeof window.refreshBillingSettingsForm === 'function') window.refreshBillingSettingsForm();
 }
 
 function populateSettingsAccount() {
