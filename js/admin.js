@@ -1665,6 +1665,14 @@ function updateDashboardStats() {
 let _selectedDate = new Date();
 let _calViewDate = new Date(); // controls which month is displayed
 
+// Sales graph hover state — refreshed on every updateSalesGraph() render.
+// Holds the 7-point dataset so the pointer/touch handler can resolve the
+// nearest data point and build the tooltip without recomputing.
+let _salesGraphPoints = [];
+let _salesGraphData = [];
+let _salesGraphLabels = [];
+let _salesGraphColor = '#10B981';
+
 /* Robust date parser: accepts either a raw dateVal OR the full enquiry item
    (to handle Firestore Timestamps on item.date / item.createdAt).
    Handles: Timestamp objects, ISO strings, "14 Oct, 07:02 pm", "14 Oct 2026". */
@@ -1831,6 +1839,12 @@ function updateSalesGraph() {
   const lineColor = isDrop ? '#F43F5E' : currentSales === 0 && yesterdaySales === 0 ? '#475569' : '#10B981';
   const gradColor = isDrop ? '#F43F5E' : '#10B981';
 
+  // Expose dataset to the hover/touch interaction layer (nearest-point lookup)
+  _salesGraphPoints = points;
+  _salesGraphData = last7Data;
+  _salesGraphLabels = last7Labels;
+  _salesGraphColor = lineColor;
+
   if (chartEl) {
     const gradId = 'salesGradDyn';
     const allZero = last7Data.every(v => v === 0);
@@ -1855,8 +1869,17 @@ function updateSalesGraph() {
       svgHtml += `<circle cx="${points[6].x}" cy="${points[6].y}" r="6" fill="${lineColor}"/>`;
     }
 
+    // Interactive hover layer (hidden by default; positioned by JS on pointer/touch).
+    // Kept after the branches so the guideline + marker exist even in the all-zero case.
+    svgHtml += `<line class="sales-guide-line" x1="0" y1="0" x2="0" y2="150" stroke="${lineColor}" stroke-width="1.5" stroke-dasharray="4 3" opacity="0" pointer-events="none"/>`;
+    svgHtml += `<circle class="sales-active-glow" cx="0" cy="0" r="11" fill="${lineColor}" opacity="0" pointer-events="none"/>`;
+    svgHtml += `<circle class="sales-active-dot" cx="0" cy="0" r="6" fill="${lineColor}" stroke="#0B1120" stroke-width="2.5" opacity="0" pointer-events="none"/>`;
+
     svgHtml += `</svg>`;
     chartEl.innerHTML = svgHtml;
+
+    // (Re)create the floating tooltip inside the chart and wire pointer/touch handlers once.
+    setupSalesGraphInteraction();
   }
 
   // Render X-axis last 7 days date labels
@@ -1880,6 +1903,141 @@ function updateSalesGraph() {
       ? `\u20B9${currentSales.toLocaleString('en-IN')}`
       : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
   }
+}
+
+/* ==========================================================================
+   Sales Graph Hover / Touch Interaction
+   Overlay layer for the data-driven SVG graph. Binds pointer handlers once
+   to the stable #dash-sales-chart node (its innerHTML is replaced each render,
+   so the tooltip and SVG marker elements are re-queried on every event).
+   ========================================================================== */
+
+// Ensure the floating tooltip element exists inside the chart container.
+function _ensureSalesTooltip(chartEl) {
+  let tip = chartEl.querySelector('.sales-hover-tooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.className = 'sales-hover-tooltip';
+    tip.style.display = 'none';
+    chartEl.appendChild(tip);
+  }
+  return tip;
+}
+
+// Wire pointer/touch listeners exactly once on the persistent chart node.
+function setupSalesGraphInteraction() {
+  const chartEl = document.getElementById('dash-sales-chart');
+  if (!chartEl) return;
+  _ensureSalesTooltip(chartEl);
+
+  if (chartEl._salesHoverBound) return;
+  chartEl._salesHoverBound = true;
+
+  const move = (e) => updateSalesHover(e, chartEl);
+  chartEl.addEventListener('mousemove', move);
+  chartEl.addEventListener('mouseleave', () => hideSalesHover(chartEl));
+  // Touch: passive listeners so vertical page scrolling is never blocked.
+  chartEl.addEventListener('touchstart', move, { passive: true });
+  chartEl.addEventListener('touchmove', move, { passive: true });
+  // Tap elsewhere clears the highlight on touch devices.
+  document.addEventListener('touchstart', (e) => {
+    if (!chartEl.contains(e.target)) hideSalesHover(chartEl);
+  }, { passive: true });
+}
+
+function updateSalesHover(e, chartEl) {
+  if (!_salesGraphPoints || _salesGraphPoints.length === 0) return;
+  const guide = chartEl.querySelector('.sales-guide-line');
+  const glow = chartEl.querySelector('.sales-active-glow');
+  const dot = chartEl.querySelector('.sales-active-dot');
+  const tip = _ensureSalesTooltip(chartEl);
+  if (!guide || !dot) return;
+
+  const rect = chartEl.getBoundingClientRect();
+  const clientX = (e.touches && e.touches.length) ? e.touches[0].clientX : e.clientX;
+  // Map pointer to the SVG's stretched X axis (viewBox width 500, preserveAspectRatio=none).
+  const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  const svgX = frac * 500;
+
+  let idx = 0;
+  let minDist = Infinity;
+  for (let i = 0; i < _salesGraphPoints.length; i++) {
+    const d = Math.abs(_salesGraphPoints[i].x - svgX);
+    if (d < minDist) { minDist = d; idx = i; }
+  }
+
+  showSalesPointHighlight(idx, chartEl, tip, guide, glow, dot, rect);
+}
+
+function showSalesPointHighlight(idx, chartEl, tip, guide, glow, dot, rect) {
+  const p = _salesGraphPoints[idx];
+  const val = _salesGraphData[idx];
+  const label = _salesGraphLabels[idx];
+
+  // Vertical dashed guideline from the active point down to the chart baseline.
+  guide.setAttribute('x1', p.x);
+  guide.setAttribute('x2', p.x);
+  guide.setAttribute('y1', p.y);
+  guide.setAttribute('y2', 150);
+  guide.setAttribute('opacity', '1');
+
+  // Bright marker + subtle outer glow.
+  dot.setAttribute('cx', p.x);
+  dot.setAttribute('cy', p.y);
+  dot.setAttribute('opacity', '1');
+  if (glow) {
+    glow.setAttribute('cx', p.x);
+    glow.setAttribute('cy', p.y);
+    glow.setAttribute('opacity', '0.25');
+  }
+
+  // Percentage change vs the previous day (only when a prior data point exists).
+  let changeHtml = '';
+  if (idx > 0) {
+    const prev = _salesGraphData[idx - 1];
+    if (prev > 0) {
+      const pct = ((val - prev) / prev) * 100;
+      const rounded = Math.abs(pct).toFixed(1);
+      if (pct > 0) changeHtml = `<div class="sht-change sht-up">\u2191 +${rounded}%</div>`;
+      else if (pct < 0) changeHtml = `<div class="sht-change sht-down">\u2193 -${rounded}%</div>`;
+      else changeHtml = `<div class="sht-change sht-neutral">\u2192 0%</div>`;
+    } else if (val > 0) {
+      changeHtml = `<div class="sht-change sht-up">\u2191 +100%</div>`;
+    }
+  }
+
+  const masked = window._showRevenue === false;
+  const salesText = masked
+    ? '\u20B9\u2022\u2022\u2022\u2022\u2022'
+    : `\u20B9${val.toLocaleString('en-IN')}`;
+
+  tip.innerHTML = `<div class="sht-date">${label}</div>`
+    + `<div class="sht-sales">${salesText}</div>`
+    + changeHtml;
+  tip.style.display = 'block';
+
+  // Convert the SVG point to pixel space (stretched axes) and clamp inside chart.
+  const pxX = (p.x / 500) * rect.width;
+  const pxY = (p.y / 150) * rect.height;
+  const tipW = tip.offsetWidth;
+  const tipH = tip.offsetHeight;
+  let left = pxX - tipW / 2;
+  left = Math.max(2, Math.min(rect.width - tipW - 2, left));
+  let top = pxY - tipH - 12;
+  if (top < -28) top = pxY + 14; // flip below when it would overflow the top
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+
+function hideSalesHover(chartEl) {
+  const tip = chartEl.querySelector('.sales-hover-tooltip');
+  if (tip) tip.style.display = 'none';
+  const guide = chartEl.querySelector('.sales-guide-line');
+  if (guide) guide.setAttribute('opacity', '0');
+  const glow = chartEl.querySelector('.sales-active-glow');
+  if (glow) glow.setAttribute('opacity', '0');
+  const dot = chartEl.querySelector('.sales-active-dot');
+  if (dot) dot.setAttribute('opacity', '0');
 }
 
 /* Eye-icon toggle: mask/unmask the Est. Revenue Pool value in the header pill. */

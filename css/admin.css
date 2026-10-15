@@ -938,6 +938,15 @@ textarea.form-control-admin {
   width: 100%;
   display: flex;
   align-items: flex-end;
+  position: relative; /* anchor for the hover tooltip + marker overlay */
+}
+
+/* Keep the hover overlay snappy — the 0.7s path transition above would
+   otherwise lag the guideline/marker as they track the pointer. */
+.dash-exec-chart svg .sales-guide-line,
+.dash-exec-chart svg .sales-active-glow,
+.dash-exec-chart svg .sales-active-dot {
+  transition: opacity 0.12s ease;
 }
 
 .dash-exec-svg {
@@ -982,6 +991,46 @@ textarea.form-control-admin {
   color: #34d399;
   font-weight: 900;
 }
+
+/* Sales graph hover tooltip */
+.sales-hover-tooltip {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  min-width: 92px;
+  padding: 8px 11px;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.sales-hover-tooltip .sht-date {
+  color: var(--admin-text-muted);
+  font-weight: 600;
+  font-size: 0.62rem;
+}
+
+.sales-hover-tooltip .sht-sales {
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.88rem;
+  margin-top: 1px;
+}
+
+.sales-hover-tooltip .sht-change {
+  font-weight: 800;
+  font-size: 0.68rem;
+  margin-top: 3px;
+}
+
+.sales-hover-tooltip .sht-up { color: #34d399; }
+.sales-hover-tooltip .sht-down { color: #f43f5e; }
+.sales-hover-tooltip .sht-neutral { color: #94a3b8; }
 
 /* Mini Calendar */
 .dash-exec-cal-nav {
