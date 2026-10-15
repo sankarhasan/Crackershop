@@ -3794,3 +3794,88 @@ textarea.form-control-admin {
 .table-reviews td {
   overflow: hidden;
 }
+
+/* ==========================================================================
+   ADMIN SETTINGS PAGE + SECURE CREDENTIAL MODALS
+   ========================================================================== */
+.settings-page-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--admin-text);
+  margin: 4px 0 18px;
+}
+
+.settings-card {
+  background-color: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  padding: 24px 26px;
+  max-width: 720px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.settings-card-header {
+  margin-bottom: 22px;
+}
+
+.settings-card-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--admin-text);
+}
+
+.settings-card-sub {
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+  margin-top: 4px;
+}
+
+.settings-field-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.settings-field-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.settings-field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  margin-bottom: 6px;
+}
+
+.settings-read-only {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--admin-text-muted);
+  cursor: default;
+  letter-spacing: 0.06em;
+}
+
+.settings-field-hint {
+  font-size: 0.7rem;
+  color: var(--admin-text-muted);
+  margin-top: 6px;
+}
+
+.settings-divider {
+  height: 1px;
+  background-color: var(--admin-border);
+  margin: 20px 0;
+}
+
+/* Tablet / mobile: settings fields fill the card width */
+@media (max-width: 640px) {
+  .settings-card {
+    padding: 18px;
+  }
+  .settings-field-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+}

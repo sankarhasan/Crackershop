@@ -1,0 +1,10 @@
+{
+  "name": "kpr-crackers-admin-claim-helper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local one-time tool: grant/revoke the admin custom claim (Spark-plan safe — runs on your machine, nothing hosted)",
+  "main": "set-admin-claim.js",
+  "dependencies": {
+    "firebase-admin": "^12.1.0"
+  }
+}

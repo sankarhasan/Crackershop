@@ -259,6 +259,10 @@
               <a href="index.html" class="admin-profile-menu-item" role="menuitem">
                 <img src="Icons/shop.png" alt="" class="admin-profile-menu-icon"> Visit Storefront
               </a>
+              <button type="button" class="admin-profile-menu-item" role="menuitem"
+                      onclick="openSettingsSection()">
+                <img src="Icons/user-gear.png" alt="" class="admin-profile-menu-icon"> Settings
+              </button>
               <div class="admin-profile-menu-divider"></div>
               <button type="button" class="admin-profile-menu-item admin-profile-menu-logout" role="menuitem"
                       onclick="adminProfileLogout()">
@@ -843,6 +847,38 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- Section I: Settings (Admin Account Management) — opened from the
+           Administrator profile dropdown; credential changes are protected by
+           Firebase Authentication reauthentication (current password). -->
+      <section id="section-settings" class="dashboard-section animate-fade" style="display: none;">
+        <h2 class="settings-page-title">Settings</h2>
+
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <h3>Admin Account Settings</h3>
+            <p class="settings-card-sub">Account details are managed by Firebase Authentication and are strictly view-only on this page.</p>
+          </div>
+
+          <div class="settings-field-row">
+            <div class="settings-field-info">
+              <label class="settings-field-label" for="settings-admin-email">Admin Email</label>
+              <input type="email" id="settings-admin-email" class="form-control-admin settings-read-only" value="—" readonly autocomplete="username">
+              <p class="settings-field-hint">Your registered administrator email. View-only — credentials are managed outside this panel.</p>
+            </div>
+          </div>
+
+          <div class="settings-divider"></div>
+
+          <div class="settings-field-row">
+            <div class="settings-field-info">
+              <label class="settings-field-label" for="settings-admin-password">Admin Password</label>
+              <input type="password" id="settings-admin-password" class="form-control-admin settings-read-only" value="••••••••••" readonly autocomplete="off">
+              <p class="settings-field-hint">Your password is never displayed, stored in plain text, or changeable from this page.</p>
+            </div>
+          </div>
         </div>
       </section>
     </main>

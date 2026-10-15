@@ -22,3 +22,7 @@ node_modules/
 .env
 .env.local
 .env.*.local
+# Firebase service-account keys (full project privileges — never commit)
+scripts/serviceAccountKey.json
+serviceAccount*.json
+*.pem

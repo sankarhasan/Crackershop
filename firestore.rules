@@ -3,71 +3,102 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Products collection: public read/write (development mode)
+    // ---------------------------------------------------------------------
+    // Admin authorization: true ONLY when Firebase Auth's servers stamped
+    // the cryptographically-signed `admin: true` custom claim on the signed
+    // in user's UID (granted with scripts/set-admin-claim.js). Frontend
+    // flags, localStorage, URLs and user-editable documents are NEVER
+    // consulted. This check runs on Google's servers, so a modified admin.js
+    // cannot bypass it — unauthorized callers get PERMISSION_DENIED.
+    // ---------------------------------------------------------------------
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    // ---- Catalog content: public storefront read, admin-only write ----
     match /products/{productId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    // Categories collection: public read/write (development mode)
     match /categories/{categoryId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    // Enquiries collection: public read/write (development mode)
-    match /enquiries/{enquiryId} {
-      allow read, write: if true;
-    }
-
-    // Product Reviews collection: public read (Quick View rating chip),
-    // public write (customers submit from the storefront Quick View form;
-    // the admin Reviews tab manages/deletes the same records)
-    match /product_reviews/{reviewId} {
-      allow read, write: if true;
-    }
-
-    // Banners collection: public read/write (development mode)
+    // ---- Marketing surfaces: public read, admin-only write ----
     match /banners/{bannerId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    // Offers collection: public read/write (development mode)
+    // Offers: public read; the storefront's one-time default seed (js/data.js)
+    // may create the doc only when it does not exist yet; after that,
+    // only an admin can edit the live offer.
     match /offers/{offerId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if isAdmin() || !exists();
+      allow update, delete: if isAdmin();
     }
 
-    // Spin Wheel config: single 'config' doc managed by the admin panel,
-    // read by every storefront visitor (development mode)
-    match /spin_wheel_config/{configId} {
-      allow read, write: if true;
-    }
-
-    // User account documents: email-based spin cooldown fields (last_spun_at,
-    // last_result, last_prize_won) for the Lucky Spin Wheel, keyed by uid
-    // (development mode)
-    match /users/{userId} {
-      allow read, write: if true;
-    }
-
-    // Coupons collection: public read/write (development mode)
     match /coupons/{couponId} {
-      allow read, write: if true;
+      allow read: if true;                // checkout coupon validation
+      allow create, update, delete: if isAdmin();
     }
 
-    // State Rules collection: public read for frontend, write for admin
     match /stateRules/{stateRuleId} {
-      allow read, write: if true;
+      allow read: if true;                // storefront minimum-order check
+      allow create, update, delete: if isAdmin();
     }
 
-    // Wishlists collection: one doc per KPR Client (user.uid) storing the
-    // saved product ids in the `productIds` array field
+    match /spin_wheel_config/{configId} {
+      allow read: if true;                // wheel segments for every visitor
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---- Enquiries / orders ----
+    // * anyone (guest or customer) may SUBMIT a new enquiry;
+    // * a signed-in customer may read ONLY their own orders
+    //   (the portal queries where customer.userId == uid, which this
+    //   owner check provably satisfies);
+    // * only the admin may read the full list, change statuses, or delete.
+    match /enquiries/{enquiryId} {
+      allow create: if true;
+      allow read: if isAdmin()
+                  || (request.auth != null
+                      && request.auth.uid == resource.data.customer.userId);
+      allow update, delete: if isAdmin();
+    }
+
+    // ---- Reviews: customers read & submit; only admin moderates ----
+    match /product_reviews/{reviewId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // ---- Per-user private docs (spin cooldown, cart sync) ----
+    // Owner may read/write their own doc; admin may reach it for support.
+    // NOTE: path variable {userId} must match the authenticated uid.
+    match /users/{userId} {
+      allow read, write: if isAdmin()
+                         || (request.auth != null && request.auth.uid == userId);
+    }
+
+    // ---- Wishlists: strictly owner-only ----
     match /wishlists/{userId} {
-      allow read, write: if true;
+      allow read, write: if isAdmin()
+                         || (request.auth != null && request.auth.uid == userId);
     }
 
-    // Activities collection: admin dashboard real-time activity log feed
-    // (public read/write in development mode — same pattern as other collections)
+    // ---- Activities: admin dashboard audit feed only ----
     match /activities/{activityId} {
-      allow read, write: if true;
+      allow read, create, update, delete: if isAdmin();
     }
+
+    // NOTE: Admin credentials live in Firebase Authentication ONLY — never
+    // in Firestore. updateEmail()/updatePassword() are sensitive operations
+    // that Firebase servers reject without recent reauthentication, so no
+    // plaintext password or verification secret is ever stored client-side.
   }
 }

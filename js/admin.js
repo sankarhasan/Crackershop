@@ -154,19 +154,98 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
-   1. Authentication Gate (Firebase Auth: email + password)
+   1. Authentication Gate (Firebase Auth) + Admin Authorization Gate
+   --------------------------------------------------------------------------
+   AUTHENTICATION (who you are) is Firebase signInWithEmailAndPassword.
+   AUTHORIZATION (admin or not) is a cryptographically signed `admin: true`
+   custom claim on the administrator's UID, stamped into the Firebase ID
+   token by the Auth servers. It is verified here with getIdTokenResult()
+   AND enforced independently on Firebase's servers by firestore.rules
+   (request.auth.token.admin) — a tampered frontend can read nothing and
+   change nothing. The claim is granted once per UID with the local helper:
+       node scripts/set-admin-claim.js set <uid>
+   (see the setup instructions in the header of scripts/set-admin-claim.js).
+   Customer accounts can never set claims for themselves; changing the
+   account's email keeps the claim because it is bound to the immutable
+   UID, not the address.
    ========================================================================== */
+
+/* Resolves true only when the signed-in user's ID token carries the
+   server-signed admin claim. Never trusts localStorage, URLs, or Firestore
+   user documents. forceRefresh=true pulls a brand-new token (use after
+   claims or credentials change). */
+function isAuthorizedAdmin(forceRefresh) {
+  const user = window.adminAuth ? window.adminAuth.currentUser : null;
+  if (!user) return Promise.resolve(false);
+  return user.getIdTokenResult(!!forceRefresh)
+    .then((result) => !!(result.claims && result.claims.admin === true))
+    .catch((err) => {
+      console.error('[Admin] Claim verification failed:', err);
+      return false;
+    });
+}
+
+/* Deny screen for authenticated-but-not-admin users (Case B/D). */
+function denyAdminAccess(message) {
+  const dashboard = document.getElementById('admin-dashboard');
+  const loginSection = document.getElementById('login-section');
+  if (dashboard) dashboard.style.display = 'none';
+  if (loginSection) loginSection.style.display = 'flex';
+  const errorMsg = document.getElementById('login-error-msg');
+  if (errorMsg) {
+    errorMsg.innerText = '⛔ ' + (message || 'Access denied — this account is not an authorized administrator.');
+    errorMsg.style.display = 'block';
+  }
+  showAdminToast('Access denied. Signing out...', 'error');
+  // Drop the ADMIN app session only (customer storefront session on the
+  // default app is untouched) so no admin data query can even be attempted.
+  if (window.adminAuth) window.adminAuth.signOut().catch(() => {});
+}
+
+/* --------------------------------------------------------------------------
+   INDEPENDENT ADMIN SESSION — named Firebase app "kpr-admin".
+   Firebase Auth persists sessions per APP NAME (inside its own IndexedDB
+   bucket), so a second named app on the SAME project gets a fully
+   independent login state: admin sign-in/out never touches the customer
+   session on the default app, and vice versa. Each app also gets its own
+   Firestore bound to ITS auth — critical because the new security rules
+   read request.auth.token.admin from the token Firestore actually carries.
+   -------------------------------------------------------------------------- */
+const ADMIN_APP_NAME = 'kpr-admin';
+
+function getAdminApp() {
+  if (typeof firebase === 'undefined' || !window.firebaseConfig) return null;
+  let app = firebase.apps.find(a => a.name === ADMIN_APP_NAME);
+  if (!app) app = firebase.initializeApp(window.firebaseConfig, ADMIN_APP_NAME);
+  return app;
+}
+
 function initAdminAuth() {
   if (typeof firebase === 'undefined' || !firebase.auth) {
     console.error('[Admin] Firebase Auth SDK not loaded.');
     showAdminToast('Authentication service unavailable.', 'error');
     return;
   }
-  
-  const auth = firebase.auth();
+
+  const adminApp = getAdminApp();
+  if (!adminApp) {
+    console.error('[Admin] Named "kpr-admin" Firebase app could not initialize.');
+    showAdminToast('Authentication service unavailable.', 'error');
+    return;
+  }
+  window.adminApp = adminApp;
+
+  // Auth for the ADMIN app only — completely separate from the customer
+  // (default app) session used by the storefront.
+  const auth = firebase.auth(adminApp);
   window.adminAuth = auth;
+
+  // Rebind the shared handle so EVERY admin Firestore call (reads,
+  // onSnapshot listeners, writes) authenticates with the admin token.
+  window.db = firebase.firestore(adminApp);
+  console.log('[Admin] Independent session active on app "' + ADMIN_APP_NAME + '".');
   
-  // Login form -> Firebase email/password sign-in
+  // Login form -> Firebase email/password sign-in + admin claim check
   const loginForm = document.getElementById('admin-login-form');
   if (loginForm) {
     loginForm.addEventListener('submit', (e) => {
@@ -181,16 +260,53 @@ function initAdminAuth() {
       if (btn) { btn.disabled = true; btn.innerText = 'Verifying...'; }
       
       auth.signInWithEmailAndPassword(email, pass)
-        .then(() => {
-          showAdminToast('Welcome back, Admin! 🔓', 'success');
+        .then((cred) => {
+          // Fresh token -> authoritative claims straight from Firebase servers.
+          return cred.user.getIdTokenResult(true).then((token) => {
+            const isAdmin = !!(token.claims && token.claims.admin === true);
+            if (!isAdmin) {
+              // Case B: valid customer credentials — never admin access.
+              return auth.signOut().then(() => {
+                if (errorMsg) {
+                  errorMsg.innerText = '⛔ This account is not an authorized administrator.';
+                  errorMsg.style.display = 'block';
+                }
+                showAdminToast('Access denied — admin rights required.', 'error');
+              });
+            }
+            showAdminToast('Welcome back, Admin! 🔓', 'success');
+          });
         })
         .catch((err) => {
-          console.error('[Admin] Login failed:', err);
+          // Never log the error object wholesale — surface ONLY the Firebase
+          // error code (it carries no credentials) plus a useful message.
+          const code = (err && err.code) || '';
+          console.error('[Admin] Login failed:', code || '(unknown code)');
+          let msg = 'Login failed. Please try again.';
+          if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+            // Firebase deliberately returns the same generic code for wrong
+            // email, wrong password AND unknown accounts (enumeration
+            // protection) — also the exact symptom when the Email/Password
+            // provider is switched off, so guide the admin through both.
+            msg = 'Incorrect email or password. If you are sure they are right: the account may sign in via Google only (no password set), or Email/Password sign-in is disabled in Firebase Console \u2192 Authentication \u2192 Sign-in method.';
+          } else if (code === 'auth/invalid-email') {
+            msg = 'Enter a valid email address.';
+          } else if (code === 'auth/user-disabled') {
+            msg = 'This account has been disabled by an administrator.';
+          } else if (code === 'auth/too-many-requests') {
+            msg = 'Too many sign-in attempts \u2014 wait a few minutes and retry.';
+          } else if (code === 'auth/network-request-failed') {
+            msg = 'Network error \u2014 check the internet connection and retry.';
+          } else if (code === 'auth/configuration-not-found' || code === 'auth/operation-not-allowed') {
+            msg = 'Email/password sign-in is not enabled for this Firebase project. Enable it in Firebase Console \u2192 Authentication \u2192 Sign-in method.';
+          } else if (code === 'auth/user-token-expired') {
+            msg = 'Stale session detected \u2014 please reload the page and try again.';
+          }
           if (errorMsg) {
-            errorMsg.innerText = '⚠️ ' + (err && err.message ? err.message : 'Invalid email or password!');
+            errorMsg.innerText = '\u26a0\ufe0f ' + msg;
             errorMsg.style.display = 'block';
           }
-          showAdminToast('Authentication failed. Check credentials.', 'error');
+          showAdminToast('Authentication failed.', 'error');
         })
         .finally(() => {
           if (btn) { btn.disabled = false; btn.innerText = btnText; }
@@ -198,15 +314,25 @@ function initAdminAuth() {
     });
   }
   
-  // Observe auth state to toggle the login form vs. dashboard
+  // Observe auth state. The dashboard is revealed ONLY after the signed-in
+  // user's ID token provably carries the admin claim (Case D: persistent
+  // customer session hitting admin.html directly gets denied + signed out).
   auth.onAuthStateChanged((user) => {
     const loginSection = document.getElementById('login-section');
     const dashboard = document.getElementById('admin-dashboard');
     
     if (user) {
-      if (loginSection) loginSection.style.display = 'none';
-      if (dashboard) dashboard.style.display = 'grid';
-      onAdminAuthenticated();
+      // Keep everything hidden while the claim is verified server-side.
+      if (dashboard) dashboard.style.display = 'none';
+      isAuthorizedAdmin(true).then((isAdmin) => {
+        if (!isAdmin) {
+          denyAdminAccess();
+          return;
+        }
+        if (loginSection) loginSection.style.display = 'none';
+        if (dashboard) dashboard.style.display = 'grid';
+        onAdminAuthenticated();
+      });
     } else {
       if (loginSection) loginSection.style.display = 'flex';
       if (dashboard) dashboard.style.display = 'none';
@@ -1402,7 +1528,8 @@ function showDashboardSection(sectionName) {
       'offers': 'Manage Festival Offer Banner',
       'spin-wheel': 'Manage Lucky Spin Wheel Segments',
       'coupons': 'Manage Coupon Codes',
-      'state-rules': 'Manage State Minimum Order Rules'
+      'state-rules': 'Manage State Minimum Order Rules',
+      'settings': 'Settings'
     };
     title.innerText = titles[sectionName] || 'Administration';
   }
@@ -1476,6 +1603,48 @@ function showDashboardSectionDirect(sectionName) {
 let firestoreActivities = [];
 
 /**
+ * Hard cap for the 'activities' Firestore collection — only the newest N
+ * entries ever live in the cloud; the dashboard feed and the pruning share
+ * this single constant so storage and UI can never drift apart.
+ */
+var ACTIVITY_FEED_LIMIT = 6;
+
+/**
+ * Enforce the 6-document cap on 'activities' after every write: keeps the
+ * newest ACTIVITY_FEED_LIMIT docs (by `timestamp`) and batch-deletes the
+ * oldest overflow. Docs with no/invalid timestamp (legacy rows that could
+ * never appear in the ordered feed) are purged too. Reads come straight from
+ * the server so the just-added doc's serverTimestamp is already resolved.
+ */
+function pruneActivities() {
+  if (!window.db) return Promise.resolve();
+  return window.db.collection('activities').get({ source: 'server' })
+    .then(function(snapshot) {
+      var docs = [];
+      snapshot.forEach(function(doc) {
+        var d = doc.data() || {};
+        var ms = (d.timestamp && typeof d.timestamp.toMillis === 'function')
+          ? d.timestamp.toMillis()
+          : ((d.timestamp && typeof d.timestamp.toDate === 'function') ? d.timestamp.toDate().getTime() : 0);
+        docs.push({ ref: doc.ref, ms: ms });
+      });
+      // Newest first; timestamp-less legacy rows sink to the bottom (ms 0).
+      docs.sort(function(a, b) { return b.ms - a.ms; });
+      var excess = docs.slice(ACTIVITY_FEED_LIMIT);
+      if (excess.length === 0) return;
+      var batch = window.db.batch();
+      excess.forEach(function(item) { batch.delete(item.ref); });
+      return batch.commit().then(function() {
+        console.log('[Activities] Pruned ' + excess.length + ' oldest entr' + (excess.length === 1 ? 'y' : 'ies') + ' — cap is ' + ACTIVITY_FEED_LIMIT + '.');
+      });
+    })
+    .catch(function(err) {
+      // Non-fatal: the feed still only SHOWS 6; next write retries the prune.
+      console.warn('[Activities] Prune failed:', err.message);
+    });
+}
+
+/**
  * Log an activity to Firestore 'activities' collection.
  * @param {string} type  - PRODUCT | CATEGORY | ENQUIRY | REVIEW | COUPON | STATE_RULE | DELETE
  * @param {string} title - Short action title (e.g. 'Product updated')
@@ -1489,6 +1658,9 @@ function logActivity(type, title, desc) {
       title: title || '',
       desc: desc || '',
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+      // New entry landed — trim the collection back to the newest 6.
+      return pruneActivities();
     }).catch(function(err) {
       console.warn('[Activities] Write failed:', err.message);
     });
@@ -1499,13 +1671,15 @@ function logActivity(type, title, desc) {
 
 /**
  * Listen to Firestore 'activities' collection — latest 6, ordered by timestamp desc.
+ * The collection itself is capped at 6 docs by pruneActivities(), so this
+ * listener always streams the complete retained history.
  */
 function listenToActivities() {
   if (!window.db) return;
   try {
     window.db.collection('activities')
       .orderBy('timestamp', 'desc')
-      .limit(6)
+      .limit(ACTIVITY_FEED_LIMIT)
       .onSnapshot(function(snapshot) {
         firestoreActivities = [];
         snapshot.forEach(function(doc) {
@@ -1566,7 +1740,7 @@ function renderActivityFeed() {
   var container = document.getElementById('dash-activity-list');
   if (!container) return;
 
-  var items = firestoreActivities.slice(0, 6);
+  var items = firestoreActivities.slice(0, ACTIVITY_FEED_LIMIT);
 
   if (items.length === 0) {
     container.innerHTML = '<div class="dash-exec-activity-item"><div class="dash-exec-activity-icon dash-exec-act-blue"><i class="fa-solid fa-clock-rotate-left"></i></div><div class="dash-exec-activity-text"><p class="dash-exec-activity-title">No activity yet</p><p class="dash-exec-activity-sub">Actions will appear here</p></div></div>';
@@ -2506,6 +2680,31 @@ function renderRecentEnquiriesMiniTable() {
       </tr>
     `;
   });
+}
+
+/* ==========================================================================
+   3.5 ADMIN SETTINGS — VIEW-ONLY ACCOUNT SUMMARY
+   --------------------------------------------------------------------------
+   The Settings page displays the signed-in administrator's registered
+   email (read-only) and a static masked password placeholder. Credential
+   changes are intentionally NOT offered here — manage them in Firebase
+   Console → Authentication → Users if the email or password must change.
+   The admin custom-claim gate and independent "kpr-admin" session that
+   protect this page remain fully in force.
+   ========================================================================== */
+
+/* --- Settings page open / live account values --- */
+function openSettingsSection() {
+  toggleAdminProfileMenu(false);
+  showDashboardSection('settings');
+  populateSettingsAccount();
+}
+
+function populateSettingsAccount() {
+  const user = window.adminAuth ? window.adminAuth.currentUser : null;
+  const emailEl = document.getElementById('settings-admin-email');
+  if (emailEl) emailEl.value = (user && user.email) ? user.email : '—';
+  // The password field stays a fixed masked placeholder — Auth never exposes it.
 }
 
 /* ==========================================================================
@@ -5139,8 +5338,8 @@ function saveCouponData() {
     return;
   }
 
-  if (typeof firebase !== 'undefined' && firebase.auth) {
-    const currentUser = firebase.auth().currentUser;
+  if (window.adminAuth) {
+    const currentUser = window.adminAuth.currentUser;
     if (!currentUser) {
       console.error('[Admin] No authenticated admin user for coupon save.');
       showAdminToast('Admin authentication required. Please log in again.', 'error');
@@ -5279,8 +5478,8 @@ function saveStateRuleData() {
     return;
   }
 
-  if (typeof firebase !== 'undefined' && firebase.auth) {
-    const currentUser = firebase.auth().currentUser;
+  if (window.adminAuth) {
+    const currentUser = window.adminAuth.currentUser;
     if (!currentUser) {
       console.error('[Admin] No authenticated admin user for state rule save.');
       showAdminToast('Admin authentication required. Please log in again.', 'error');
@@ -5396,6 +5595,8 @@ window.renderActivityFeed = renderActivityFeed;
 window.toggleAdminProfileMenu = toggleAdminProfileMenu;
 window.adminProfileLogout = adminProfileLogout;
 window.adminProfileDownloadPDF = adminProfileDownloadPDF;
+window.openSettingsSection = openSettingsSection;
+window.populateSettingsAccount = populateSettingsAccount;
 window.openReviewDetailsModal = openReviewDetailsModal;
 window.closeReviewDetailsModal = closeReviewDetailsModal;
 window.setEnquiryStatusTab = setEnquiryStatusTab;
