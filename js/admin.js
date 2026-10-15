@@ -2083,50 +2083,116 @@ let _monthlyGraphData = [];
 let _monthlyGraphLabels = [];
 let _monthlyGraphMonthsFull = [];
 let _monthlyHoverBound = false;
+// Selected six-month window: 'last' = most recent, 'prev' = the one before it.
+let _monthlyPeriod = 'last';
+
+function setMonthlyPeriod(period) {
+  const normalized = period === 'prev' ? 'prev' : 'last';
+  if (normalized === _monthlyPeriod) return;
+  _monthlyPeriod = normalized;
+  // Re-render only the graph + summary — no dashboard reload.
+  updateMonthlySalesGraph();
+}
+
+function updateMonthlyPeriodButtons() {
+  document.querySelectorAll('#dash-monthly-period-toggle .period-option').forEach(btn => {
+    const isActive = btn.dataset.period === _monthlyPeriod;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
+/* Monotone cubic interpolation (Fritsch–Carlson — equivalent of d3's
+   monotoneX). Produces a smooth curved path that never overshoots the data. */
+function _monotoneCubicPath(pts) {
+  const n = pts.length;
+  if (n === 0) return '';
+  if (n < 2) return `M ${pts[0].x} ${pts[0].y}`;
+  const dx = [], dy = [], slopes = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = pts[i + 1].x - pts[i].x;
+    dy[i] = pts[i + 1].y - pts[i].y;
+    slopes[i] = dx[i] === 0 ? 0 : dy[i] / dx[i];
+  }
+  const tangents = [slopes[0]];
+  for (let i = 1; i < n - 1; i++) {
+    if (slopes[i - 1] * slopes[i] <= 0) {
+      tangents[i] = 0; // flat tangent at local extrema keeps the curve monotone
+    } else {
+      const w1 = 2 * dx[i] + dx[i - 1];
+      const w2 = dx[i] + 2 * dx[i - 1];
+      tangents[i] = (w1 + w2) / (w1 / slopes[i - 1] + w2 / slopes[i]);
+    }
+  }
+  tangents[n - 1] = slopes[n - 2];
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += ` C ${pts[i].x + h} ${pts[i].y + tangents[i] * h}, ${pts[i + 1].x - h} ${pts[i + 1].y - tangents[i + 1] * h}, ${pts[i + 1].x} ${pts[i + 1].y}`;
+  }
+  return d;
+}
 
 function updateMonthlySalesGraph() {
   const chartEl = document.getElementById('dash-monthly-chart');
   const labelsEl = document.getElementById('dash-monthly-labels');
   const valueEl = document.getElementById('dash-monthly-value');
   const changeEl = document.getElementById('dash-monthly-change');
+  const periodLabelEl = document.getElementById('dash-monthly-period-label');
   if (!chartEl) return;
 
   const now = new Date();
+  const periodOffset = _monthlyPeriod === 'prev' ? 6 : 0;
 
-  // Last 6 consecutive calendar months, oldest -> newest.
+  // Selected 6 consecutive calendar months, oldest -> newest, shifted by the
+  // period toggle. Totals come from real confirmed-order revenue only.
   const months = [];
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const d = new Date(now.getFullYear(), now.getMonth() - i - periodOffset, 1);
     months.push({ year: d.getFullYear(), month: d.getMonth() });
   }
   const data = months.map(m => getSalesForMonth(m.year, m.month));
   const labels = months.map(m => new Date(m.year, m.month, 1).toLocaleDateString('en-GB', { month: 'short' }));
   const monthsFull = months.map(m => new Date(m.year, m.month, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }));
 
-  // 6-month total vs the immediately preceding 6-month period.
+  // Selected-period total vs the OTHER selectable six-month period
+  // ('last' compares against 'previous'; 'prev' compares against 'last').
   const currentTotal = data.reduce((a, b) => a + b, 0);
-  let prevTotal = 0;
-  for (let i = 11; i >= 6; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    prevTotal += getSalesForMonth(d.getFullYear(), d.getMonth());
+  const compareOffset = _monthlyPeriod === 'prev' ? 0 : 6;
+  let compareTotal = 0;
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i - compareOffset, 1);
+    compareTotal += getSalesForMonth(d.getFullYear(), d.getMonth());
   }
+  const compareLabel = _monthlyPeriod === 'prev' ? 'vs. last 6 months' : 'vs. previous 6 months';
 
   const masked = window._showRevenue === false;
   if (valueEl) {
     valueEl.innerText = masked ? '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022' : `\u20B9${currentTotal.toLocaleString('en-IN')}`;
   }
+  if (periodLabelEl) {
+    periodLabelEl.textContent = `${monthsFull[0]} \u2013 ${monthsFull[5]}`;
+  }
   if (changeEl) {
-    if (prevTotal > 0) {
-      const pct = Math.round(((currentTotal - prevTotal) / prevTotal) * 100);
-      let trend;
-      if (pct > 0) trend = `\u2191 +${pct}%`;
-      else if (pct < 0) trend = `\u2193 ${pct}%`;
-      else trend = '0%';
-      const cls = pct > 0 ? 'dash-exec-trend-up' : pct < 0 ? 'dash-exec-trend-down' : 'dash-exec-trend-neutral';
-      changeEl.innerHTML = `<span class="${cls}">${trend}</span> <span class="dash-exec-metric-sub">vs. previous 6 months</span>`;
+    const diff = currentTotal - compareTotal;
+    // Real difference amount (masked with the same eye-toggle as other money values).
+    const diffText = masked
+      ? '\u20B9\u2022\u2022\u2022\u2022\u2022'
+      : `\u20B9${Math.abs(diff).toLocaleString('en-IN')}`;
+    const diffPart = diff === 0 ? '' : ` <span class="dash-exec-metric-sub">(${diffText} ${diff > 0 ? 'more' : 'less'})</span>`;
+
+    if (compareTotal > 0) {
+      const pct = Math.round((diff / compareTotal) * 100);
+      let trend, cls;
+      if (pct > 0) { trend = `\u2191 +${pct}%`; cls = 'dash-exec-trend-up'; }
+      else if (pct < 0) { trend = `\u2193 ${pct}%`; cls = 'dash-exec-trend-down'; }
+      else { trend = '\u2192 0%'; cls = 'dash-exec-trend-neutral'; }
+      // Arrow glyphs carry the direction too — colour is never the only signal.
+      changeEl.innerHTML = `<span class="${cls}">${trend}</span>${diffPart} <span class="dash-exec-metric-sub">${compareLabel}</span>`;
     } else {
-      // No prior-period data -> do not fabricate a percentage.
-      changeEl.innerHTML = `<span class="dash-exec-trend-neutral">--</span> <span class="dash-exec-metric-sub">vs. previous 6 months</span>`;
+      // Zero previous-period sales -> no division, no fabricated percentage.
+      const flat = currentTotal > 0 ? '\u2191 \u2014' : '\u2014';
+      changeEl.innerHTML = `<span class="dash-exec-trend-neutral">${flat}</span>${diffPart} <span class="dash-exec-metric-sub">${compareLabel} (no sales in comparison period)</span>`;
     }
   }
 
@@ -2138,7 +2204,7 @@ function updateMonthlySalesGraph() {
     const y = val === 0 ? baselineY : baselineY - ((val / maxVal) * (baselineY - topY));
     return { x, y };
   });
-  const pathD = points.reduce((acc, pt, i) => i === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`, '');
+  const pathD = _monotoneCubicPath(points); // smooth curved line, not straight segments
   const fillD = `${pathD} L ${points[5].x} 150 L ${points[0].x} 150 Z`;
   const lineColor = '#10B981';
   const allZero = data.every(v => v === 0);
@@ -2148,7 +2214,9 @@ function updateMonthlySalesGraph() {
   _monthlyGraphLabels = labels;
   _monthlyGraphMonthsFull = monthsFull;
 
-  let svgHtml = `<svg viewBox="0 0 500 150" class="dash-exec-svg" preserveAspectRatio="none">`;
+  // Fresh SVG node each render -> the CSS fade/slide animation replays on
+  // every period switch (smooth transition without reloading the dashboard).
+  let svgHtml = `<svg viewBox="0 0 500 150" class="dash-exec-svg monthly-svg-anim" preserveAspectRatio="none">`;
   if (allZero) {
     svgHtml += `<line x1="0" y1="${baselineY}" x2="500" y2="${baselineY}" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>`;
     svgHtml += `<circle cx="500" cy="${baselineY}" r="4" fill="#64748B"/>`;
@@ -2159,7 +2227,7 @@ function updateMonthlySalesGraph() {
     svgHtml += `</linearGradient></defs>`;
     svgHtml += `<path d="${fillD}" fill="url(#monthlyGrad)"/>`;
     svgHtml += `<path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
-    // Circular data-point markers on every month.
+    // Small clean data-point markers on every month.
     points.forEach(pt => { svgHtml += `<circle cx="${pt.x}" cy="${pt.y}" r="4" fill="#0B1120" stroke="${lineColor}" stroke-width="2.5"/>`; });
   }
   // Hover overlay layer (guideline + glow + active dot).
@@ -2173,6 +2241,7 @@ function updateMonthlySalesGraph() {
     labelsEl.innerHTML = labels.map(l => `<span>${l}</span>`).join('');
   }
 
+  updateMonthlyPeriodButtons();
   setupMonthlyGraphInteraction();
 }
 
@@ -2431,7 +2500,7 @@ function renderRecentEnquiriesMiniTable() {
     tbody.innerHTML += `
       <tr>
         <td>${escapeHtml(displayOrderId.startsWith('#') ? displayOrderId : '#' + displayOrderId)}</td>
-        <td><strong>${escapeHtml(enq.name)}</strong></td>
+        <td class="enq-name-cell">${escapeHtml(enq.name)}</td>
         <td class="enq-amount-cell">\u20B9${amount.toLocaleString('en-IN')}</td>
         <td><span class="enq-status ${escapeHtml(rawStatus)}">${escapeHtml(displayLabel)}</span></td>
       </tr>

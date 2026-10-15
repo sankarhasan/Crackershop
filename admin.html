@@ -370,11 +370,16 @@
           <div class="dash-exec-card dash-monthly-card">
             <div class="dash-exec-sales-top">
               <div class="dash-exec-card-header dash-exec-header-tight">
-                <h3>Sales Performance (Last 6 Months)</h3>
-                <span class="dash-exec-badge">6 Months</span>
+                <h3>Sales Performance</h3>
+                <!-- Segmented period selector (default: Last 6 Months) -->
+                <div class="period-toggle" id="dash-monthly-period-toggle" role="group" aria-label="Select six-month period">
+                  <button type="button" class="period-option" data-period="prev" onclick="setMonthlyPeriod('prev')">Previous 6 Months</button>
+                  <button type="button" class="period-option active" data-period="last" onclick="setMonthlyPeriod('last')">Last 6 Months</button>
+                </div>
               </div>
               <div class="dash-exec-metric dash-exec-metric-tight">
                 <h2 class="dash-exec-metric-value" id="dash-monthly-value">&#8377;0</h2>
+                <p class="dash-exec-metric-period" id="dash-monthly-period-label"></p>
                 <p class="dash-exec-metric-change" id="dash-monthly-change"><span class="dash-exec-trend-neutral">--</span> <span class="dash-exec-metric-sub">vs. previous 6 months</span></p>
               </div>
             </div>
