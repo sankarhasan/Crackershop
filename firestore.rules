@@ -96,6 +96,28 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
+    // ---- Billing / Invoice module (in-store POS) ----
+    // Invoices, the sequential numbering counter, and shop billing settings are
+    // strictly admin-only. Invoice numbering runs as a client-side Firestore
+    // transaction authenticated with the admin token, so both the counter doc
+    // and the invoice write require the signed `admin: true` claim.
+    match /invoices/{invoiceId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /invoice_counters/{period} {
+      allow read, create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Shop billing profile (name, address, GSTIN, logo, tax config). Read is
+    // public so a printable/downloaded invoice can be rendered from any device;
+    // only an admin may change it.
+    match /billing_settings/{settingsId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     // NOTE: Admin credentials live in Firebase Authentication ONLY — never
     // in Firestore. updateEmail()/updatePassword() are sensitive operations
     // that Firebase servers reject without recent reauthentication, so no

@@ -1,0 +1,1218 @@
+/* ==========================================================================
+   KPR ADMIN - BILLING / INVOICE MODULE
+   POS layout (dark admin theme, reuses --admin-* vars from css/admin.css)
+   + a light, printer-friendly invoice template (A4 + 80mm thermal).
+   Plain CSS only (project convention — no Tailwind). Mobile-first.
+   ========================================================================== */
+
+/* ---- Sub-view tabs ---- */
+.billing-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.billing-tab {
+  padding: 9px 18px;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background-color: var(--admin-card);
+  color: var(--admin-text-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.billing-tab:hover {
+  color: var(--admin-text);
+  border-color: var(--admin-accent-hover);
+}
+
+.billing-tab.active {
+  background-color: var(--admin-accent);
+  border-color: var(--admin-accent);
+  color: #fff;
+}
+
+/* ---- Top-header Billing button (lives in .sidebar-header, js/admin.js) ---- */
+.header-billing-btn {
+  margin-left: auto;            /* pin to the right of the branding */
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--admin-accent);
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--admin-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.header-billing-btn:hover {
+  background-color: var(--admin-accent);
+  color: #fff;
+}
+
+.header-billing-btn.active {
+  background-color: var(--admin-accent);
+  border-color: var(--admin-accent-hover);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(18, 140, 83, 0.22);
+}
+
+.header-billing-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-billing-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  filter: brightness(0) invert(1) opacity(0.9);
+}
+
+.header-billing-btn:not(.active) .header-billing-icon img {
+  filter: none;
+}
+
+@media (max-width: 360px) {
+  .header-billing-label { display: none; }   /* keep it tidy on very narrow drawers */
+  .header-billing-btn { padding: 7px 9px; }
+}
+
+/* ---- Product search autocomplete ---- */
+.billing-search-wrap {
+  position: relative;
+  flex: 1 1 240px;   /* fills the remaining width in the top nav row */
+  min-width: 200px;
+}
+
+.billing-search-input {
+  width: 100%;
+}
+
+.billing-search-hint {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: var(--admin-text-muted);
+}
+
+.billing-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  max-height: 340px;
+  overflow-y: auto;
+  background-color: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  padding: 4px;
+}
+
+.billing-search-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.billing-search-item:hover {
+  background-color: var(--admin-sidebar);
+}
+
+.billing-search-item.active {
+  background-color: rgba(18, 140, 83, 0.16);
+  border-color: var(--admin-accent-hover);
+}
+
+.billing-search-item.is-disabled {
+  opacity: 0.6;
+}
+
+.billing-search-item-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.billing-search-item-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.billing-search-item-meta {
+  font-size: 0.74rem;
+  color: var(--admin-text-muted);
+  margin-top: 2px;
+}
+
+.billing-search-item-price {
+  color: var(--admin-success);
+  font-weight: 700;
+  font-size: 0.86rem;
+  flex-shrink: 0;
+}
+
+.billing-search-msg {
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--admin-text-muted);
+  font-size: 0.85rem;
+}
+
+/* ---- Create-bill header meta row ---- */
+.billing-bill-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;   /* New Bill sits beside the invoice metadata */
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.billing-bill-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.billing-meta-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.billing-meta-item span {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-text-muted);
+}
+
+.billing-meta-item strong {
+  font-size: 1rem;
+  color: var(--admin-text);
+}
+
+/* ---- Two-column POS grid ---- */
+.billing-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+@media (min-width: 992px) {
+  /* Single-column, full-width billing layout — no left/right split. */
+  .billing-main-panel {
+    width: 100%;
+  }
+}
+
+.billing-card {
+  background-color: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.billing-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  margin-bottom: 14px;
+}
+
+.billing-cart-title {
+  margin-top: 22px;
+}
+
+/* ---- Product filters + list ---- */
+.billing-product-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 560px) {
+  .billing-product-filters {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.billing-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.billing-product-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background-color: var(--admin-sidebar);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+}
+
+.billing-product-item:hover {
+  border-color: var(--admin-accent-hover);
+}
+
+.billing-product-info {
+  min-width: 0;
+}
+
+.billing-product-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.billing-product-meta {
+  font-size: 0.76rem;
+  color: var(--admin-text-muted);
+  margin-top: 2px;
+}
+
+.billing-product-price {
+  color: var(--admin-success);
+  font-weight: 700;
+}
+
+.billing-product-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.billing-add-btn {
+  padding: 7px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--admin-accent);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.billing-add-btn:hover {
+  background-color: var(--admin-accent-hover);
+}
+
+.billing-add-btn:disabled {
+  background-color: var(--admin-border);
+  color: var(--admin-text-muted);
+  cursor: not-allowed;
+}
+
+.billing-badge-disabled {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--admin-danger);
+}
+
+.billing-empty-state {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--admin-text-muted);
+  font-size: 0.86rem;
+}
+
+/* ---- Customer + cart ---- */
+.billing-customer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 560px) {
+  .billing-customer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Full-width panel is roomy on wide screens — lay the 4 fields out in one row. */
+@media (min-width: 992px) {
+  .billing-customer-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.billing-cart-wrap {
+  overflow-x: auto;                  /* horizontal scroll is a small-screen fallback only */
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+}
+
+.billing-cart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  min-width: 0;                      /* no forced width → no clipping / overflow on desktop */
+  table-layout: fixed;               /* honour the column widths below so nothing is cut off */
+}
+
+/* Explicit column widths (percentages) keep every column visible; the product
+   name (widest) wraps cleanly instead of being clipped. */
+.billing-cart-table th:nth-child(1) { width: 5%; }   /* S.No        */
+.billing-cart-table th:nth-child(2) { width: 30%; }  /* Name & Code */
+.billing-cart-table th:nth-child(3) { width: 10%; }  /* Rate        */
+.billing-cart-table th:nth-child(4) { width: 11%; }  /* Discount    */
+.billing-cart-table th:nth-child(5) { width: 16%; }  /* Qty         */
+.billing-cart-table th:nth-child(6) { width: 12%; }  /* Final Rate  */
+.billing-cart-table th:nth-child(7) { width: 11%; }  /* Amount      */
+.billing-cart-table th:nth-child(8) { width: 5%; }   /* Action      */
+
+/* Very narrow screens: allow the table to scroll sideways rather than crush. */
+@media (max-width: 640px) {
+  .billing-cart-table {
+    min-width: 640px;
+  }
+}
+
+.billing-cart-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background-color: var(--admin-sidebar);
+  color: var(--admin-text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.billing-cart-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--admin-border);
+  color: var(--admin-text);
+  vertical-align: middle;
+}
+
+.billing-cart-table tr:last-child td {
+  border-bottom: none;
+}
+
+.billing-cart-empty td {
+  text-align: center;
+  color: var(--admin-text-muted);
+  padding: 22px 12px;
+}
+
+.billing-cart-name {
+  font-weight: 600;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Cart column helpers (S.No / Name&Code / Rate / Discount / Qty / Final / Amount / Action) */
+.billing-cart-th-sno, .billing-cart-th-center { text-align: center; }
+.billing-cart-sno { text-align: center; color: var(--admin-text-muted); font-variant-numeric: tabular-nums; }
+/* Every numeric column is centred with identical horizontal padding to the
+   headers above it, so values sit dead-center under their header. */
+.billing-cart-center { text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.billing-cart-table th:nth-child(n+3):nth-child(-n+7) { text-align: center; }
+.billing-cart-qty-cell { text-align: center; }
+.billing-cart-action { text-align: center; }
+.billing-cart-amount { font-weight: 600; }
+/* Rate = original MRP; shown struck-through whenever a discount exists. */
+.billing-cart-strike { text-decoration: line-through; color: var(--admin-text-muted); }
+/* Discount + Final Rate are read-only derived text. */
+.billing-cart-disc-cell { color: var(--admin-text-muted); }
+.billing-cart-final { font-weight: 600; }
+
+/* qty stepper — centred under the QTY header */
+.billing-qty-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.billing-qty-control button {
+  width: 26px;
+  height: 28px;
+  border: none;
+  background-color: var(--admin-sidebar);
+  color: var(--admin-text);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.billing-qty-control button:hover {
+  background-color: var(--admin-accent);
+  color: #fff;
+}
+
+/* Read-only qty value between the +/- buttons (only the buttons change it). */
+.billing-qty-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  border-left: 1px solid var(--admin-border);
+  border-right: 1px solid var(--admin-border);
+  background-color: var(--admin-card);
+  color: var(--admin-text);
+  text-align: center;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-cart-remove {
+  border: none;
+  background: transparent;
+  color: var(--admin-danger);
+  font-size: 1.05rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.billing-cart-remove:hover {
+  color: var(--admin-danger-hover);
+}
+
+/* ---- Totals ---- */
+.billing-totals {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+@media (min-width: 560px) {
+  .billing-totals {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.billing-totals-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .billing-totals-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.billing-totals-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+}
+
+.billing-totals-summary {
+  align-self: start;
+  background-color: var(--admin-sidebar);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.billing-sum-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 0.86rem;
+  color: var(--admin-text-muted);
+}
+
+.billing-sum-row strong {
+  color: var(--admin-text);
+  font-weight: 600;
+}
+
+.billing-sum-row.billing-grand {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-border);
+  font-size: 1.05rem;
+}
+
+.billing-sum-row.billing-grand strong {
+  color: var(--admin-success);
+  font-weight: 700;
+}
+
+.billing-roundoff-neg {
+  color: var(--admin-danger) !important;
+}
+
+.billing-finalize-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.billing-finalize-actions .btn-admin[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ---- Sales history ---- */
+.billing-history-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 768px) {
+  .billing-history-filters {
+    grid-template-columns: 2fr 1fr 1fr 1.4fr;
+  }
+}
+
+.billing-history-table {
+  font-size: 0.84rem;
+}
+
+.billing-history-table .billing-h-num {
+  font-weight: 700;
+  color: var(--admin-info);
+  white-space: nowrap;
+}
+
+.billing-history-table .billing-h-cust {
+  font-weight: 600;
+}
+
+.billing-h-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.billing-h-status.paid {
+  background-color: rgba(35, 134, 54, 0.18);
+  color: var(--admin-success);
+}
+
+.billing-h-status.partial {
+  background-color: rgba(210, 153, 34, 0.18);
+  color: var(--admin-warning);
+}
+
+.billing-h-status.unpaid {
+  background-color: rgba(248, 81, 73, 0.16);
+  color: var(--admin-danger);
+}
+
+.billing-h-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.billing-h-icon-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--admin-sidebar);
+  color: var(--admin-text);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.billing-h-icon-btn:hover {
+  border-color: var(--admin-accent-hover);
+  color: #fff;
+  background-color: var(--admin-accent);
+}
+
+.billing-history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+#history-page-label {
+  font-size: 0.82rem;
+  color: var(--admin-text-muted);
+  min-width: 70px;
+  text-align: center;
+}
+
+/* ---- Billing settings ---- */
+.billing-settings-card {
+  max-width: 720px;
+}
+
+.billing-settings-hint {
+  font-size: 0.8rem;
+  color: var(--admin-text-muted);
+  margin: -6px 0 16px;
+}
+
+.billing-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .billing-settings-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .billing-span-2 {
+    grid-column: 1 / -1;
+  }
+}
+
+.billing-settings-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+}
+
+.billing-settings-divider {
+  height: 1px;
+  background-color: var(--admin-border);
+  margin: 20px 0;
+}
+
+.billing-tax-grid {
+  margin-bottom: 18px;
+}
+
+.billing-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ==========================================================================
+   INVOICE DOCUMENT (light theme) — shared by the on-screen preview modal
+   and the print / thermal templates. Deliberately NOT dark-themed so it
+   prints cleanly regardless of the admin's dark UI.
+   ========================================================================== */
+.billing-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 14px;
+  background-color: rgba(1, 4, 9, 0.72);
+  overflow-y: auto;
+}
+
+.billing-preview-backdrop.open {
+  display: flex;
+}
+
+.billing-preview-shell {
+  width: 100%;
+  max-width: 840px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.billing-preview-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.billing-preview-toolbar .billing-preview-title {
+  color: #fff;
+  font-weight: 700;
+}
+
+.billing-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.billing-preview-actions .btn-admin {
+  background-color: #fff;
+  color: #1a1a1a;
+  border: none;
+}
+
+.billing-preview-actions .btn-admin:hover {
+  background-color: #e7e7e7;
+}
+
+/* The invoice paper itself */
+#invoice-print-area {
+  background-color: #fff;
+}
+
+.invoice-doc {
+  background-color: #ffffff;
+  color: #1a1a1a;
+  margin: 0 auto;
+  font-family: 'Poppins', 'Inter', sans-serif;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  padding: 28px 30px;
+}
+
+.invoice-doc.a4 {
+  width: 210mm;
+  max-width: 100%;
+}
+
+.invoice-doc.receipt {
+  width: 80mm;
+  padding: 14px 12px;
+  font-size: 11px;
+}
+
+.invoice-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #0a5c36;
+  padding-bottom: 14px;
+}
+
+.invoice-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.invoice-logo {
+  max-height: 54px;
+  max-width: 120px;
+  object-fit: contain;
+}
+
+.invoice-shop-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0a5c36;
+  line-height: 1.1;
+}
+
+.invoice-shop-meta {
+  font-size: 0.78rem;
+  color: #555;
+  margin-top: 4px;
+  white-space: pre-line;
+}
+
+.invoice-title-block {
+  text-align: right;
+}
+
+.invoice-doc-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.invoice-num {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.invoice-date {
+  font-size: 0.78rem;
+  color: #555;
+}
+
+.invoice-parties {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.invoice-party h4 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.invoice-party p {
+  font-size: 0.85rem;
+  margin: 1px 0;
+}
+
+.invoice-items {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+.invoice-items th {
+  background-color: #f2f5f3;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1.5px solid #d0d7d2;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #333;
+}
+
+.invoice-items td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #ececec;
+}
+
+.invoice-items .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.invoice-items .strong-col {
+  font-weight: 600;
+}
+
+.invoice-totals {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.invoice-totals-table {
+  width: 60%;
+  min-width: 240px;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.invoice-totals-table td {
+  padding: 4px 8px;
+}
+
+.invoice-totals-table td:last-child {
+  text-align: right;
+  font-weight: 600;
+}
+
+.invoice-totals-table tr.grand td {
+  border-top: 1.5px solid #0a5c36;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #0a5c36;
+  padding-top: 8px;
+}
+
+.invoice-amount-words {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: #444;
+}
+
+.invoice-amount-words strong {
+  text-transform: capitalize;
+}
+
+.invoice-pay {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 0.8rem;
+  color: #444;
+}
+
+.invoice-footer {
+  margin-top: 28px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.invoice-thanks {
+  font-size: 0.82rem;
+  color: #0a5c36;
+  font-weight: 600;
+}
+
+.invoice-signature {
+  text-align: center;
+  min-width: 150px;
+}
+
+.invoice-signature .sig-line {
+  border-top: 1px solid #333;
+  margin-bottom: 4px;
+  padding-top: 30px;
+}
+
+.invoice-signature span {
+  font-size: 0.72rem;
+  color: #666;
+}
+
+/* Compact thermal variant tweaks */
+.invoice-doc.receipt .invoice-header {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-bottom: 1px dashed #999;
+  padding-bottom: 8px;
+}
+
+.invoice-doc.receipt .invoice-title-block {
+  text-align: center;
+}
+
+.invoice-doc.receipt .invoice-parties {
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.invoice-doc.receipt .invoice-items th,
+.invoice-doc.receipt .invoice-items td {
+  padding: 3px 2px;
+  font-size: 10.5px;
+}
+
+.invoice-doc.receipt .invoice-totals-table {
+  width: 100%;
+}
+
+.invoice-doc.receipt .invoice-footer {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-top: 14px;
+}
+
+.invoice-doc.receipt .invoice-signature {
+  width: 100%;
+}
+
+/* ==========================================================================
+   PRINT — hide the entire admin chrome; show only the invoice paper.
+   ========================================================================== */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .billing-preview-backdrop {
+    position: static !important;
+    display: block !important;
+    background: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .billing-preview-shell {
+    max-width: none !important;
+  }
+
+  .billing-preview-toolbar {
+    display: none !important;
+  }
+
+  #invoice-print-area,
+  #invoice-print-area * {
+    visibility: visible !important;
+  }
+
+  #invoice-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff !important;
+  }
+
+  .invoice-doc {
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  .invoice-doc.a4 {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* 80mm thermal: set the physical page width to the receipt paper */
+  .invoice-doc.receipt {
+    width: 72mm !important;
+    padding: 0 !important;
+  }
+
+  /* Route the invoice paper to a named page (A4 by default; the receipt
+     override below switches it to the 80mm continuous sheet). */
+  #invoice-print-area {
+    page: a4;
+  }
+}
+
+/* Base page box for the printable invoice. */
+@page {
+  margin: 10mm;
+}
+
+@page a4 {
+  size: A4;
+  margin: 10mm;
+}
+
+@page receipt-80 {
+  size: 80mm auto;
+  margin: 3mm;
+}
+
+/* Body-level flag applied while an 80mm thermal receipt should print. */
+body.printing-receipt-80 #invoice-print-area {
+  page: receipt-80;
+}
+
+/* ==========================================================================
+   COMPACT BILLING TYPOGRAPHY & CONTROLS (scoped to the on-screen POS page)
+   These sit at the end of the sheet so their equal-specificity selectors win
+   over the larger defaults above WITHOUT touching the printed invoice
+   (.invoice-doc) or any other admin section. Sizes are px/soft-rem based to
+   hit the requested desktop scale (title 20-22, headings 16-18, body 13-14).
+   ========================================================================== */
+
+/* Main page title — applied only while the Billing view is active
+   (toggled on #current-section-title by showDashboardSection in admin.js). */
+.billing-page-title {
+  font-size: 1.35rem;   /* ~21.6px */
+}
+
+/* Smaller inputs / selects across the billing page (incl. filters). */
+#section-billing .form-control-admin {
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  border-radius: var(--radius-sm);
+}
+
+/* Section headings (Customer Details / Cart / Product Search / Settings). */
+.billing-card-title {
+  font-size: 1rem;      /* 16px */
+  margin-bottom: 10px;
+}
+
+.billing-cart-title { margin-top: 16px; }
+
+/* Cards a touch tighter. */
+.billing-card { padding: 14px; }
+.billing-grid { gap: 14px; }
+
+/* Sub-view tabs. */
+.billing-subnav { margin-bottom: 12px; }
+.billing-tab { padding: 7px 14px; font-size: 0.78rem; }
+
+/* Invoice metadata row. */
+.billing-meta-item span { font-size: 0.64rem; }
+.billing-meta-item strong { font-size: 0.9rem; }
+.billing-newbill-btn { padding: 6px 12px; font-size: 0.78rem; }
+
+/* Search hint + dropdown results. */
+.billing-search-hint { font-size: 0.68rem; margin-top: 8px; }
+.billing-search-dropdown { max-height: 300px; }
+.billing-search-item { padding: 7px 9px; }
+.billing-search-item-name { font-size: 0.84rem; }
+.billing-search-item-meta { font-size: 0.7rem; }
+.billing-search-item-price { font-size: 0.8rem; }
+
+/* Customer fields. */
+.billing-customer-grid { gap: 8px; }
+
+/* Compact cart table. */
+.billing-cart-table { font-size: 0.8rem; }
+.billing-cart-table th { padding: 7px 8px; font-size: 0.68rem; }
+.billing-cart-table td { padding: 5px 8px; }
+.billing-cart-empty td { padding: 16px 10px; font-size: 0.82rem; }
+
+/* Keep qty stepper compact; all other cart cells are plain text. */
+.billing-qty-control button { width: 22px; height: 24px; font-size: 0.9rem; }
+.billing-qty-value { min-width: 38px; height: 24px; font-size: 0.78rem; }
+.billing-cart-remove { font-size: 0.95rem; }
+
+/* Totals + payment fields. */
+.billing-totals { margin-top: 14px; gap: 14px; }
+.billing-totals-fields { gap: 8px; }
+.billing-totals-fields label { font-size: 0.7rem; }
+.billing-totals-summary { padding: 10px 12px; }
+.billing-sum-row { font-size: 0.8rem; padding: 3px 0; }
+.billing-sum-row.billing-grand { font-size: 0.92rem; padding-top: 8px; }
+
+/* Finalize action buttons. */
+.billing-finalize-actions { margin-top: 14px; gap: 8px; }
+.billing-finalize-actions .btn-admin { padding: 7px 12px; font-size: 0.8rem; }
+
+/* Sales history + billing settings compactness. */
+.billing-history-filters { margin-bottom: 12px; gap: 8px; }
+.billing-history-table { font-size: 0.8rem; }
+.billing-settings-grid { gap: 10px; }
+.billing-settings-grid label { font-size: 0.72rem; }
+.billing-settings-hint { font-size: 0.74rem; }

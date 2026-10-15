@@ -1513,6 +1513,11 @@ function showDashboardSection(sectionName) {
   // Set active link style
   const activeLink = document.querySelector(`.sidebar-link[data-section="${sectionName}"]`);
   if (activeLink) activeLink.classList.add('active');
+
+  // Billing now lives in the top header (not the sidebar): reflect its active
+  // state on the header button so it highlights only while the billing view is open.
+  const headerBillingBtn = document.getElementById('header-billing-btn');
+  if (headerBillingBtn) headerBillingBtn.classList.toggle('active', sectionName === 'billing');
   
   // Set current title
   const title = document.getElementById('current-section-title');
@@ -1520,6 +1525,7 @@ function showDashboardSection(sectionName) {
     const titles = {
       'dashboard': 'Dashboard Statistics',
       'products': 'Manage Products',
+      'billing': 'Billing / Invoice',
       'categories': 'Manage Catalog Categories',
       'reviews': 'Manage Product Reviews',
       'enquiries': 'Customer Enquiries Portal',
@@ -1532,6 +1538,9 @@ function showDashboardSection(sectionName) {
       'settings': 'Settings'
     };
     title.innerText = titles[sectionName] || 'Administration';
+    // Scope a smaller page title to the Billing view only (see css/billing.css);
+    // removed for every other section so their titles are unaffected.
+    title.classList.toggle('billing-page-title', sectionName === 'billing');
   }
 
   // Per-section header control clusters (products / categories / coupons /
@@ -1566,6 +1575,8 @@ function showDashboardSection(sectionName) {
     updateDashboardStats();
   } else if (sectionName === 'products') {
     renderProductsTable();
+  } else if (sectionName === 'billing') {
+    if (typeof renderBillingSection === 'function') renderBillingSection();
   } else if (sectionName === 'categories') {
     renderCategoriesTable();
   } else if (sectionName === 'reviews') {
