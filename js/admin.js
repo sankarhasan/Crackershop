@@ -1655,6 +1655,9 @@ function updateDashboardStats() {
   // Sales Performance metric — use selected date for daily view
   updateSalesGraph();
 
+  // 6-Month Sales Performance graph (bottom row, right card)
+  updateMonthlySalesGraph();
+
   // Render mini calendar
   renderMiniCalendar();
 }
@@ -1712,17 +1715,44 @@ function parseEnquiryDate(input) {
   return new Date();
 }
 
+// Extract the confirmed revenue amount from a single enquiry, using the
+// same priority chain as the dashboard revenue pool:
+//   1) structured financialBreakdown.grandTotal
+//   2) sum of cartItems[].totalPrice
+//   3) "Total Est: ₹XXXX" parsed from the message string
+function extractEnquiryRevenue(enq) {
+  if (enq.financialBreakdown && typeof enq.financialBreakdown.grandTotal === 'number') {
+    return enq.financialBreakdown.grandTotal;
+  }
+  if (enq.cartItems && enq.cartItems.length > 0) {
+    return enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  }
+  if (enq.message && enq.message.includes('Total Est: \u20B9')) {
+    const parts = enq.message.split('Total Est: \u20B9');
+    if (parts.length > 1) {
+      const val = parseInt(parts[1].replace(/,/g, ''));
+      if (!isNaN(val)) return val;
+    }
+  }
+  return 0;
+}
+
+// Is this enquiry in a revenue-counting (confirmed) state?
+function isConfirmedEnquiry(enq) {
+  const CONFIRMED_STATUSES = ['resolved', 'packing', 'dispatched', 'in_transit', 'reached_destination', 'delivered'];
+  const status = (enq.status || '').toLowerCase();
+  const trackingStatus = (enq.trackingStatus || '').toLowerCase();
+  const effectiveStatus = trackingStatus || status;
+  return CONFIRMED_STATUSES.includes(effectiveStatus);
+}
+
 // Helper: sum confirmed-order revenue for a specific date
 function getSalesForDate(targetDate) {
-  const CONFIRMED_STATUSES = ['resolved', 'packing', 'dispatched', 'in_transit', 'reached_destination', 'delivered'];
   const enquiries = firestoreEnquiries;
   let total = 0;
 
   enquiries.forEach(enq => {
-    const status = (enq.status || '').toLowerCase();
-    const trackingStatus = (enq.trackingStatus || '').toLowerCase();
-    const effectiveStatus = trackingStatus || status;
-    if (!CONFIRMED_STATUSES.includes(effectiveStatus)) return;
+    if (!isConfirmedEnquiry(enq)) return;
 
     // Check if enquiry date matches target date using robust parser (pass full item)
     const itemDate = parseEnquiryDate(enq);
@@ -1731,21 +1761,24 @@ function getSalesForDate(targetDate) {
       itemDate.getMonth() === targetDate.getMonth() &&
       itemDate.getFullYear() === targetDate.getFullYear()
     ) {
-      // Extract amount
-      if (enq.financialBreakdown && typeof enq.financialBreakdown.grandTotal === 'number') {
-        total += enq.financialBreakdown.grandTotal;
-      } else if (enq.cartItems && enq.cartItems.length > 0) {
-        total += enq.cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
-      } else if (enq.message && enq.message.includes('Total Est: \u20B9')) {
-        const parts = enq.message.split('Total Est: \u20B9');
-        if (parts.length > 1) {
-          const val = parseInt(parts[1].replace(/,/g, ''));
-          if (!isNaN(val)) total += val;
-        }
-      }
+      total += extractEnquiryRevenue(enq);
     }
   });
 
+  return total;
+}
+
+// Helper: sum confirmed-order revenue for an entire calendar month.
+function getSalesForMonth(year, monthIdx) {
+  const enquiries = firestoreEnquiries;
+  let total = 0;
+  enquiries.forEach(enq => {
+    if (!isConfirmedEnquiry(enq)) return;
+    const d = parseEnquiryDate(enq);
+    if (d.getFullYear() === year && d.getMonth() === monthIdx) {
+      total += extractEnquiryRevenue(enq);
+    }
+  });
   return total;
 }
 
@@ -2040,6 +2073,187 @@ function hideSalesHover(chartEl) {
   if (dot) dot.setAttribute('opacity', '0');
 }
 
+/* ==========================================================================
+   6-Month Sales Performance Graph (Monthly Rollup + Hover Tooltip)
+   Reads actual confirmed-order revenue per calendar month via getSalesForMonth.
+   Independent of the day-wise graph state so neither render clobbers the other.
+   ========================================================================== */
+let _monthlyGraphPoints = [];
+let _monthlyGraphData = [];
+let _monthlyGraphLabels = [];
+let _monthlyGraphMonthsFull = [];
+let _monthlyHoverBound = false;
+
+function updateMonthlySalesGraph() {
+  const chartEl = document.getElementById('dash-monthly-chart');
+  const labelsEl = document.getElementById('dash-monthly-labels');
+  const valueEl = document.getElementById('dash-monthly-value');
+  const changeEl = document.getElementById('dash-monthly-change');
+  if (!chartEl) return;
+
+  const now = new Date();
+
+  // Last 6 consecutive calendar months, oldest -> newest.
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ year: d.getFullYear(), month: d.getMonth() });
+  }
+  const data = months.map(m => getSalesForMonth(m.year, m.month));
+  const labels = months.map(m => new Date(m.year, m.month, 1).toLocaleDateString('en-GB', { month: 'short' }));
+  const monthsFull = months.map(m => new Date(m.year, m.month, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }));
+
+  // 6-month total vs the immediately preceding 6-month period.
+  const currentTotal = data.reduce((a, b) => a + b, 0);
+  let prevTotal = 0;
+  for (let i = 11; i >= 6; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    prevTotal += getSalesForMonth(d.getFullYear(), d.getMonth());
+  }
+
+  const masked = window._showRevenue === false;
+  if (valueEl) {
+    valueEl.innerText = masked ? '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022' : `\u20B9${currentTotal.toLocaleString('en-IN')}`;
+  }
+  if (changeEl) {
+    if (prevTotal > 0) {
+      const pct = Math.round(((currentTotal - prevTotal) / prevTotal) * 100);
+      let trend;
+      if (pct > 0) trend = `\u2191 +${pct}%`;
+      else if (pct < 0) trend = `\u2193 ${pct}%`;
+      else trend = '0%';
+      const cls = pct > 0 ? 'dash-exec-trend-up' : pct < 0 ? 'dash-exec-trend-down' : 'dash-exec-trend-neutral';
+      changeEl.innerHTML = `<span class="${cls}">${trend}</span> <span class="dash-exec-metric-sub">vs. previous 6 months</span>`;
+    } else {
+      // No prior-period data -> do not fabricate a percentage.
+      changeEl.innerHTML = `<span class="dash-exec-trend-neutral">--</span> <span class="dash-exec-metric-sub">vs. previous 6 months</span>`;
+    }
+  }
+
+  // SVG geometry (matches the day-wise chart's coordinate system).
+  const svgW = 500, baselineY = 120, topY = 20;
+  const maxVal = Math.max(...data, 1);
+  const points = data.map((val, idx) => {
+    const x = (idx / 5) * svgW;
+    const y = val === 0 ? baselineY : baselineY - ((val / maxVal) * (baselineY - topY));
+    return { x, y };
+  });
+  const pathD = points.reduce((acc, pt, i) => i === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`, '');
+  const fillD = `${pathD} L ${points[5].x} 150 L ${points[0].x} 150 Z`;
+  const lineColor = '#10B981';
+  const allZero = data.every(v => v === 0);
+
+  _monthlyGraphPoints = points;
+  _monthlyGraphData = data;
+  _monthlyGraphLabels = labels;
+  _monthlyGraphMonthsFull = monthsFull;
+
+  let svgHtml = `<svg viewBox="0 0 500 150" class="dash-exec-svg" preserveAspectRatio="none">`;
+  if (allZero) {
+    svgHtml += `<line x1="0" y1="${baselineY}" x2="500" y2="${baselineY}" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>`;
+    svgHtml += `<circle cx="500" cy="${baselineY}" r="4" fill="#64748B"/>`;
+  } else {
+    svgHtml += `<defs><linearGradient id="monthlyGrad" x1="0" y1="0" x2="0" y2="1">`;
+    svgHtml += `<stop offset="0%" stop-color="#10B981" stop-opacity="0.35"/>`;
+    svgHtml += `<stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>`;
+    svgHtml += `</linearGradient></defs>`;
+    svgHtml += `<path d="${fillD}" fill="url(#monthlyGrad)"/>`;
+    svgHtml += `<path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    // Circular data-point markers on every month.
+    points.forEach(pt => { svgHtml += `<circle cx="${pt.x}" cy="${pt.y}" r="4" fill="#0B1120" stroke="${lineColor}" stroke-width="2.5"/>`; });
+  }
+  // Hover overlay layer (guideline + glow + active dot).
+  svgHtml += `<line class="sales-guide-line" x1="0" y1="0" x2="0" y2="150" stroke="${lineColor}" stroke-width="1.5" stroke-dasharray="4 3" opacity="0" pointer-events="none"/>`;
+  svgHtml += `<circle class="sales-active-glow" cx="0" cy="0" r="11" fill="${lineColor}" opacity="0" pointer-events="none"/>`;
+  svgHtml += `<circle class="sales-active-dot" cx="0" cy="0" r="6" fill="${lineColor}" stroke="#0B1120" stroke-width="2.5" opacity="0" pointer-events="none"/>`;
+  svgHtml += `</svg>`;
+  chartEl.innerHTML = svgHtml;
+
+  if (labelsEl) {
+    labelsEl.innerHTML = labels.map(l => `<span>${l}</span>`).join('');
+  }
+
+  setupMonthlyGraphInteraction();
+}
+
+function setupMonthlyGraphInteraction() {
+  const chartEl = document.getElementById('dash-monthly-chart');
+  if (!chartEl) return;
+  _ensureSalesTooltip(chartEl);
+  if (_monthlyHoverBound) return;
+  _monthlyHoverBound = true;
+
+  const move = (e) => updateMonthlyHover(e, chartEl);
+  chartEl.addEventListener('mousemove', move);
+  chartEl.addEventListener('mouseleave', () => hideSalesHover(chartEl));
+  chartEl.addEventListener('touchstart', move, { passive: true });
+  chartEl.addEventListener('touchmove', move, { passive: true });
+  document.addEventListener('touchstart', (e) => {
+    if (!chartEl.contains(e.target)) hideSalesHover(chartEl);
+  }, { passive: true });
+}
+
+function updateMonthlyHover(e, chartEl) {
+  if (!_monthlyGraphPoints || _monthlyGraphPoints.length === 0) return;
+  const guide = chartEl.querySelector('.sales-guide-line');
+  const glow = chartEl.querySelector('.sales-active-glow');
+  const dot = chartEl.querySelector('.sales-active-dot');
+  const tip = _ensureSalesTooltip(chartEl);
+  if (!guide || !dot) return;
+
+  const rect = chartEl.getBoundingClientRect();
+  const clientX = (e.touches && e.touches.length) ? e.touches[0].clientX : e.clientX;
+  const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  const svgX = frac * 500;
+
+  let idx = 0, minDist = Infinity;
+  for (let i = 0; i < _monthlyGraphPoints.length; i++) {
+    const d = Math.abs(_monthlyGraphPoints[i].x - svgX);
+    if (d < minDist) { minDist = d; idx = i; }
+  }
+
+  const p = _monthlyGraphPoints[idx];
+  const val = _monthlyGraphData[idx];
+
+  guide.setAttribute('x1', p.x); guide.setAttribute('x2', p.x);
+  guide.setAttribute('y1', p.y); guide.setAttribute('y2', 150);
+  guide.setAttribute('opacity', '1');
+  dot.setAttribute('cx', p.x); dot.setAttribute('cy', p.y); dot.setAttribute('opacity', '1');
+  if (glow) { glow.setAttribute('cx', p.x); glow.setAttribute('cy', p.y); glow.setAttribute('opacity', '0.25'); }
+
+  // Month-over-month % change (only when a prior month exists with data).
+  let changeHtml = '';
+  if (idx > 0) {
+    const prev = _monthlyGraphData[idx - 1];
+    if (prev > 0) {
+      const pct = ((val - prev) / prev) * 100;
+      const rounded = Math.abs(pct).toFixed(1);
+      if (pct > 0) changeHtml = `<div class="sht-change sht-up">\u2191 +${rounded}%</div>`;
+      else if (pct < 0) changeHtml = `<div class="sht-change sht-down">\u2193 -${rounded}%</div>`;
+      else changeHtml = `<div class="sht-change sht-neutral">\u2192 0%</div>`;
+    } else if (val > 0) {
+      changeHtml = `<div class="sht-change sht-up">\u2191 +100%</div>`;
+    }
+  }
+
+  const masked = window._showRevenue === false;
+  const salesText = masked ? '\u20B9\u2022\u2022\u2022\u2022\u2022' : `\u20B9${val.toLocaleString('en-IN')}`;
+  tip.innerHTML = `<div class="sht-date">${_monthlyGraphMonthsFull[idx] || _monthlyGraphLabels[idx]}</div>`
+    + `<div class="sht-sales">${salesText}</div>`
+    + changeHtml;
+  tip.style.display = 'block';
+
+  const pxX = (p.x / 500) * rect.width;
+  const pxY = (p.y / 150) * rect.height;
+  const tipW = tip.offsetWidth, tipH = tip.offsetHeight;
+  let left = pxX - tipW / 2;
+  left = Math.max(2, Math.min(rect.width - tipW - 2, left));
+  let top = pxY - tipH - 12;
+  if (top < -28) top = pxY + 14;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+
 /* Eye-icon toggle: mask/unmask the Est. Revenue Pool value in the header pill. */
 function toggleRevenueVisibility() {
   // Default is visible (true); toggle to false hides.
@@ -2072,6 +2286,9 @@ function toggleRevenueVisibility() {
       ? `\u20B9${salesVal.toLocaleString('en-IN')}`
       : '\u20B9\u2022\u2022\u2022\u2022\u2022\u2022';
   }
+
+  // Re-render the 6-month graph so its summary + tooltip respect the mask state.
+  if (typeof updateMonthlySalesGraph === 'function') updateMonthlySalesGraph();
 }
 
 /* ==========================================================================
@@ -2176,39 +2393,47 @@ function calendarReset() {
 function renderRecentEnquiriesMiniTable() {
   const tbody = document.getElementById('recent-enquiries-tbody');
   if (!tbody) return;
-  
-  const enquiries = firestoreEnquiries;
-  
-  // Sort by date descending
-  const sorted = [...enquiries].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const recent = sorted.slice(0, 6);
-  
+
+  // "Active" reuses the app's own Enquiries-Portal rule: packed/shipped orders
+  // leave the portal (isEnquiryInTracking), so only new/contacted/confirmed
+  // records qualify. Completed & tracked stages are excluded by design.
+  const active = firestoreEnquiries.filter(enq => !isEnquiryInTracking(enq));
+
+  // Sort by creation date (snapshot maps `date` from the creation timestamp),
+  // newest first; capped at 8 preview rows — nothing is deleted from Firestore.
+  const sorted = [...active].sort((a, b) => parseEnquiryDate(b.date || b) - parseEnquiryDate(a.date || a));
+  const recent = sorted.slice(0, 8);
+
   tbody.innerHTML = '';
-  
+
   if (recent.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No recent active enquiries found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No recent active enquiries found.</td></tr>';
     return;
   }
-  
+
+  // Display-layer mapping only: the Confirm button in the Enquiries Portal
+  // stores status 'resolved' (see the <option value="resolved">Confirm</option>
+  // dropdown), so the preview shows CONFIRM instead of RESOLVED. The stored
+  // value, revenue-pool logic and enquiry tabs stay untouched.
+  const MINI_STATUS_LABELS = { resolved: 'CONFIRM' };
+
   recent.forEach(enq => {
-    const formattedDate = new Date(enq.date).toLocaleDateString('en-IN', {
-      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-    });
-    
-    // Display clean branded Order ID
+    // Display clean branded Order ID (kept whole on one line)
     const displayOrderId = enq.orderId || ('#' + (enq.docId || '').substring(0, 6).toUpperCase());
-    
-    // Determine effective status for badge colouring
-    const effectiveStatus = (enq.trackingStatus || enq.status || 'new').toUpperCase();
-    const statusClass = (enq.trackingStatus || enq.status || 'new').toLowerCase();
-    
+
+    // Actual order amount via the shared revenue extractor (no fabricated defaults).
+    const amount = extractEnquiryRevenue(enq);
+
+    // Actual stored status drives the colour; only the label is remapped.
+    const rawStatus = String(enq.status || 'new').toLowerCase().replace(/\s+/g, '_');
+    const displayLabel = MINI_STATUS_LABELS[rawStatus] || rawStatus.toUpperCase().replace(/_/g, ' ');
+
     tbody.innerHTML += `
       <tr>
-        <td>#${escapeHtml(displayOrderId)}</td>
+        <td>${escapeHtml(displayOrderId.startsWith('#') ? displayOrderId : '#' + displayOrderId)}</td>
         <td><strong>${escapeHtml(enq.name)}</strong></td>
-        <td><a href="https://wa.me/91${enq.phone}" target="_blank" class="enq-wa-link"><i class="fa-solid fa-phone"></i> ${escapeHtml(enq.phone)}</a></td>
-        <td>${formattedDate}</td>
-        <td><span class="status-badge ${statusClass}">${effectiveStatus}</span></td>
+        <td class="enq-amount-cell">\u20B9${amount.toLocaleString('en-IN')}</td>
+        <td><span class="enq-status ${escapeHtml(rawStatus)}">${escapeHtml(displayLabel)}</span></td>
       </tr>
     `;
   });

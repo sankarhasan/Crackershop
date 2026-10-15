@@ -336,37 +336,54 @@
 
         </div>
 
-        <!-- Row 3: Recent Active Enquiries Table (Full Width) -->
-        <div class="recent-enquiries-box">
-          <div class="panel-header">
-            <h3>Recent Active Enquiries</h3>
-            <button class="btn-admin btn-admin-secondary btn-admin-sm" onclick="showDashboardSection('enquiries')">View All Enquiries</button>
+        <!-- Row 3: Bottom 2-Column Grid — Recent Active Enquiries (40%) + 6-Month Sales Graph (60%) -->
+        <div class="dash-bottom-grid">
+
+          <!-- Left Card: Recent Active Enquiries Table -->
+          <div class="recent-enquiries-box dash-enquiries-card">
+            <div class="panel-header">
+              <h3>Recent Active Enquiries</h3>
+              <button class="btn-admin btn-admin-secondary btn-admin-sm" onclick="showDashboardSection('enquiries')">View All Enquiries</button>
+            </div>
+            <div class="table-responsive">
+              <!-- Auto column sizing (no colgroup / fixed layout) so IDs, names
+                   and amounts are never clipped inside the 40% card. -->
+              <table class="table-admin table-recent-enquiries">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-enquiries-tbody">
+                  <tr>
+                    <td colspan="4" class="text-center">Loading recent enquiries...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div class="table-responsive">
-            <table class="table-admin">
-              <colgroup>
-                <col style="width:18%">
-                <col style="width:22%">
-                <col style="width:18%">
-                <col style="width:22%">
-                <col style="width:20%">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Customer Name</th>
-                  <th>WhatsApp</th>
-                  <th>Date Submitted</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="recent-enquiries-tbody">
-                <tr>
-                  <td colspan="5" class="text-center">Loading recent enquiries...</td>
-                </tr>
-              </tbody>
-            </table>
+
+          <!-- Right Card: 6-Month Sales Performance Graph -->
+          <div class="dash-exec-card dash-monthly-card">
+            <div class="dash-exec-sales-top">
+              <div class="dash-exec-card-header dash-exec-header-tight">
+                <h3>Sales Performance (Last 6 Months)</h3>
+                <span class="dash-exec-badge">6 Months</span>
+              </div>
+              <div class="dash-exec-metric dash-exec-metric-tight">
+                <h2 class="dash-exec-metric-value" id="dash-monthly-value">&#8377;0</h2>
+                <p class="dash-exec-metric-change" id="dash-monthly-change"><span class="dash-exec-trend-neutral">--</span> <span class="dash-exec-metric-sub">vs. previous 6 months</span></p>
+              </div>
+            </div>
+            <div class="dash-exec-chart-wrap">
+              <div class="dash-exec-chart dash-monthly-chart" id="dash-monthly-chart"></div>
+              <div class="dash-exec-xaxis-labels" id="dash-monthly-labels"></div>
+            </div>
           </div>
+
         </div>
       </section>
 
