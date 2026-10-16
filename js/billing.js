@@ -24,7 +24,12 @@
   var cart = [];                  // [{productId,code,name,unitPrice(original),finalUnitPrice,qty,discountPerUnit(derived)}] // Rate & Final Rate come from the product record; only Qty is editable.
   var billingSettings = null;     // shop billing profile (see DEFAULT_SETTINGS)
   var listenersAttached = false;  // static input listeners wired once
-  var productsBound = false;      // Firestore snapshot listeners bound once
+  var billingDataLoading = false; // guards a single in-flight cache-miss fetch
+  // localStorage cache keys — Billing reads products/categories from here so
+  // repeat visits cost ZERO Firestore reads. Admin product/category writes
+  // call invalidateBillingCache() (js/data.js) which removes these keys.
+  var BILLING_PRODUCTS_CACHE_KEY = 'cachedProducts';
+  var BILLING_CATEGORIES_CACHE_KEY = 'cachedBillingCategories';
   var isSubmitting = false;       // duplicate-submit guard
   var currentView = 'create';     // create | history | settings
 
@@ -201,7 +206,7 @@
   // Called from js/admin.js showDashboardSection('billing').
   function renderBillingSection() {
     initBillingPage();
-    bindProductSnapshots();
+    loadBillingData();
     updateBillDateTime();
     clearSearch();
     loadBillingSettings().then(function () {
@@ -212,28 +217,75 @@
     });
   }
 
-  /* ---------------------- Data binding ---------------------- */
-  function bindProductSnapshots() {
-    if (productsBound || !window.db) return;
-    productsBound = true;
+  /* ---------------------- Data binding (cache-first) ---------------------- */
+  // Safely read + parse a JSON array from localStorage (null on miss/corrupt).
+  function readBillingCache(key) {
     try {
-      window.db.collection('products').onSnapshot(function (snap) {
-        billingProducts = snap.docs.map(function (d) { return Object.assign({ docId: d.id }, d.data()); });
-        refreshDropdownIfOpen();
-      }, function (err) {
-        console.error('[Billing] products listener failed', err);
-        productsBound = false;
-      });
-
-      window.db.collection('categories').onSnapshot(function (snap) {
-        // Categories stay loaded so each result can show its category name —
-        // only the standalone category FILTER dropdown was removed from billing.
-        billingCategories = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
-      }, function () { /* categories optional */ });
+      var raw = localStorage.getItem(key);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
     } catch (e) {
-      console.error('[Billing] snapshot bind error', e);
-      productsBound = false;
+      return null;
     }
+  }
+
+  // Cache-first loader. If 'cachedProducts' exists in localStorage we use it
+  // directly (ZERO Firebase reads). Only on a cache miss (first visit after an
+  // admin product/category change) do we hit the network ONCE per collection
+  // with a one-time .get(), then persist the result to localStorage.
+  function loadBillingData() {
+    var cachedProducts = readBillingCache(BILLING_PRODUCTS_CACHE_KEY);
+
+    if (cachedProducts) {
+      // Cache hit — render instantly, no Firestore read at all.
+      billingProducts = cachedProducts;
+      var cachedCategories = readBillingCache(BILLING_CATEGORIES_CACHE_KEY);
+      if (cachedCategories) {
+        billingCategories = cachedCategories;
+      } else {
+        fetchBillingCategoriesOnce();
+      }
+      refreshDropdownIfOpen();
+      return;
+    }
+
+    // Cache miss — single fetch, then cache the result.
+    fetchBillingProductsOnce();
+    fetchBillingCategoriesOnce();
+  }
+
+  function fetchBillingProductsOnce() {
+    if (billingDataLoading || !window.db) {
+      if (!window.db) console.warn('[Billing] No Firestore connection & empty cache.');
+      return;
+    }
+    billingDataLoading = true;
+    window.db.collection('products')
+      .get({ source: 'server' })
+      .then(function (snap) {
+        billingProducts = snap.docs.map(function (d) { return Object.assign({ docId: d.id }, d.data()); });
+        try { localStorage.setItem(BILLING_PRODUCTS_CACHE_KEY, JSON.stringify(billingProducts)); } catch (e) { /* quota */ }
+        refreshDropdownIfOpen();
+      })
+      .catch(function (err) {
+        console.error('[Billing] products fetch failed', err);
+      })
+      .finally(function () {
+        billingDataLoading = false;
+      });
+  }
+
+  // Categories are cached the same way so a repeat visit stays at ZERO reads.
+  function fetchBillingCategoriesOnce() {
+    if (!window.db) return;
+    window.db.collection('categories')
+      .get({ source: 'server' })
+      .then(function (snap) {
+        billingCategories = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        try { localStorage.setItem(BILLING_CATEGORIES_CACHE_KEY, JSON.stringify(billingCategories)); } catch (e) { /* quota */ }
+      })
+      .catch(function () { /* categories optional */ });
   }
 
   /* ---------------------- Product search autocomplete ---------------------- */

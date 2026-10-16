@@ -3350,6 +3350,7 @@ async function handleCategoryChangeFirestore(oldProductId, updatedProduct) {
   const filtered = cached.filter(p => String(p.id) !== String(oldProductId));
   filtered.push(updatedProduct);
   localStorage.setItem('jcs_products', JSON.stringify(filtered));
+  invalidateBillingCache();
 }
 
 /**
@@ -3555,6 +3556,7 @@ function syncReindexToFirestore(categories, products, categoryRenames, productRe
 
   return batch.commit().then(() => {
     console.log('[Firestore] ✓ Re-index synced:', categoryRenames.length, 'category rename(s),', productRenames.length, 'product rename(s).');
+    invalidateBillingCache();
   });
 }
 

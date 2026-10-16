@@ -131,6 +131,20 @@ function saveProducts(products) {
   localStorage.setItem('jcs_products', JSON.stringify(products));
 }
 
+/**
+ * Invalidate the Billing page's localStorage product/category cache.
+ * Called after any SUCCESSFUL Firestore product or category write so the next
+ * time the Admin opens Billing it sees an empty cache and re-fetches fresh data
+ * (one network read pass) instead of serving a stale snapshot. Safe to call
+ * even when the cache is already empty. Keys must match js/billing.js.
+ */
+function invalidateBillingCache() {
+  try {
+    localStorage.removeItem('cachedProducts');
+    localStorage.removeItem('cachedBillingCategories');
+  } catch (e) { /* localStorage unavailable — nothing to invalidate */ }
+}
+
 function getTestimonials() {
   initData();
   return JSON.parse(localStorage.getItem('jcs_testimonials'));
@@ -537,6 +551,7 @@ function saveProductToFirestore(product) {
         cached.push(product);
       }
       localStorage.setItem('jcs_products', JSON.stringify(cached));
+      invalidateBillingCache();
     })
     .catch(err => {
       console.error('[Firestore] Failed to save product:', err);
@@ -557,6 +572,7 @@ function deleteProductFromFirestore(productId) {
       // Update localStorage cache (string ID comparison — see saveProductToFirestore)
       const cached = getProducts().filter(p => String(p.id) !== String(productId));
       localStorage.setItem('jcs_products', JSON.stringify(cached));
+      invalidateBillingCache();
     })
     .catch(err => {
       console.error('[Firestore] Failed to delete product:', err);
@@ -584,6 +600,7 @@ function seedFirestoreProducts(sourceProducts) {
 
   return batch.commit().then(() => {
     localStorage.setItem('jcs_products', JSON.stringify(productsToSeed));
+    invalidateBillingCache();
     console.log('[Firestore] Seeded', productsToSeed.length, 'products.');
   });
 }
@@ -603,6 +620,7 @@ function saveAllProductsToFirestore(products) {
 
   return batch.commit().then(() => {
     localStorage.setItem('jcs_products', JSON.stringify(products));
+    invalidateBillingCache();
   })
   .catch(err => {
     console.error('[Firestore] Failed to bulk save products:', err);
@@ -846,6 +864,7 @@ function saveCategoryToFirestore(category) {
         cached.push(category);
       }
       localStorage.setItem('jcs_categories', JSON.stringify(cached));
+      invalidateBillingCache();
     })
     .catch(err => {
       console.error('[data.js] ✗ Firestore set() FAILED for category:', err);
@@ -867,6 +886,7 @@ function deleteCategoryFromFirestore(categoryId) {
       // Update localStorage cache (string ID comparison — see saveCategoryToFirestore)
       const cached = getCategories().filter(c => String(c.id) !== String(categoryId));
       localStorage.setItem('jcs_categories', JSON.stringify(cached));
+      invalidateBillingCache();
     })
     .catch(err => {
       console.error('[Firestore] Failed to delete category:', err);
@@ -893,6 +913,7 @@ function seedFirestoreCategories(sourceCategories) {
 
   return batch.commit().then(() => {
     localStorage.setItem('jcs_categories', JSON.stringify(categoriesToSeed));
+    invalidateBillingCache();
     console.log('[Firestore] Seeded', categoriesToSeed.length, 'categories.');
   });
 }
@@ -911,6 +932,7 @@ function saveAllCategoriesToFirestore(categories) {
 
   return batch.commit().then(() => {
     localStorage.setItem('jcs_categories', JSON.stringify(categories));
+    invalidateBillingCache();
   })
   .catch(err => {
     console.error('[Firestore] Failed to bulk save categories:', err);
