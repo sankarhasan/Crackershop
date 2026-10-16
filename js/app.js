@@ -1617,8 +1617,63 @@ function renderTestimonialsSlider() {
    6. Shopping Cart API & Sticky Drawer Side
    ========================================================================== */
 function toggleCartDrawer() {
+  // Re-check the cart against the live catalog each time the drawer is opened
+  // so items the admin deleted or marked Out of Stock vanish before the
+  // customer reviews them (updateCartUI() inside recalc's subtotal + min order).
+  validateCartAgainstCatalog();
   document.getElementById('cart-drawer').classList.toggle('active');
   document.getElementById('cart-drawer-overlay').classList.toggle('active');
+}
+
+/**
+ * Auto-cleanup: cross-reference the stored cart against the latest ACTIVE
+ * products and drop any line that is no longer orderable.
+ *
+ * Removes a cart line when its product id is missing from the catalog (admin
+ * deleted it) OR the fetched product is now out of stock (inStock === false).
+ * Free Spin-Wheel gift lines are NEVER touched — they have no catalog product.
+ *
+ * On any removal it persists the cleaned cart to localStorage, re-renders the
+ * cart UI (which recalculates the subtotal and re-evaluates the "Minimum order
+ * required" warning + checkout gate) and shows a brief toast. Returns true when
+ * at least one item was removed.
+ *
+ * Safe to call after a product fetch / real-time update and on drawer open.
+ */
+function validateCartAgainstCatalog() {
+  if (!Array.isArray(cart) || cart.length === 0) return false;
+
+  // Latest catalog from the localStorage mirror hydrated by the Firestore
+  // real-time products listener.
+  const products = getProducts();
+  // Guard against a transient/empty catalog (e.g. hydration not finished): an
+  // empty list here would wrongly strip every line, so skip until it's loaded.
+  if (!Array.isArray(products) || products.length === 0) return false;
+
+  // Index by STRING id so number/string ID drift never false-removes an item.
+  const catalogById = {};
+  products.forEach(function (p) { catalogById[String(p.id)] = p; });
+
+  const removedNames = [];
+  const cleaned = cart.filter(function (item) {
+    if (isGiftCartItem(item)) return true; // keep free-gift lines
+    const prod = catalogById[String(item.id)];
+    const stillAvailable = !!prod && prod.inStock !== false;
+    if (!stillAvailable) removedNames.push(item.name || String(item.id));
+    return stillAvailable;
+  });
+
+  if (cleaned.length === cart.length) return false; // nothing changed
+
+  cart = cleaned;
+  saveCartToStorage();
+  updateCartUI();
+
+  if (typeof showToast === 'function') {
+    showToast('Some items in your cart were removed as they are no longer available.', 'info');
+  }
+  console.log('[Cart] Auto-removed unavailable item(s):', removedNames);
+  return true;
 }
 
 function loadCartFromStorage() {

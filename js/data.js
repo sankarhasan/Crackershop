@@ -1672,6 +1672,12 @@ function listenProductsRealtime() {
         }
       });
 
+      // Auto-cleanup the cart: drop any line whose product was deleted or is now
+      // out of stock, then re-render + warn. Defined in js/app.js (storefront).
+      if (typeof validateCartAgainstCatalog === 'function') {
+        validateCartAgainstCatalog();
+      }
+
       console.log('[Realtime] ✓ Products updated. Count:', products.length);
     }, (error) => {
       // Error callback — log but don't crash the app
