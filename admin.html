@@ -19,8 +19,6 @@
   <!-- Admin Stylesheet -->
   <link rel="stylesheet" href="css/admin.css">
 
-  <!-- Billing / Invoice module styles (POS layout + light print/PDF template) -->
-  <link rel="stylesheet" href="css/billing.css">
 
   <!-- jsPDF + AutoTable for the Price List PDF export — true vector text/borders,
        no canvas rasterization (jsdelivr; cdnjs is blocked by the CSP in vercel.json) -->
@@ -68,15 +66,6 @@
           <span class="brand-main">KPR</span>
           <span class="brand-sub">ADMIN PORTAL</span>
         </div>
-        <!-- Billing moved from the sidebar nav to the top header, immediately
-             right of the branding. Routes via the existing showDashboardSection
-             system and reflects its active state in js/admin.js. -->
-        <button type="button" class="header-billing-btn" id="header-billing-btn"
-                onclick="showDashboardSection('billing')"
-                title="Open Billing / Invoice" aria-label="Billing and Invoice">
-          <span class="header-billing-icon"><img src="Icons/price-list.png" alt="" onerror="this.onerror=null;this.style.display='none';"></span>
-          <span class="header-billing-label">Billing</span>
-        </button>
       </div>
       
       <nav class="sidebar-nav">
@@ -448,129 +437,6 @@
               </tr>
             </tbody>
           </table>
-        </div>
-      </section>
-
-      <!-- Section B2: Billing / Invoice (in-store POS) -->
-      <section id="section-billing" class="dashboard-section animate-fade" style="display: none;">
-        <!-- Sub-view tabs + New Bill + Product Search share the top nav row.
-             Billing Settings moved to the main Admin Settings page. -->
-        <div class="billing-subnav">
-          <!-- Action buttons grouped on the left; search + QTY take the
-               remaining flexible width with a capped max so they never run
-               under the right-side profile menu. -->
-          <div class="billing-actions-group">
-            <button type="button" class="billing-tab active" data-billing-view="create" onclick="switchBillingView('create')">Create New Bill</button>
-            <button type="button" class="billing-tab" data-billing-view="history" onclick="switchBillingView('history')">View Sales History</button>
-            <button type="button" class="btn-admin btn-admin-secondary billing-newbill-btn" onclick="resetBill()">New Bill</button>
-          </div>
-          <!-- Product search + quick-qty. Enter in search stages the product
-               and jumps to QTY; Enter in QTY adds it (js/billing.js). -->
-          <div class="billing-search-wrap" id="billing-search-wrap">
-            <input type="text" id="billing-search" class="form-control-admin billing-search-input"
-                   placeholder="Search product by name or code..."
-                   autocomplete="off" spellcheck="false" role="combobox"
-                   aria-expanded="false" aria-controls="billing-search-dropdown" aria-autocomplete="list">
-            <input type="text" id="billing-quick-qty" class="form-control-admin billing-quick-qty"
-                   value="1" inputmode="numeric" title="Quantity applied when the next product is added"
-                   placeholder="QTY" aria-label="Quick quantity">
-            <div class="billing-search-dropdown" id="billing-search-dropdown" role="listbox" style="display: none;"></div>
-          </div>
-        </div>
-
-        <!-- CREATE BILL VIEW -->
-        <div class="billing-view" id="billing-view-create">
-          <!-- FULL-WIDTH BILLING SECTION (single column — no left/right split) -->
-          <div class="billing-card billing-main-panel" id="billing-scroll-panel">
-            <!-- Invoice No. / Date-Time now sit on the right of the Customer
-                 Details heading; the number is pre-generated for this bill. -->
-            <div class="billing-customer-head">
-              <div class="billing-card-title billing-customer-title">Customer Details</div>
-              <div class="billing-bill-meta">
-                <div class="billing-meta-item"><span>Invoice No.</span><strong id="bill-invoice-preview">New walk-in bill</strong></div>
-                <div class="billing-meta-item"><span>Date / Time</span><strong id="bill-datetime">&mdash;</strong></div>
-              </div>
-            </div>
-            <div class="billing-customer-grid">
-              <input id="bill-cust-name" class="form-control-admin" placeholder="Customer name (optional)" autocomplete="off">
-              <input id="bill-cust-mobile" class="form-control-admin" placeholder="Mobile number (optional)" autocomplete="off">
-              <input id="bill-cust-address" class="form-control-admin" placeholder="Address (optional)" autocomplete="off">
-              <input id="bill-cust-gstin" class="form-control-admin" placeholder="GSTIN (optional)" autocomplete="off">
-            </div>
-
-            <div class="billing-card-title billing-cart-title">Cart</div>
-            <div class="billing-cart-wrap">
-              <table class="billing-cart-table">
-                <thead>
-                  <tr><th class="billing-cart-th-sno">S.No</th><th>Product Name &amp; Code</th><th class="billing-cart-th-center">Rate</th><th class="billing-cart-th-center">Discount</th><th class="billing-cart-th-center">Qty</th><th class="billing-cart-th-center">Final Rate</th><th class="billing-cart-th-center">Amount</th><th class="billing-cart-th-center" aria-label="Action"></th></tr>
-                </thead>
-                <tbody id="billing-cart-body">
-                  <tr class="billing-cart-empty"><td colspan="8">No items added yet.</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="billing-totals">
-              <div class="billing-totals-fields">
-                <label class="billing-bill-discount">Bill discount (&#8377;)
-                  <input type="number" id="bill-discount" class="form-control-admin" min="0" step="1" value="0">
-                </label>
-                <label class="billing-bill-received">Amount received (&#8377;)
-                  <input type="number" id="bill-received" class="form-control-admin" min="0" step="1" value="0">
-                </label>
-                <label class="billing-bill-method">Payment method
-                  <select id="bill-payment-method" class="form-control-admin">
-                    <option value="Cash">Cash</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Card">Card</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                  </select>
-                </label>
-                <label class="billing-bill-ref">Transaction ref (optional)
-                  <input type="text" id="bill-txn-ref" class="form-control-admin" placeholder="UTR / Ref no." autocomplete="off">
-                </label>
-              </div>
-              <div class="billing-totals-summary">
-                <div class="billing-sum-row"><span>Subtotal</span><strong id="bill-subtotal">&#8377;0</strong></div>
-                <div class="billing-sum-row"><span>Discount</span><strong id="bill-discount-total">&#8722; &#8377;0</strong></div>
-                <div class="billing-sum-row" id="bill-tax-row" style="display:none;"><span>GST</span><strong id="bill-tax">&#8377;0</strong></div>
-                <div class="billing-sum-row"><span>Round off</span><strong id="bill-roundoff">&#8377;0</strong></div>
-                <div class="billing-sum-row billing-grand"><span>Grand Total</span><strong id="bill-grand-total">&#8377;0</strong></div>
-                <div class="billing-sum-row"><span id="bill-balance-label">Balance due</span><strong id="bill-balance">&#8377;0</strong></div>
-              </div>
-            </div>
-
-            <div class="billing-finalize-actions">
-              <button type="button" class="btn-admin btn-admin-primary" id="bill-save-btn" onclick="saveBill(false)">Save Bill</button>
-              <button type="button" class="btn-admin btn-admin-primary" id="bill-save-print-btn" onclick="saveBill(true)">Save &amp; Print</button>
-              <button type="button" class="btn-admin btn-admin-secondary" onclick="downloadDraftPDF()">Download PDF</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- SALES HISTORY VIEW -->
-        <div class="billing-view" id="billing-view-history" style="display:none;">
-          <div class="billing-history-filters">
-            <input type="text" id="history-search" class="form-control-admin" placeholder="Search invoice no. or customer..." autocomplete="off">
-            <input type="date" id="history-from" class="form-control-admin">
-            <input type="date" id="history-to" class="form-control-admin">
-            <select id="history-payfilter" class="form-control-admin">
-              <option value="">All Payment Status</option>
-              <option value="Paid">Paid</option>
-              <option value="Partially Paid">Partially Paid</option>
-              <option value="Unpaid">Unpaid</option>
-            </select>
-          </div>
-          <div class="billing-history-scroll">
-            <table class="table-admin billing-history-table">
-              <thead>
-                <tr><th>Invoice</th><th>Date/Time</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Actions</th></tr>
-              </thead>
-              <tbody id="billing-history-body">
-                <tr><td colspan="7" class="text-center">Loading invoices&hellip;</td></tr>
-              </tbody>
-            </table>
-          </div>
         </div>
       </section>
 
@@ -1013,38 +879,6 @@
               <input type="password" id="settings-admin-password" class="form-control-admin settings-read-only" value="••••••••••" readonly autocomplete="off">
               <p class="settings-field-hint">Your password is never displayed, stored in plain text, or changeable from this page.</p>
             </div>
-          </div>
-        </div>
-
-        <!-- Shop Billing Profile — relocated from the old "Billing Settings"
-             tab on the billing screen (js/billing.js reads these same #bs-*
-             ids; saveBillingSettings() is exposed on window). -->
-        <div class="settings-card billing-settings-card">
-          <div class="settings-card-header">
-            <h3>Shop Billing Profile</h3>
-            <p class="settings-card-sub">These details print on every invoice. Nothing here is hardcoded &mdash; set your real shop address, GSTIN, etc.</p>
-          </div>
-          <div class="billing-settings-grid">
-            <label>Shop name<input id="bs-shop-name" class="form-control-admin"></label>
-            <label>Phone<input id="bs-shop-phone" class="form-control-admin"></label>
-            <label class="billing-span-2">Address<textarea id="bs-shop-address" class="form-control-admin" rows="2"></textarea></label>
-            <label>GSTIN (optional)<input id="bs-shop-gstin" class="form-control-admin" placeholder="Leave blank if not registered"></label>
-            <label>Logo path<input id="bs-shop-logo" class="form-control-admin" placeholder="Icons/Brand Logo png.png"></label>
-          </div>
-          <div class="billing-settings-divider"></div>
-          <div class="billing-settings-grid billing-tax-grid">
-            <label class="billing-tax-toggle">Enable GST
-              <select id="bs-tax-enabled" class="form-control-admin">
-                <option value="false">No (tax-free bills)</option>
-                <option value="true">Yes</option>
-              </select>
-            </label>
-            <label>GST rate % (when enabled)
-              <input type="number" id="bs-tax-rate" class="form-control-admin" min="0" max="100" step="0.5" value="0">
-            </label>
-          </div>
-          <div class="billing-settings-actions">
-            <button type="button" class="btn-admin btn-admin-primary" onclick="saveBillingSettings()">Save Settings</button>
           </div>
         </div>
       </section>
@@ -1529,6 +1363,5 @@
   <script src="js/firebase-config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/admin.js"></script>
-  <script src="js/billing.js"></script>
 </body>
 </html>

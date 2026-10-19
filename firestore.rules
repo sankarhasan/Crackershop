@@ -96,30 +96,6 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
-    // ---- Billing / Invoice module (in-store POS) ----
-    // Invoices and shop billing settings are strictly admin-only. Invoice
-    // numbers are generated randomly client-side (KPR-INV-XXXX), checked for
-    // uniqueness against this collection, then written with the number as the
-    // document ID via .create() under the admin token's `admin: true` claim.
-    match /invoices/{invoiceId} {
-      allow read, create, update, delete: if isAdmin();
-    }
-
-    // Legacy: sequential numbering counters from the old KPR-INV-YYYY-NNNNNN
-    // scheme. No longer read or written by the app; kept admin-readable only.
-    match /invoice_counters/{period} {
-      allow read, create, update: if isAdmin();
-      allow delete: if false;
-    }
-
-    // Shop billing profile (name, address, GSTIN, logo, tax config). Read is
-    // public so a printable/downloaded invoice can be rendered from any device;
-    // only an admin may change it.
-    match /billing_settings/{settingsId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
     // NOTE: Admin credentials live in Firebase Authentication ONLY — never
     // in Firestore. updateEmail()/updatePassword() are sensitive operations
     // that Firebase servers reject without recent reauthentication, so no

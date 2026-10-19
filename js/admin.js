@@ -491,6 +491,118 @@ function adminProfileDownloadPDF() {
   downloadPriceListPDF();
 }
 
+// "Export Products (CSV)" dropdown item: dismiss the menu, then run the
+// Firestore -> CSV backup export.
+function adminProfileExportCSV() {
+  toggleAdminProfileMenu(false);
+  exportProductsCSV();
+}
+
+/**
+ * Escapes a single value for CSV: wraps anything containing commas, quotes,
+ * newlines or leading/trailing spaces in double quotes (internal quotes are
+ * doubled per RFC 4180). Objects/arrays (e.g. Firestore Timestamps) are
+ * stringified first so nothing leaks raw JSON brackets into a cell.
+ */
+function csvEscapeValue(value) {
+  if (value === null || value === undefined) return '';
+  let str;
+  if (value instanceof Date) {
+    str = value.toISOString().slice(0, 10);
+  } else if (typeof value === 'object') {
+    // Firestore Timestamp docs carry toDate()
+    if (typeof value.toDate === 'function') {
+      str = value.toDate().toISOString().slice(0, 10);
+    } else {
+      str = JSON.stringify(value);
+    }
+  } else {
+    str = String(value);
+  }
+  if (/[",\r\n]/.test(str) || str !== str.trim()) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+/**
+ * "Export Products (CSV)" — fetches EVERY document from the Firestore
+ * 'products' collection (source: 'server' so the backup is never stale
+ * cache), maps the key fields to CSV columns and triggers a browser download
+ * named products_backup_YYYY-MM-DD.csv.
+ */
+async function exportProductsCSV() {
+  if (!window.db) {
+    showAdminToast('Firestore not connected. Reload the page and try again.', 'error');
+    return;
+  }
+
+  showAdminToast('Exporting products to CSV...', 'info');
+
+  try {
+    const snapshot = await window.db.collection('products')
+      .get({ source: 'server' });
+
+    if (snapshot.empty) {
+      showAdminToast('No products found to export.', 'error');
+      return;
+    }
+
+    // Fixed column order — every key field of the product schema.
+    const headers = [
+      'productCode', 'productName', 'category', 'rate', 'discount',
+      'finalRate', 'stock', 'inStock', 'brand', 'greenCracker',
+      'description', 'image'
+    ];
+
+    const rows = snapshot.docs.map(doc => {
+      const p = doc.data() || {};
+      return [
+        p.id || doc.id,            // productCode (e.g. "A1")
+        p.name,                    // productName
+        p.categoryId,              // category letter (e.g. "A")
+        p.originalPrice,           // rate (MRP before discount)
+        p.discount,                // discount label (e.g. "10% OFF")
+        p.price,                   // finalRate (after discount)
+        p.qty,                     // stock pack size / quantity
+        typeof p.inStock === 'boolean' ? (p.inStock ? 'Yes' : 'No') : p.inStock,
+        p.brand,
+        typeof p.greenCracker === 'boolean' ? (p.greenCracker ? 'Yes' : 'No') : p.greenCracker,
+        p.description,
+        p.image                    // image URL or base64 (may be long)
+      ].map(csvEscapeValue).join(',');
+    });
+
+    // Sort rows by productCode so the backup mirrors the admin table order.
+    rows.sort();
+
+    const csvContent = [headers.join(','), ...rows].join('\r\n');
+
+    // YYYY-MM-DD of today (local time)
+    const d = new Date();
+    const dateStr = d.getFullYear() + '-'
+      + String(d.getMonth() + 1).padStart(2, '0') + '-'
+      + String(d.getDate()).padStart(2, '0');
+
+    // UTF-8 BOM so Excel opens ₹ / Tamil characters correctly.
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `products_backup_${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showAdminToast(`products_backup_${dateStr}.csv downloaded (${snapshot.docs.length} products).`, 'success');
+    try { logActivity('EXPORT', 'Products exported to CSV', `${snapshot.docs.length} products`); } catch (e) { console.warn('[Activity]', e); }
+  } catch (err) {
+    console.error('[CSV Export] Failed:', err);
+    showAdminToast('Failed to export products CSV. Check console for details.', 'error');
+  }
+}
+
 document.addEventListener('mousedown', (e) => {
   const wrap = document.getElementById('adminProfileWrap');
   if (wrap && !wrap.contains(e.target)) toggleAdminProfileMenu(false);
@@ -1514,18 +1626,12 @@ function showDashboardSection(sectionName) {
   const activeLink = document.querySelector(`.sidebar-link[data-section="${sectionName}"]`);
   if (activeLink) activeLink.classList.add('active');
 
-  // Billing now lives in the top header (not the sidebar): reflect its active
-  // state on the header button so it highlights only while the billing view is open.
-  const headerBillingBtn = document.getElementById('header-billing-btn');
-  if (headerBillingBtn) headerBillingBtn.classList.toggle('active', sectionName === 'billing');
-  
   // Set current title
   const title = document.getElementById('current-section-title');
   if (title) {
     const titles = {
       'dashboard': 'Dashboard Statistics',
       'products': 'Manage Products',
-      'billing': 'Billing / Invoice',
       'categories': 'Manage Catalog Categories',
       'reviews': 'Manage Product Reviews',
       'enquiries': 'Customer Enquiries Portal',
@@ -1538,9 +1644,6 @@ function showDashboardSection(sectionName) {
       'settings': 'Settings'
     };
     title.innerText = titles[sectionName] || 'Administration';
-    // Scope a smaller page title to the Billing view only (see css/billing.css);
-    // removed for every other section so their titles are unaffected.
-    title.classList.toggle('billing-page-title', sectionName === 'billing');
   }
 
   // Per-section header control clusters (products / categories / coupons /
@@ -1575,8 +1678,6 @@ function showDashboardSection(sectionName) {
     updateDashboardStats();
   } else if (sectionName === 'products') {
     renderProductsTable();
-  } else if (sectionName === 'billing') {
-    if (typeof renderBillingSection === 'function') renderBillingSection();
   } else if (sectionName === 'categories') {
     renderCategoriesTable();
   } else if (sectionName === 'reviews') {
@@ -2709,9 +2810,6 @@ function openSettingsSection() {
   toggleAdminProfileMenu(false);
   showDashboardSection('settings');
   populateSettingsAccount();
-  // Shop Billing Profile now lives on this page too — pull the latest
-  // billing_settings values (exposed by js/billing.js).
-  if (typeof window.refreshBillingSettingsForm === 'function') window.refreshBillingSettingsForm();
 }
 
 function populateSettingsAccount() {
@@ -3350,7 +3448,6 @@ async function handleCategoryChangeFirestore(oldProductId, updatedProduct) {
   const filtered = cached.filter(p => String(p.id) !== String(oldProductId));
   filtered.push(updatedProduct);
   localStorage.setItem('jcs_products', JSON.stringify(filtered));
-  invalidateBillingCache();
 }
 
 /**
@@ -3556,7 +3653,6 @@ function syncReindexToFirestore(categories, products, categoryRenames, productRe
 
   return batch.commit().then(() => {
     console.log('[Firestore] ✓ Re-index synced:', categoryRenames.length, 'category rename(s),', productRenames.length, 'product rename(s).');
-    invalidateBillingCache();
   });
 }
 

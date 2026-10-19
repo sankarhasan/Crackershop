@@ -421,10 +421,9 @@ textarea.form-control-admin {
   gap: 16px;
   position: sticky;
   top: 0;
-  /* Must out-rank every sticky in-content bar below it (billing subnav /
-     enquiry filter bar use z-index 25–30 inside the same scroll container).
-     At equal z-index the later DOM element wins painting, which made the
-     billing search bar cover the open profile dropdown. */
+  /* Must out-rank every sticky in-content bar below it (enquiry filter bar
+     uses z-index 25–30 inside the same scroll container).
+     At equal z-index the later DOM element wins painting. */
   z-index: 100;
   /* negative side margins bleed the blurred bg past the container padding */
   margin: 0 -40px 20px;
@@ -726,6 +725,20 @@ textarea.form-control-admin {
 .admin-profile-menu-pdf .admin-profile-menu-icon {
   width: 16px;
   height: 16px;
+}
+
+/* CSV export item icon: Font Awesome glyph instead of an <img>. Center it in
+   the same 16px box the price-list image uses and inherit the item text color
+   so it matches the neighbouring dropdown entries perfectly. */
+.admin-profile-menu-csv-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 1;
+  color: inherit;
 }
 
 .admin-profile-menu-divider {
@@ -3389,6 +3402,7 @@ textarea.form-control-admin {
 
 .toast-admin.success { border-left: 4px solid var(--admin-success); }
 .toast-admin.error { border-left: 4px solid var(--admin-danger); }
+.toast-admin.info { border-left: 4px solid var(--admin-info); }
 .toast-admin.warning { border-left: 4px solid var(--admin-warning); }
 
 .toast-admin-close {
